@@ -12,9 +12,11 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 /**
- * Ensures a single root SUPER_ADMIN is provisioned when the system is initialized.
- * Does nothing if a SUPER_ADMIN already exists.
+ * Ensures a single root SUPER_ADMIN is provisioned and kept synchronized with environment credentials.
+ * Reads credentials securely from environment properties (e.g. .env).
  */
 @Component
 @RequiredArgsConstructor
@@ -44,27 +46,33 @@ public class AdminBootstrapRunner implements CommandLineRunner {
             return;
         }
 
-        if (userRepository.countByRole(Role.SUPER_ADMIN) > 0) {
-            log.info("SUPER_ADMIN account already exists, skipping bootstrap.");
-            return;
-        }
-
         if (adminEmail == null || adminEmail.isBlank() || adminPassword == null || adminPassword.isBlank()) {
-            throw new IllegalStateException(
-                    "Super admin bootstrap is enabled, but BOOTSTRAP_ADMIN_EMAIL or BOOTSTRAP_ADMIN_PASSWORD was not provided."
-            );
+            throw new IllegalStateException("BOOTSTRAP_ADMIN_EMAIL or BOOTSTRAP_ADMIN_PASSWORD was not provided while bootstrapping is enabled.");
         }
 
         if (adminPassword.length() < 8) {
-            throw new IllegalStateException(
-                    "Bootstrap admin password must be at least 8 characters long."
-            );
+            throw new IllegalStateException("BOOTSTRAP_ADMIN_PASSWORD must be at least 8 characters long.");
         }
 
         String normalizedEmail = adminEmail.trim().toLowerCase();
 
-        if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
-            log.warn("User with email {} already exists, skipping SUPER_ADMIN bootstrap.", normalizedEmail);
+        Optional<User> existingUserOpt = userRepository.findByEmailIgnoreCase(normalizedEmail);
+        if (existingUserOpt.isPresent()) {
+            User existingUser = existingUserOpt.get();
+            if (existingUser.getRole() == Role.SUPER_ADMIN) {
+                existingUser.setName(adminName != null && !adminName.isBlank() ? adminName.trim() : existingUser.getName());
+                existingUser.setPasswordHash(passwordEncoder.encode(adminPassword));
+                existingUser.setStatus(UserStatus.ACTIVE);
+                userRepository.save(existingUser);
+                log.info("Successfully synchronized SUPER_ADMIN credentials from environment for: {}", normalizedEmail);
+            } else {
+                log.warn("User with email {} already exists but is not a SUPER_ADMIN, skipping bootstrap.", normalizedEmail);
+            }
+            return;
+        }
+
+        if (userRepository.countByRole(Role.SUPER_ADMIN) > 0) {
+            log.info("A different SUPER_ADMIN account already exists, skipping bootstrap.");
             return;
         }
 

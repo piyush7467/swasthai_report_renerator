@@ -3,6 +3,7 @@ package com.swasthai.report_generator.security;
 import com.swasthai.report_generator.auth.bootstrap.AdminBootstrapRunner;
 import com.swasthai.report_generator.user.entity.Role;
 import com.swasthai.report_generator.user.entity.User;
+import com.swasthai.report_generator.user.entity.UserStatus;
 import com.swasthai.report_generator.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -48,7 +51,6 @@ class AdminBootstrapRunnerTest {
         ReflectionTestUtils.setField(bootstrapRunner, "bootstrapEnabled", true);
         ReflectionTestUtils.setField(bootstrapRunner, "adminEmail", "");
         ReflectionTestUtils.setField(bootstrapRunner, "adminPassword", "SecurePass123!");
-        when(userRepository.countByRole(Role.SUPER_ADMIN)).thenReturn(0L);
 
         assertThatThrownBy(() -> bootstrapRunner.run())
                 .isInstanceOf(IllegalStateException.class)
@@ -61,7 +63,6 @@ class AdminBootstrapRunnerTest {
         ReflectionTestUtils.setField(bootstrapRunner, "bootstrapEnabled", true);
         ReflectionTestUtils.setField(bootstrapRunner, "adminEmail", "admin@swasthai.com");
         ReflectionTestUtils.setField(bootstrapRunner, "adminPassword", "short");
-        when(userRepository.countByRole(Role.SUPER_ADMIN)).thenReturn(0L);
 
         assertThatThrownBy(() -> bootstrapRunner.run())
                 .isInstanceOf(IllegalStateException.class)
@@ -76,8 +77,8 @@ class AdminBootstrapRunnerTest {
         ReflectionTestUtils.setField(bootstrapRunner, "adminPassword", "SuperSecretPass123!");
         ReflectionTestUtils.setField(bootstrapRunner, "adminName", "Root Administrator");
 
+        when(userRepository.findByEmailIgnoreCase("root@swasthai.com")).thenReturn(Optional.empty());
         when(userRepository.countByRole(Role.SUPER_ADMIN)).thenReturn(0L);
-        when(userRepository.existsByEmailIgnoreCase("root@swasthai.com")).thenReturn(false);
         when(passwordEncoder.encode("SuperSecretPass123!")).thenReturn("encoded_hash_123");
 
         bootstrapRunner.run();
@@ -94,9 +95,39 @@ class AdminBootstrapRunnerTest {
     }
 
     @Test
-    @DisplayName("Bootstrap: Skips if SUPER_ADMIN already exists (does not reset password)")
-    void testBootstrapEnabled_SkipsIfSuperAdminExists() {
+    @DisplayName("Bootstrap: Synchronizes credentials when matching SUPER_ADMIN already exists in database")
+    void testBootstrapEnabled_SyncsMatchingSuperAdmin() {
         ReflectionTestUtils.setField(bootstrapRunner, "bootstrapEnabled", true);
+        ReflectionTestUtils.setField(bootstrapRunner, "adminEmail", "admin@swasthai.com");
+        ReflectionTestUtils.setField(bootstrapRunner, "adminPassword", "UpdatedPass123!");
+        ReflectionTestUtils.setField(bootstrapRunner, "adminName", "Updated Admin Name");
+
+        User existingAdmin = User.builder()
+                .name("Old Name")
+                .email("admin@swasthai.com")
+                .passwordHash("old_hash")
+                .role(Role.SUPER_ADMIN)
+                .status(UserStatus.ACTIVE)
+                .build();
+
+        when(userRepository.findByEmailIgnoreCase("admin@swasthai.com")).thenReturn(Optional.of(existingAdmin));
+        when(passwordEncoder.encode("UpdatedPass123!")).thenReturn("new_hash_456");
+
+        bootstrapRunner.run();
+
+        verify(userRepository).save(existingAdmin);
+        assertThat(existingAdmin.getPasswordHash()).isEqualTo("new_hash_456");
+        assertThat(existingAdmin.getName()).isEqualTo("Updated Admin Name");
+    }
+
+    @Test
+    @DisplayName("Bootstrap: Skips if a different SUPER_ADMIN already exists")
+    void testBootstrapEnabled_SkipsIfDifferentSuperAdminExists() {
+        ReflectionTestUtils.setField(bootstrapRunner, "bootstrapEnabled", true);
+        ReflectionTestUtils.setField(bootstrapRunner, "adminEmail", "newadmin@swasthai.com");
+        ReflectionTestUtils.setField(bootstrapRunner, "adminPassword", "SuperSecretPass123!");
+
+        when(userRepository.findByEmailIgnoreCase("newadmin@swasthai.com")).thenReturn(Optional.empty());
         when(userRepository.countByRole(Role.SUPER_ADMIN)).thenReturn(1L);
 
         bootstrapRunner.run();
