@@ -1,14 +1,15 @@
 {
     "configurations": [
+        
         {
             "type": "java",
             "name": "Spring Boot-ReportGeneratorApplication<report-generator>",
             "request": "launch",
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/report-generator-backend/report-generator",
             "mainClass": "com.swasthai.report_generator.ReportGeneratorApplication",
             "projectName": "report-generator",
             "args": "",
-            "envFile": "${workspaceFolder}/.env"
+            "envFile": "${workspaceFolder}/report-generator-backend/report-generator/.env"
         }
     ]
 }

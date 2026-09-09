@@ -1,0 +1,16 @@
+﻿{
+  "folders": [
+    {
+      "name": "Backend (Spring Boot)",
+      "path": "report-generator-backend/report-generator"
+    },
+    {
+      "name": "Frontend",
+      "path": "report-generator-frontend"
+    }
+  ],
+  "settings": {
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.compile.nullAnalysis.mode": "automatic"
+  }
+}
