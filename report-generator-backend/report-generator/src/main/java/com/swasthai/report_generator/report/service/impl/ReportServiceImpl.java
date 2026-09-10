@@ -4,11 +4,16 @@ import com.swasthai.report_generator.common.exception.ResourceNotFoundException;
 import com.swasthai.report_generator.organization.entity.Organization;
 import com.swasthai.report_generator.organization.entity.OrganizationStatus;
 import com.swasthai.report_generator.patient.repository.PatientRepository;
+import com.swasthai.report_generator.report.config.ReportRetentionProperties;
 import com.swasthai.report_generator.report.dto.request.AddReportTestRequest;
+import com.swasthai.report_generator.report.dto.request.BulkDeleteReportsRequest;
 import com.swasthai.report_generator.report.dto.request.CreateReportRequest;
+import com.swasthai.report_generator.report.dto.request.DeleteReportsByDateRangeRequest;
 import com.swasthai.report_generator.report.dto.request.ReorderReportTestsRequest;
 import com.swasthai.report_generator.report.dto.request.TestOrderItemInput;
 import com.swasthai.report_generator.report.dto.request.UpdateReportParametersRequest;
+import com.swasthai.report_generator.report.dto.response.BulkDeleteReportsResponse;
+import com.swasthai.report_generator.report.dto.response.DeleteReportResponse;
 import com.swasthai.report_generator.report.dto.response.ReportParameterItemResponse;
 import com.swasthai.report_generator.report.dto.response.ReportResponse;
 import com.swasthai.report_generator.report.dto.response.ReportTestItemResponse;
@@ -17,6 +22,8 @@ import com.swasthai.report_generator.report.entity.ReportStatus;
 import com.swasthai.report_generator.report.entity.ReportTestResult;
 import com.swasthai.report_generator.report.repository.ReportRepository;
 import com.swasthai.report_generator.report.repository.ReportTestResultRepository;
+import com.swasthai.report_generator.report.service.ReportDeletionBatchExecutor;
+import com.swasthai.report_generator.report.service.ReportPurgeBatchExecutor;
 import com.swasthai.report_generator.report.service.ReportService;
 import com.swasthai.report_generator.test.calculation.CalculationEngine;
 import com.swasthai.report_generator.test.calculation.CalculationException;
@@ -29,18 +36,24 @@ import com.swasthai.report_generator.test.service.OrganizationTestService;
 import com.swasthai.report_generator.user.entity.Role;
 import com.swasthai.report_generator.user.entity.User;
 import com.swasthai.report_generator.user.entity.UserStatus;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -58,9 +71,13 @@ public class ReportServiceImpl implements ReportService {
     private final OrganizationTestService organizationTestService;
     private final CalculationEngine calculationEngine;
 
-    // ============================================================
+    private final ReportRetentionProperties retentionProperties;
+    private final ReportPurgeBatchExecutor purgeBatchExecutor;
+    private final EntityManager entityManager;
+
+    private final ReportDeletionBatchExecutor deletionBatchExecutor;
+
     // 1. CREATE REPORT (DRAFT)
-    // ============================================================
 
     @Override
     public ReportResponse createReport(CreateReportRequest request) {
@@ -88,9 +105,7 @@ public class ReportServiceImpl implements ReportService {
         return mapToResponse(saved);
     }
 
-    // ============================================================
     // 2. GET REPORT
-    // ============================================================
 
     @Override
     @Transactional(readOnly = true)
@@ -104,9 +119,7 @@ public class ReportServiceImpl implements ReportService {
         return mapToResponse(report);
     }
 
-    // ============================================================
     // 3. GET MY REPORTS
-    // ============================================================
 
     @Override
     @Transactional(readOnly = true)
@@ -116,17 +129,16 @@ public class ReportServiceImpl implements ReportService {
 
         Page<Report> page;
         if (status != null) {
-            page = reportRepository.findAllByOrganization_IdAndStatus(organization.getId(), status, pageable);
+            page = reportRepository.findAllByOrganization_IdAndStatusAndDeletedAtIsNull(organization.getId(), status,
+                    pageable);
         } else {
-            page = reportRepository.findAllByOrganization_Id(organization.getId(), pageable);
+            page = reportRepository.findAllByOrganization_IdAndDeletedAtIsNull(organization.getId(), pageable);
         }
 
         return page.map(this::mapToResponse);
     }
 
-    // ============================================================
     // 4. ADD TEST TO REPORT DRAFT
-    // ============================================================
 
     @Override
     public ReportResponse addTest(String reportRefId, AddReportTestRequest request) {
@@ -171,11 +183,9 @@ public class ReportServiceImpl implements ReportService {
                 .build();
 
         // Snapshot all active TestParameters of this test
-        List<TestParameter> activeParams =
-                testParameterRepository.findAllByTest_IdAndStatusOrderByDisplayOrderAsc(
-                        test.getId(),
-                        TestParameterStatus.ACTIVE
-                );
+        List<TestParameter> activeParams = testParameterRepository.findAllByTest_IdAndStatusOrderByDisplayOrderAsc(
+                test.getId(),
+                TestParameterStatus.ACTIVE);
 
         for (TestParameter param : activeParams) {
             TestParameterResult paramResult = TestParameterResult.builder()
@@ -185,8 +195,11 @@ public class ReportServiceImpl implements ReportService {
                     .parameterName(param.getName())
                     .dataType(param.getDataType())
                     .inputType(param.getInputType())
-                    .calculationType(param.getCalculationType() == null ? CalculationType.NONE : param.getCalculationType())
-                    .calculationVersion(param.getInputType() == ParameterInputType.CALCULATED ? param.getCalculationType().name() + ":v1" : null)
+                    .calculationType(
+                            param.getCalculationType() == null ? CalculationType.NONE : param.getCalculationType())
+                    .calculationVersion(param.getInputType() == ParameterInputType.CALCULATED
+                            ? param.getCalculationType().name() + ":v1"
+                            : null)
                     .unit(param.getUnit())
                     .referenceMin(param.getReferenceMin())
                     .referenceMax(param.getReferenceMax())
@@ -203,9 +216,7 @@ public class ReportServiceImpl implements ReportService {
         return mapToResponse(saved);
     }
 
-    // ============================================================
     // 5. REMOVE TEST FROM REPORT DRAFT
-    // ============================================================
 
     @Override
     public ReportResponse removeTest(String reportRefId, String reportTestRefId) {
@@ -235,16 +246,13 @@ public class ReportServiceImpl implements ReportService {
         return mapToResponse(saved);
     }
 
-    // ============================================================
     // 6. UPDATE PARAMETER VALUES & RUN CALCULATION ENGINE
-    // ============================================================
 
     @Override
     public ReportResponse updateParameterValues(
             String reportRefId,
             String reportTestRefId,
-            UpdateReportParametersRequest request
-    ) {
+            UpdateReportParametersRequest request) {
         if (request == null || request.parameters() == null || request.parameters().isEmpty()) {
             throw new IllegalArgumentException("Parameter values list cannot be empty");
         }
@@ -317,9 +325,7 @@ public class ReportServiceImpl implements ReportService {
         return mapToResponse(saved);
     }
 
-    // ============================================================
     // 7. REORDER TESTS IN REPORT
-    // ============================================================
 
     @Override
     public ReportResponse reorderTests(String reportRefId, ReorderReportTestsRequest request) {
@@ -344,7 +350,8 @@ public class ReportServiceImpl implements ReportService {
         for (TestOrderItemInput orderInput : request.testOrders()) {
             ReportTestResult test = testsByRefId.get(orderInput.reportTestRefId());
             if (test == null) {
-                throw new IllegalArgumentException("Test does not belong to this report: " + orderInput.reportTestRefId());
+                throw new IllegalArgumentException(
+                        "Test does not belong to this report: " + orderInput.reportTestRefId());
             }
 
             int order = orderInput.displayOrder();
@@ -360,9 +367,7 @@ public class ReportServiceImpl implements ReportService {
         return mapToResponse(saved);
     }
 
-    // ============================================================
     // 8. FINALIZE REPORT (IMMUTABILITY)
-    // ============================================================
 
     @Override
     public ReportResponse finalizeReport(String reportRefId) {
@@ -377,7 +382,8 @@ public class ReportServiceImpl implements ReportService {
             throw new IllegalArgumentException("Cannot finalize a report with no tests");
         }
 
-        // Validate all tests: required parameters must have values and calculations succeed
+        // Validate all tests: required parameters must have values and calculations
+        // succeed
         for (ReportTestResult reportTest : report.getTests()) {
             for (TestParameterResult paramResult : reportTest.getParameterResults()) {
                 if (paramResult.getInputType() == ParameterInputType.MANUAL) {
@@ -385,8 +391,8 @@ public class ReportServiceImpl implements ReportService {
                     boolean isRequired = originalParam == null || originalParam.isRequired();
                     if (isRequired && (paramResult.getValue() == null || paramResult.getValue().isBlank())) {
                         throw new IllegalArgumentException(
-                                "Required parameter is missing in test " + reportTest.getTest().getCode() + ": " + paramResult.getParameterCode()
-                        );
+                                "Required parameter is missing in test " + reportTest.getTest().getCode() + ": "
+                                        + paramResult.getParameterCode());
                     }
                 }
             }
@@ -403,9 +409,7 @@ public class ReportServiceImpl implements ReportService {
         return mapToResponse(saved);
     }
 
-    // ============================================================
     // HELPER METHODS
-    // ============================================================
 
     private void executeCalculationsForTest(ReportTestResult reportTest) {
         Map<String, BigDecimal> numericValues = new HashMap<>();
@@ -453,12 +457,12 @@ public class ReportServiceImpl implements ReportService {
     private TestParameterResult resolveParameterResult(
             TestParameterResultInput input,
             Map<String, TestParameterResult> byRefId,
-            Map<String, TestParameterResult> byCode
-    ) {
+            Map<String, TestParameterResult> byCode) {
         if (input.parameterRefId() != null && !input.parameterRefId().isBlank()) {
             TestParameterResult res = byRefId.get(input.parameterRefId().trim());
             if (res == null) {
-                throw new IllegalArgumentException("Parameter refId does not belong to this test: " + input.parameterRefId());
+                throw new IllegalArgumentException(
+                        "Parameter refId does not belong to this test: " + input.parameterRefId());
             }
             return res;
         }
@@ -466,7 +470,8 @@ public class ReportServiceImpl implements ReportService {
         if (input.parameterCode() != null && !input.parameterCode().isBlank()) {
             TestParameterResult res = byCode.get(input.parameterCode().trim().toUpperCase());
             if (res == null) {
-                throw new IllegalArgumentException("Parameter code does not belong to this test: " + input.parameterCode());
+                throw new IllegalArgumentException(
+                        "Parameter code does not belong to this test: " + input.parameterCode());
             }
             return res;
         }
@@ -485,28 +490,30 @@ public class ReportServiceImpl implements ReportService {
             throw new ObjectOptimisticLockingFailureException(
                     Report.class,
                     "Report has been modified by another transaction. Expected lock version: "
-                            + report.getLockVersion() + " but received: " + clientLockVersion
-            );
+                            + report.getLockVersion() + " but received: " + clientLockVersion);
         }
     }
 
     private Report findAuthorizedReport(String reportRefId, User currentUser) {
         Report report;
         if (currentUser.getRole() == Role.SUPER_ADMIN) {
-            report = reportRepository.findByRefId(reportRefId.trim())
+            report = reportRepository.findByRefIdAndDeletedAtIsNull(reportRefId.trim())
                     .orElseThrow(() -> new ResourceNotFoundException("Report not found: " + reportRefId));
         } else {
             Organization organization = getRequiredOrganization(currentUser);
-            report = reportRepository.findByRefIdAndOrganization_Id(reportRefId.trim(), organization.getId())
+            report = reportRepository
+                    .findByRefIdAndOrganization_IdAndDeletedAtIsNull(reportRefId.trim(), organization.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Report not found: " + reportRefId));
         }
         return report;
     }
 
     private void validatePatientOwnership(String patientRefId, UUID organizationId) {
-        boolean patientExists = patientRepository.findByRefIdAndOrganization_Id(patientRefId, organizationId).isPresent();
+        boolean patientExists = patientRepository.findByRefIdAndOrganization_Id(patientRefId, organizationId)
+                .isPresent();
         if (!patientExists) {
-            throw new IllegalArgumentException("Patient not found or does not belong to your organization: " + patientRefId);
+            throw new IllegalArgumentException(
+                    "Patient not found or does not belong to your organization: " + patientRefId);
         }
     }
 
@@ -644,4 +651,290 @@ public class ReportServiceImpl implements ReportService {
                 .displayOrder(result.getDisplayOrder())
                 .build();
     }
+
+    @Override
+    public DeleteReportResponse deleteReport(String reportRefId) {
+
+        User currentUser = getCurrentUser();
+
+        if (currentUser.getRole() != Role.ORG_ADMIN) {
+            throw new AccessDeniedException(
+                    "Only organization administrators can delete reports");
+        }
+
+        Organization organization = getRequiredOrganization(currentUser);
+
+        String normalizedRefId = normalizeReportRefId(reportRefId);
+
+        Report report = reportRepository
+                .findByRefIdAndOrganization_IdAndDeletedAtIsNull(
+                        normalizedRefId,
+                        organization.getId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Report not found: " + normalizedRefId));
+
+        validateDeletionEligibility(report);
+
+        Instant deletionTime = Instant.now();
+
+        report.setDeletedAt(deletionTime);
+        report.setDeletedBy(currentUser);
+
+        Report saved = reportRepository.save(report);
+
+        return new DeleteReportResponse(
+                saved.getRefId(),
+                saved.getDeletedAt());
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public BulkDeleteReportsResponse deleteReports(
+            BulkDeleteReportsRequest request) {
+
+        if (request == null
+                || request.reportRefIds() == null
+                || request.reportRefIds().isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Report reference IDs list cannot be empty");
+        }
+
+        User currentUser = getCurrentUser();
+
+        if (currentUser.getRole() != Role.ORG_ADMIN) {
+            throw new AccessDeniedException(
+                    "Only organization administrators can delete reports");
+        }
+
+        getRequiredOrganization(currentUser);
+
+        Set<String> normalizedRefIds = new LinkedHashSet<>();
+
+        for (String refId : request.reportRefIds()) {
+
+            if (refId == null || refId.isBlank()) {
+                throw new IllegalArgumentException(
+                        "Report reference ID cannot be blank");
+            }
+
+            normalizedRefIds.add(refId.trim());
+        }
+
+        if (normalizedRefIds.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "At least one valid report reference ID is required");
+        }
+
+        Instant now = Instant.now();
+
+        Instant cutoff = now.minus(
+                retentionProperties.getDeleteAfterDays(),
+                ChronoUnit.DAYS);
+
+        List<String> idList = new ArrayList<>(normalizedRefIds);
+
+        int batchSize = retentionProperties.getBulkBatchSize();
+
+        int totalDeleted = 0;
+
+        for (int i = 0; i < idList.size(); i += batchSize) {
+
+            List<String> chunk = idList.subList(
+                    i,
+                    Math.min(i + batchSize, idList.size()));
+
+            int deletedInBatch = deletionBatchExecutor.softDeleteSelectedBatch(
+                    chunk,
+                    currentUser,
+                    now,
+                    cutoff);
+
+            totalDeleted += deletedInBatch;
+        }
+
+        int skippedCount = normalizedRefIds.size() - totalDeleted;
+
+        return new BulkDeleteReportsResponse(
+                totalDeleted,
+                skippedCount,
+                now);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public BulkDeleteReportsResponse deleteReportsByDateRange(
+            DeleteReportsByDateRangeRequest request) {
+
+        if (request == null
+                || request.from() == null
+                || request.to() == null) {
+
+            throw new IllegalArgumentException(
+                    "From and To dates are required");
+        }
+
+        if (request.from().isAfter(request.to())) {
+            throw new IllegalArgumentException(
+                    "From date cannot be after To date");
+        }
+
+        User currentUser = getCurrentUser();
+
+        if (currentUser.getRole() != Role.ORG_ADMIN) {
+            throw new AccessDeniedException(
+                    "Only organization administrators can delete reports");
+        }
+
+        Organization organization = getRequiredOrganization(currentUser);
+
+        ZoneId zoneId = ZoneId.of(retentionProperties.getTimeZone());
+
+        Instant start = request.from()
+                .atStartOfDay(zoneId)
+                .toInstant();
+
+        Instant endExclusive = request.to()
+                .plusDays(1)
+                .atStartOfDay(zoneId)
+                .toInstant();
+
+        Instant now = Instant.now();
+
+        Instant retentionCutoff = now.minus(
+                retentionProperties.getDeleteAfterDays(),
+                ChronoUnit.DAYS);
+
+        Instant effectiveEnd = endExclusive.isBefore(retentionCutoff)
+                ? endExclusive
+                : retentionCutoff;
+
+        /*
+         * No report can be eligible when the requested range does not reach
+         * the retention cutoff.
+         */
+        if (!start.isBefore(effectiveEnd)) {
+
+            long skippedYoung = reportRepository.countYoungSkippedReports(
+                    organization.getId(),
+                    start,
+                    endExclusive);
+
+            return new BulkDeleteReportsResponse(
+                    0,
+                    toSafeInt(skippedYoung),
+                    now);
+        }
+
+        long skippedYoung = 0;
+
+        if (effectiveEnd.isBefore(endExclusive)) {
+
+            skippedYoung = reportRepository.countYoungSkippedReports(
+                    organization.getId(),
+                    effectiveEnd,
+                    endExclusive);
+        }
+
+        int batchSize = retentionProperties.getBulkBatchSize();
+
+        int totalDeleted = 0;
+
+        while (true) {
+
+            int deletedInBatch = deletionBatchExecutor.softDeleteDateRangeBatch(
+                    currentUser,
+                    start,
+                    effectiveEnd,
+                    now,
+                    batchSize);
+
+            if (deletedInBatch == 0) {
+                break;
+            }
+
+            totalDeleted += deletedInBatch;
+
+            /*
+             * Do NOT use page++.
+             *
+             * The first page is fetched repeatedly because previously
+             * processed rows now have deletedAt != null and disappear
+             * from the query.
+             */
+        }
+
+        return new BulkDeleteReportsResponse(
+                totalDeleted,
+                toSafeInt(skippedYoung),
+                now);
+    }
+
+    private int toSafeInt(long value) {
+
+        if (value > Integer.MAX_VALUE) {
+            throw new IllegalStateException(
+                    "Deletion count exceeds supported response range");
+        }
+
+        return (int) value;
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public int purgeExpiredReports() {
+
+        if (Boolean.FALSE.equals(
+                retentionProperties.getPurgeEnabled())) {
+
+            return 0;
+        }
+
+        Instant now = Instant.now();
+
+        Instant purgeCutoff = now.minus(
+                retentionProperties.getPurgeAfterDays(),
+                ChronoUnit.DAYS);
+
+        int batchSize = retentionProperties.getPurgeBatchSize();
+
+        int totalPurged = 0;
+
+        while (true) {
+
+            int purgedInBatch = purgeBatchExecutor.purgeBatch(
+                    purgeCutoff,
+                    batchSize);
+
+            if (purgedInBatch == 0) {
+                break;
+            }
+
+            totalPurged += purgedInBatch;
+
+            /*
+             * Continue fetching page 0 because the processed records
+             * have been physically deleted.
+             */
+        }
+
+        return totalPurged;
+    }
+
+    private String normalizeReportRefId(String reportRefId) {
+        if (reportRefId == null || reportRefId.isBlank()) {
+            throw new IllegalArgumentException("Report reference ID is required");
+        }
+        return reportRefId.trim();
+    }
+
+    private void validateDeletionEligibility(Report report) {
+        Instant cutoff = Instant.now()
+                .minus(retentionProperties.getDeleteAfterDays(), ChronoUnit.DAYS);
+
+        if (!report.getCreatedAt().isBefore(cutoff)) {
+            throw new IllegalStateException("Report has not reached the deletion eligibility period");
+        }
+    }
+
 }

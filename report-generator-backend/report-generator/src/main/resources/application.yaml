@@ -56,3 +56,17 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+
+
+
+
+
+report:
+  retention:
+    delete-after-days: ${REPORT_RETENTION_DELETE_AFTER_DAYS}
+    purge-after-days: ${REPORT_RETENTION_PURGE_AFTER_DAYS}
+    purge-batch-size: ${REPORT_RETENTION_PURGE_BATCH_SIZE}
+    bulk-batch-size: ${REPORT_RETENTION_BULK_BATCH_SIZE:500}
+    purge-enabled: ${REPORT_RETENTION_PURGE_ENABLED}
+    purge-cron: ${REPORT_RETENTION_PURGE_CRON}
+    time-zone: ${REPORT_RETENTION_TIME_ZONE}

@@ -1,9 +1,13 @@
 package com.swasthai.report_generator.report.service;
 
 import com.swasthai.report_generator.report.dto.request.AddReportTestRequest;
+import com.swasthai.report_generator.report.dto.request.BulkDeleteReportsRequest;
 import com.swasthai.report_generator.report.dto.request.CreateReportRequest;
+import com.swasthai.report_generator.report.dto.request.DeleteReportsByDateRangeRequest;
 import com.swasthai.report_generator.report.dto.request.ReorderReportTestsRequest;
 import com.swasthai.report_generator.report.dto.request.UpdateReportParametersRequest;
+import com.swasthai.report_generator.report.dto.response.BulkDeleteReportsResponse;
+import com.swasthai.report_generator.report.dto.response.DeleteReportResponse;
 import com.swasthai.report_generator.report.dto.response.ReportResponse;
 import com.swasthai.report_generator.report.entity.ReportStatus;
 import org.springframework.data.domain.Page;
@@ -24,10 +28,17 @@ public interface ReportService {
     ReportResponse updateParameterValues(
             String reportRefId,
             String reportTestRefId,
-            UpdateReportParametersRequest request
-    );
+            UpdateReportParametersRequest request);
 
     ReportResponse reorderTests(String reportRefId, ReorderReportTestsRequest request);
 
     ReportResponse finalizeReport(String reportRefId);
+
+    DeleteReportResponse deleteReport(String reportRefId);
+
+    BulkDeleteReportsResponse deleteReports(BulkDeleteReportsRequest request);
+
+    BulkDeleteReportsResponse deleteReportsByDateRange(DeleteReportsByDateRangeRequest request);
+
+    int purgeExpiredReports();
 }
