@@ -1,21 +1,22 @@
 package com.swasthai.report_generator.report.service;
 
-import com.swasthai.report_generator.user.entity.User;
-
 import java.time.Instant;
 import java.util.Collection;
+import java.util.UUID;
 
 public interface ReportDeletionBatchExecutor {
 
     int softDeleteSelectedBatch(
             Collection<String> reportRefIds,
-            User currentUser,
+            UUID organizationId,
+            UUID deletedByUserId,
             Instant deletionTime,
             Instant eligibilityCutoff
     );
 
     int softDeleteDateRangeBatch(
-            User currentUser,
+            UUID organizationId,
+            UUID deletedByUserId,
             Instant startInstant,
             Instant effectiveEndInstant,
             Instant deletionTime,

@@ -17,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 @Slf4j
 @Component
@@ -31,76 +33,128 @@ public class ReportDeletionBatchExecutorImpl
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public int softDeleteSelectedBatch(
             Collection<String> reportRefIds,
-            User currentUser,
+            UUID organizationId,
+            UUID deletedByUserId,
             Instant deletionTime,
             Instant eligibilityCutoff
     ) {
 
-        Organization organization = currentUser.getOrganization();
+        validateCommonArguments(
+                organizationId,
+                deletedByUserId,
+                deletionTime
+        );
 
-        if (organization == null) {
-            throw new IllegalStateException(
-                    "Authenticated organization is required"
-            );
+        Objects.requireNonNull(
+                reportRefIds,
+                "reportRefIds must not be null"
+        );
+
+        Objects.requireNonNull(
+                eligibilityCutoff,
+                "eligibilityCutoff must not be null"
+        );
+
+        if (reportRefIds.isEmpty()) {
+            return 0;
         }
 
+        /*
+         * Resolve the authenticated user INSIDE this REQUIRES_NEW
+         * transaction.
+         *
+         * We intentionally do not pass the User entity from the
+         * outer transaction/security context.
+         */
+        User deletedBy =
+                entityManager.getReference(User.class, deletedByUserId);
+
         List<Report> reports =
-                reportRepository.findAllByOrganization_IdAndRefIdInAndDeletedAtIsNull(
-                        organization.getId(),
-                        reportRefIds
-                );
+                reportRepository
+                        .findAllByOrganization_IdAndRefIdInAndDeletedAtIsNull(
+                                organizationId,
+                                reportRefIds
+                        );
 
         if (reports.isEmpty()) {
             return 0;
         }
 
-        int deletedCount = 0;
+        List<Report> eligibleReports = reports.stream()
+                .filter(report ->
+                        report.getCreatedAt().isBefore(eligibilityCutoff)
+                )
+                .toList();
 
-        for (Report report : reports) {
-
-            if (report.getCreatedAt().isBefore(eligibilityCutoff)) {
-                report.setDeletedAt(deletionTime);
-                report.setDeletedBy(currentUser);
-                deletedCount++;
-            }
+        if (eligibleReports.isEmpty()) {
+            return 0;
         }
 
-        if (deletedCount > 0) {
-            reportRepository.saveAll(reports);
-            reportRepository.flush();
+        for (Report report : eligibleReports) {
+            report.setDeletedAt(deletionTime);
+            report.setDeletedBy(deletedBy);
         }
+
+        /*
+         * Only save the reports that were actually modified.
+         * Ineligible reports must remain completely untouched.
+         */
+        reportRepository.saveAll(eligibleReports);
+        reportRepository.flush();
 
         entityManager.clear();
 
         log.debug(
                 "Soft-deleted {} reports in independent selected-deletion transaction",
-                deletedCount
+                eligibleReports.size()
         );
 
-        return deletedCount;
+        return eligibleReports.size();
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public int softDeleteDateRangeBatch(
-            User currentUser,
+            UUID organizationId,
+            UUID deletedByUserId,
             Instant startInstant,
             Instant effectiveEndInstant,
             Instant deletionTime,
             int batchSize
     ) {
 
-        Organization organization = currentUser.getOrganization();
+        validateCommonArguments(
+                organizationId,
+                deletedByUserId,
+                deletionTime
+        );
 
-        if (organization == null) {
-            throw new IllegalStateException(
-                    "Authenticated organization is required"
+        Objects.requireNonNull(
+                startInstant,
+                "startInstant must not be null"
+        );
+
+        Objects.requireNonNull(
+                effectiveEndInstant,
+                "effectiveEndInstant must not be null"
+        );
+
+        if (batchSize < 1) {
+            throw new IllegalArgumentException(
+                    "batchSize must be greater than zero"
             );
         }
 
+        if (!startInstant.isBefore(effectiveEndInstant)) {
+            return 0;
+        }
+
+        User deletedBy =
+                entityManager.getReference(User.class, deletedByUserId);
+
         Slice<Report> slice =
                 reportRepository.findEligibleForDateRangeDeletion(
-                        organization.getId(),
+                        organizationId,
                         startInstant,
                         effectiveEndInstant,
                         PageRequest.of(0, batchSize)
@@ -114,7 +168,7 @@ public class ReportDeletionBatchExecutorImpl
 
         for (Report report : batch) {
             report.setDeletedAt(deletionTime);
-            report.setDeletedBy(currentUser);
+            report.setDeletedBy(deletedBy);
         }
 
         reportRepository.saveAll(batch);
@@ -128,5 +182,26 @@ public class ReportDeletionBatchExecutorImpl
         );
 
         return batch.size();
+    }
+
+    private void validateCommonArguments(
+            UUID organizationId,
+            UUID deletedByUserId,
+            Instant deletionTime
+    ) {
+        Objects.requireNonNull(
+                organizationId,
+                "organizationId must not be null"
+        );
+
+        Objects.requireNonNull(
+                deletedByUserId,
+                "deletedByUserId must not be null"
+        );
+
+        Objects.requireNonNull(
+                deletionTime,
+                "deletionTime must not be null"
+        );
     }
 }
