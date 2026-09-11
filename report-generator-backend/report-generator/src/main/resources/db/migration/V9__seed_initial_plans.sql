@@ -1,0 +1,50 @@
+INSERT INTO plans
+(
+    id,
+    ref_id,
+    code,
+    name,
+    description,
+    annual_price,
+    currency,
+    active,
+    created_at,
+    updated_at
+)
+VALUES
+(
+    gen_random_uuid(),
+    'PLAN_STARTER',
+    'STARTER',
+    'Starter',
+    'Starter annual plan',
+    9990.00,
+    'INR',
+    TRUE,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+),
+(
+    gen_random_uuid(),
+    'PLAN_PROFESSIONAL',
+    'PROFESSIONAL',
+    'Professional',
+    'Professional annual plan',
+    29990.00,
+    'INR',
+    TRUE,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+),
+(
+    gen_random_uuid(),
+    'PLAN_ENTERPRISE',
+    'ENTERPRISE',
+    'Enterprise',
+    'Enterprise annual plan',
+    0.00,
+    'INR',
+    TRUE,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+);

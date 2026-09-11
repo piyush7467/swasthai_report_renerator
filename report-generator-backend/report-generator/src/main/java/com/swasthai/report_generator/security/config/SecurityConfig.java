@@ -82,8 +82,16 @@ public class SecurityConfig {
                         ).permitAll()
 
                         .requestMatchers(
+                                "/api/v1/plans/**"
+                        ).hasRole("SUPER_ADMIN")
+
+                        .requestMatchers(
                                 "/api/v1/organizations/**"
                         ).hasRole("SUPER_ADMIN")
+
+                        .requestMatchers(
+                                "/api/v1/license/**"
+                        ).hasRole("ORG_ADMIN")
 
                         .requestMatchers(
                                 "/api/v1/users/**"
@@ -98,6 +106,27 @@ public class SecurityConfig {
                                 "ORG_ADMIN",
                                 "LAB_STAFF"
                         )
+
+                        .requestMatchers(
+                                org.springframework.http.HttpMethod.GET,
+                                "/api/v1/organization-tests/my"
+                        ).hasAnyRole(
+                                "ORG_ADMIN",
+                                "LAB_STAFF"
+                        )
+
+                        .requestMatchers(
+                                org.springframework.http.HttpMethod.GET,
+                                "/api/v1/organization-tests/*"
+                        ).hasAnyRole(
+                                "SUPER_ADMIN",
+                                "ORG_ADMIN",
+                                "LAB_STAFF"
+                        )
+
+                        .requestMatchers(
+                                "/api/v1/organization-tests/**"
+                        ).hasRole("SUPER_ADMIN")
 
                         .anyRequest().authenticated()
                 )

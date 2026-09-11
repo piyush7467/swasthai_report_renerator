@@ -18,10 +18,10 @@ import java.time.ZoneId;
 @ConfigurationProperties(prefix = "report.retention")
 public class ReportRetentionProperties {
 
-    @Min(0)
+    @Min(1)
     private long deleteAfterDays;
 
-    @Min(0)
+    @Min(2)
     private long purgeAfterDays;
 
     @Min(1)
@@ -59,20 +59,26 @@ public class ReportRetentionProperties {
             throw new IllegalArgumentException("Invalid report.retention.purge-cron expression: " + purgeCron, e);
         }
 
-        if (purgeBatchSize < 1) {
-            throw new IllegalArgumentException("report.retention.purge-batch-size must be at least 1");
+        if (purgeBatchSize < 1 || purgeBatchSize > 5000) {
+            throw new IllegalArgumentException("report.retention.purge-batch-size must be between 1 and 5000");
         }
 
-        if (bulkBatchSize < 1) {
-            throw new IllegalArgumentException("report.retention.bulk-batch-size must be at least 1");
+        if (bulkBatchSize < 1 || bulkBatchSize > 2000) {
+            throw new IllegalArgumentException("report.retention.bulk-batch-size must be between 1 and 2000");
         }
 
-        if (deleteAfterDays < 0) {
-            throw new IllegalArgumentException("report.retention.delete-after-days cannot be negative");
+        if (deleteAfterDays <= 0) {
+            throw new IllegalArgumentException("report.retention.delete-after-days must be greater than zero");
         }
 
-        if (purgeAfterDays < 0) {
-            throw new IllegalArgumentException("report.retention.purge-after-days cannot be negative");
+        if (purgeAfterDays <= 0) {
+            throw new IllegalArgumentException("report.retention.purge-after-days must be greater than zero");
+        }
+
+        if (purgeAfterDays <= deleteAfterDays) {
+            throw new IllegalArgumentException(
+                    "report.retention.purge-after-days (" + purgeAfterDays
+                            + ") must be strictly greater than delete-after-days (" + deleteAfterDays + ")");
         }
     }
 }

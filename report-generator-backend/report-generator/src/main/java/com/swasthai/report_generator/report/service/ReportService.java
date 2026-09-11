@@ -41,4 +41,9 @@ public interface ReportService {
     BulkDeleteReportsResponse deleteReportsByDateRange(DeleteReportsByDateRangeRequest request);
 
     int purgeExpiredReports();
+
+    ReportResponse breakGlassAccess(
+            String reportRefId,
+            com.swasthai.report_generator.report.dto.request.BreakGlassAccessRequest request,
+            String clientIp);
 }

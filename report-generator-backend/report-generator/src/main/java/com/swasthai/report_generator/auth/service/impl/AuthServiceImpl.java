@@ -17,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import com.swasthai.report_generator.auth.config.AuthRateLimitProperties;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +30,6 @@ import java.time.Instant;
 import java.util.Base64;
 
 @Service
-@RequiredArgsConstructor
 @Transactional
 public class AuthServiceImpl implements AuthService {
 
@@ -48,6 +49,35 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final RateLimiterService rateLimiterService;
     private final com.swasthai.report_generator.auth.service.CurrentUserService currentUserService;
+    private final AuthRateLimitProperties authRateLimitProperties;
+
+    @Autowired
+    public AuthServiceImpl(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService,
+            RefreshTokenRepository refreshTokenRepository,
+            RateLimiterService rateLimiterService,
+            com.swasthai.report_generator.auth.service.CurrentUserService currentUserService,
+            @Autowired(required = false) AuthRateLimitProperties authRateLimitProperties) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
+        this.refreshTokenRepository = refreshTokenRepository;
+        this.rateLimiterService = rateLimiterService;
+        this.currentUserService = currentUserService;
+        this.authRateLimitProperties = authRateLimitProperties != null ? authRateLimitProperties : new AuthRateLimitProperties();
+    }
+
+    public AuthServiceImpl(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService,
+            RefreshTokenRepository refreshTokenRepository,
+            RateLimiterService rateLimiterService,
+            com.swasthai.report_generator.auth.service.CurrentUserService currentUserService) {
+        this(userRepository, passwordEncoder, jwtService, refreshTokenRepository, rateLimiterService, currentUserService, new AuthRateLimitProperties());
+    }
 
     @Override
     public LoginResponse login(LoginRequest request) {
@@ -61,12 +91,24 @@ public class AuthServiceImpl implements AuthService {
                 .trim()
                 .toLowerCase();
 
-        if (clientIp != null && !rateLimiterService.isAllowed("login:ip:" + clientIp, 10, 60)) {
-            throw new IllegalStateException("Too many login attempts from this network. Please try again in 1 minute.");
+        int maxAttempts = authRateLimitProperties.getMaxAttempts();
+        long windowSec = authRateLimitProperties.getWindowSeconds();
+        long lockSec = authRateLimitProperties.getLockSeconds();
+
+        String emailKey = "login:email:" + email;
+        String ipKey = clientIp != null && !clientIp.isBlank() ? "login:ip:" + clientIp.trim() : null;
+        String compositeKey = ipKey != null ? "login:composite:" + email + ":" + clientIp.trim() : null;
+
+        if (ipKey != null && !rateLimiterService.isAllowed(ipKey, maxAttempts * 2, windowSec, lockSec)) {
+            throw new IllegalStateException("Too many login attempts from this network. Please try again later.");
         }
 
-        if (!rateLimiterService.isAllowed("login:email:" + email, 5, 60)) {
-            throw new IllegalStateException("Too many login attempts for this account. Please try again in 1 minute.");
+        if (!rateLimiterService.isAllowed(emailKey, maxAttempts, windowSec, lockSec)) {
+            throw new IllegalStateException("Too many login attempts for this account. Please try again in 5 minutes.");
+        }
+
+        if (compositeKey != null && !rateLimiterService.isAllowed(compositeKey, maxAttempts, windowSec, lockSec)) {
+            throw new IllegalStateException("Too many login attempts. Please try again in 5 minutes.");
         }
 
         User user = userRepository.findByEmailIgnoreCase(email).orElse(null);
@@ -89,9 +131,12 @@ public class AuthServiceImpl implements AuthService {
         validateAccountActive(user);
 
         // Reset rate limiters on successful login
-        rateLimiterService.reset("login:email:" + email);
-        if (clientIp != null) {
-            rateLimiterService.reset("login:ip:" + clientIp);
+        rateLimiterService.reset(emailKey);
+        if (ipKey != null) {
+            rateLimiterService.reset(ipKey);
+        }
+        if (compositeKey != null) {
+            rateLimiterService.reset(compositeKey);
         }
 
         Instant now = Instant.now();

@@ -30,7 +30,7 @@ public class ReportController {
         // 1. CREATE DRAFT REPORT
 
         @PostMapping
-        @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ORG_ADMIN', 'LAB_STAFF')")
+        @PreAuthorize("hasAnyRole('ORG_ADMIN', 'LAB_STAFF')")
         public ApiResponse<ReportResponse> createReport(
                         @Valid @RequestBody CreateReportRequest request) {
                 return ApiResponse.success(
@@ -38,15 +38,29 @@ public class ReportController {
                                 reportService.createReport(request));
         }
 
-        // 2. GET REPORT BY REF ID
+        // 2. GET REPORT BY REF ID (TENANT ONLY)
 
         @GetMapping("/{reportRefId}")
-        @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ORG_ADMIN', 'LAB_STAFF')")
+        @PreAuthorize("hasAnyRole('ORG_ADMIN', 'LAB_STAFF')")
         public ApiResponse<ReportResponse> getReport(
                         @PathVariable String reportRefId) {
                 return ApiResponse.success(
                                 "Report retrieved successfully",
                                 reportService.getReport(reportRefId));
+        }
+
+        // 2b. BREAK-GLASS EMERGENCY ACCESS (SUPER_ADMIN ONLY, AUDITED)
+
+        @PostMapping("/{reportRefId}/break-glass")
+        @PreAuthorize("hasRole('SUPER_ADMIN')")
+        public ApiResponse<ReportResponse> breakGlassAccess(
+                        @PathVariable String reportRefId,
+                        @Valid @RequestBody BreakGlassAccessRequest request,
+                        jakarta.servlet.http.HttpServletRequest httpRequest) {
+                String clientIp = httpRequest != null ? httpRequest.getRemoteAddr() : null;
+                return ApiResponse.success(
+                                "Break-glass report access granted and audited",
+                                reportService.breakGlassAccess(reportRefId, request, clientIp));
         }
 
         // 3. GET MY ORGANIZATION REPORTS

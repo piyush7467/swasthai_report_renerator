@@ -57,10 +57,7 @@ public class AuthController {
         if (request == null) {
             return null;
         }
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
+        // Rely exclusively on verified peer socket address to prevent spoofed X-Forwarded-For rate-limit bypass
         return request.getRemoteAddr();
     }
 

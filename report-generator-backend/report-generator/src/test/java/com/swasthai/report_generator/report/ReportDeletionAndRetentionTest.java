@@ -95,6 +95,12 @@ class ReportDeletionAndRetentionTest {
     @Autowired
     private EntityManager entityManager;
 
+    @Autowired
+    private com.swasthai.report_generator.license.repository.PlanRepository planRepository;
+
+    @Autowired
+    private com.swasthai.report_generator.license.repository.LicenseRepository licenseRepository;
+
     private Organization orgA;
     private Organization orgB;
 
@@ -128,6 +134,31 @@ class ReportDeletionAndRetentionTest {
                         .status(OrganizationStatus.ACTIVE)
                         .build()
         );
+
+        com.swasthai.report_generator.license.entity.Plan testPlan = planRepository.findByCodeIgnoreCase("STARTER")
+                .orElseGet(() -> planRepository.save(com.swasthai.report_generator.license.entity.Plan.builder()
+                        .code("STARTER")
+                        .name("Starter Plan")
+                        .annualPrice(new java.math.BigDecimal("9990.00"))
+                        .currency("INR")
+                        .active(true)
+                        .build()));
+
+        licenseRepository.save(com.swasthai.report_generator.license.entity.License.builder()
+                .organization(orgA)
+                .plan(testPlan)
+                .status(com.swasthai.report_generator.license.entity.LicenseStatus.ACTIVE)
+                .startedAt(java.time.Instant.now().minusSeconds(3600))
+                .expiresAt(java.time.Instant.now().plusSeconds(86400 * 365))
+                .build());
+
+        licenseRepository.save(com.swasthai.report_generator.license.entity.License.builder()
+                .organization(orgB)
+                .plan(testPlan)
+                .status(com.swasthai.report_generator.license.entity.LicenseStatus.ACTIVE)
+                .startedAt(java.time.Instant.now().minusSeconds(3600))
+                .expiresAt(java.time.Instant.now().plusSeconds(86400 * 365))
+                .build());
 
         orgAdminA = userRepository.save(
                 User.builder()

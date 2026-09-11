@@ -5,7 +5,7 @@ spring:
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:swasthai_report_generator}
     username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:roots}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -27,10 +27,19 @@ spring:
 
 security:
   jwt:
-    private-key-path: ${JWT_PRIVATE_KEY_PATH:E:/swasthai-secrets/report-generator/private.pem}
-    public-key-path: ${JWT_PUBLIC_KEY_PATH:E:/swasthai-secrets/report-generator/public.pem}
+    private-key-path: ${JWT_PRIVATE_KEY_PATH}
+    public-key-path: ${JWT_PUBLIC_KEY_PATH}
     access-token-expiration-seconds: ${JWT_ACCESS_TOKEN_EXPIRATION_SECONDS:900}
     issuer: ${JWT_ISSUER:swasthai-report-generator}
+
+  rate-limit:
+    max-attempts: ${AUTH_RATE_LIMIT_MAX_ATTEMPTS:5}
+    window-seconds: ${AUTH_RATE_LIMIT_WINDOW_SECONDS:60}
+    lock-seconds: ${AUTH_RATE_LIMIT_LOCK_SECONDS:300}
+    cleanup-enabled: ${AUTH_RATE_LIMIT_CLEANUP_ENABLED:true}
+    cleanup-cron: ${AUTH_RATE_LIMIT_CLEANUP_CRON:0 0 * * * *}
+    cleanup-batch-size: ${AUTH_RATE_LIMIT_CLEANUP_BATCH_SIZE:500}
+    cleanup-stale-after-seconds: ${AUTH_RATE_LIMIT_CLEANUP_STALE_AFTER_SECONDS:86400}
 
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,http://localhost:8080}
@@ -70,3 +79,6 @@ report:
     purge-enabled: ${REPORT_RETENTION_PURGE_ENABLED}
     purge-cron: ${REPORT_RETENTION_PURGE_CRON}
     time-zone: ${REPORT_RETENTION_TIME_ZONE}
+
+license:
+  duration-days: ${LICENSE_DURATION_DAYS:365}

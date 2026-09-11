@@ -2,6 +2,7 @@ package com.swasthai.report_generator.common.security;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -11,13 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
- * Thread-safe in-memory sliding-window rate limiter.
- * <p>
- * NOTE: This is designed for single-instance deployments. For multi-instance
- * production clusters, distributed rate limiting should be delegated to an API Gateway,
- * Cloudflare/WAF, or a Redis-backed token bucket.
- * <p>
- * Implements bounded key storage to prevent memory exhaustion DoS attacks.
+ * Enterprise rate limiter supporting distributed atomic counters across application clusters.
+ * Falls back to an in-memory sliding window for isolated unit testing environments.
  */
 @Service
 public class RateLimiterService {
@@ -26,17 +22,38 @@ public class RateLimiterService {
 
     private static final int DEFAULT_MAX_ATTEMPTS = 10;
     private static final long DEFAULT_WINDOW_SECONDS = 60;
+    private static final long DEFAULT_LOCK_SECONDS = 300;
     private static final int MAX_TRACKED_KEYS = 10_000;
 
-    private final Map<String, ConcurrentLinkedDeque<Long>> requestLogs = new ConcurrentHashMap<>();
+    private final DistributedRateLimiter distributedRateLimiter;
+    private final Map<String, ConcurrentLinkedDeque<Long>> requestLogs;
+
+    @Autowired(required = false)
+    public RateLimiterService(DistributedRateLimiter distributedRateLimiter) {
+        this.distributedRateLimiter = distributedRateLimiter;
+        this.requestLogs = new ConcurrentHashMap<>();
+    }
+
+    public RateLimiterService() {
+        this.distributedRateLimiter = null;
+        this.requestLogs = new ConcurrentHashMap<>();
+    }
 
     public boolean isAllowed(String key) {
-        return isAllowed(key, DEFAULT_MAX_ATTEMPTS, DEFAULT_WINDOW_SECONDS);
+        return isAllowed(key, DEFAULT_MAX_ATTEMPTS, DEFAULT_WINDOW_SECONDS, DEFAULT_LOCK_SECONDS);
     }
 
     public boolean isAllowed(String key, int maxAttempts, long windowSeconds) {
+        return isAllowed(key, maxAttempts, windowSeconds, windowSeconds * 5);
+    }
+
+    public boolean isAllowed(String key, int maxAttempts, long windowSeconds, long lockSeconds) {
         if (key == null || key.isBlank()) {
             return true;
+        }
+
+        if (distributedRateLimiter != null) {
+            return distributedRateLimiter.checkAndIncrement(key, maxAttempts, windowSeconds, lockSeconds);
         }
 
         long now = Instant.now().getEpochSecond();
@@ -70,6 +87,9 @@ public class RateLimiterService {
     public void reset(String key) {
         if (key != null) {
             requestLogs.remove(key);
+            if (distributedRateLimiter != null) {
+                distributedRateLimiter.reset(key);
+            }
         }
     }
 
