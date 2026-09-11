@@ -13,6 +13,7 @@ import com.swasthai.report_generator.organization.service.OrganizationSequenceSe
 import com.swasthai.report_generator.patient.dto.response.PatientResponse;
 import com.swasthai.report_generator.patient.entity.Gender;
 import com.swasthai.report_generator.patient.entity.Patient;
+import com.swasthai.report_generator.patient.entity.Salutation;
 import com.swasthai.report_generator.patient.repository.PatientRepository;
 import com.swasthai.report_generator.patient.service.PatientService;
 import com.swasthai.report_generator.patient.service.impl.PatientServiceImpl;
@@ -78,9 +79,11 @@ class TenantIsolationAndRbacTest {
 
     @BeforeEach
     void setUp() {
+
         patientService = new PatientServiceImpl(
                 patientRepository,
                 currentOrganizationService,
+                currentUserService,
                 organizationSequenceService
         );
 
@@ -91,7 +94,10 @@ class TenantIsolationAndRbacTest {
                 currentUserService
         );
 
-        currentOrgServiceImpl = new CurrentOrganizationServiceImpl(currentUserService);
+        currentOrgServiceImpl =
+                new CurrentOrganizationServiceImpl(
+                        currentUserService
+                );
 
         orgA = Organization.builder()
                 .id(UUID.randomUUID())
@@ -99,6 +105,7 @@ class TenantIsolationAndRbacTest {
                 .code("ALPHA")
                 .status(OrganizationStatus.ACTIVE)
                 .build();
+
         orgA.setRefId("ORG-ALPHA-01");
 
         orgB = Organization.builder()
@@ -107,82 +114,166 @@ class TenantIsolationAndRbacTest {
                 .code("BETA")
                 .status(OrganizationStatus.ACTIVE)
                 .build();
+
         orgB.setRefId("ORG-BETA-001");
     }
 
+    // ============================================================
+    // TENANT ISOLATION
+    // ============================================================
+
     @Test
-    @DisplayName("Tenant Isolation: User in Org A querying Patient belonging to Org B receives 404 ResourceNotFoundException")
+    @DisplayName(
+            "Tenant Isolation: User in Org A querying Patient belonging "
+                    + "to Org B receives 404 ResourceNotFoundException"
+    )
     void testTenantIsolation_OrgACannotQueryOrgBPatient() {
-        // Authenticated user belongs to Org A
-        when(currentOrganizationService.getCurrentOrganization()).thenReturn(orgA);
 
-        // Patient "PAT-999" belongs to Org B in DB, so querying with Org A's ID returns empty
-        when(patientRepository.findByRefIdAndOrganization_Id("PAT-999", orgA.getId()))
-                .thenReturn(Optional.empty());
+        when(currentOrganizationService.getCurrentOrganization())
+                .thenReturn(orgA);
 
-        assertThatThrownBy(() -> patientService.getPatient("PAT-999"))
+        when(
+                patientRepository
+                        .findByRefIdAndOrganization_IdAndDeletedAtIsNull(
+                                "PAT-999",
+                                orgA.getId()
+                        )
+        ).thenReturn(Optional.empty());
+
+        assertThatThrownBy(
+                () -> patientService.getPatient("PAT-999")
+        )
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Patient not found");
 
-        verify(patientRepository).findByRefIdAndOrganization_Id("PAT-999", orgA.getId());
-        verify(patientRepository, never()).findByRefIdAndOrganization_Id("PAT-999", orgB.getId());
+        verify(patientRepository)
+                .findByRefIdAndOrganization_IdAndDeletedAtIsNull(
+                        "PAT-999",
+                        orgA.getId()
+                );
+
+        verify(patientRepository, never())
+                .findByRefIdAndOrganization_IdAndDeletedAtIsNull(
+                        "PAT-999",
+                        orgB.getId()
+                );
     }
 
     @Test
-    @DisplayName("Tenant Isolation: User in Org A can successfully access Patient belonging to Org A")
+    @DisplayName(
+            "Tenant Isolation: User in Org A can successfully access "
+                    + "Patient belonging to Org A"
+    )
     void testTenantIsolation_OrgACanQueryOwnPatient() {
-        when(currentOrganizationService.getCurrentOrganization()).thenReturn(orgA);
+
+        when(currentOrganizationService.getCurrentOrganization())
+                .thenReturn(orgA);
 
         Patient patientA = Patient.builder()
                 .id(UUID.randomUUID())
                 .organization(orgA)
                 .patientCode("PAT-ALPHA-0001")
+                .salutation(Salutation.MR)
                 .name("John Doe")
-                .gender(Gender.MALE)
+                .dateOfBirthKnown(true)
                 .dateOfBirth(LocalDate.of(1990, 1, 1))
+                .gender(Gender.MALE)
                 .build();
+
         patientA.setRefId("PAT-001");
 
-        when(patientRepository.findByRefIdAndOrganization_Id("PAT-001", orgA.getId()))
-                .thenReturn(Optional.of(patientA));
+        when(
+                patientRepository
+                        .findByRefIdAndOrganization_IdAndDeletedAtIsNull(
+                                "PAT-001",
+                                orgA.getId()
+                        )
+        ).thenReturn(Optional.of(patientA));
 
-        PatientResponse response = patientService.getPatient("PAT-001");
+        PatientResponse response =
+                patientService.getPatient("PAT-001");
 
         assertThat(response).isNotNull();
-        assertThat(response.getRefId()).isEqualTo("PAT-001");
-        assertThat(response.getName()).isEqualTo("John Doe");
-        assertThat(response.getOrganizationRefId()).isEqualTo("ORG-ALPHA-01");
+        assertThat(response.getRefId())
+                .isEqualTo("PAT-001");
+
+        assertThat(response.getName())
+                .isEqualTo("John Doe");
+
+        assertThat(response.getOrganizationRefId())
+                .isEqualTo("ORG-ALPHA-01");
     }
 
     @Test
-    @DisplayName("Tenant Isolation: Paginated patient queries are strictly scoped to caller's organization ID")
+    @DisplayName(
+            "Tenant Isolation: Paginated patient queries are strictly "
+                    + "scoped to caller's organization ID"
+    )
     void testTenantIsolation_PaginatedListingStrictlyTenantScoped() {
-        when(currentOrganizationService.getCurrentOrganization()).thenReturn(orgA);
+
+        when(currentOrganizationService.getCurrentOrganization())
+                .thenReturn(orgA);
 
         Patient patientA = Patient.builder()
                 .id(UUID.randomUUID())
                 .organization(orgA)
                 .patientCode("PAT-ALPHA-0001")
+                .salutation(Salutation.MR)
                 .name("John Doe")
+                .dateOfBirthKnown(true)
+                .dateOfBirth(LocalDate.of(1990, 1, 1))
                 .gender(Gender.MALE)
                 .build();
+
         patientA.setRefId("PAT-001");
 
-        Page<Patient> page = new PageImpl<>(List.of(patientA));
-        when(patientRepository.findAllByOrganization_Id(eq(orgA.getId()), any(Pageable.class)))
-                .thenReturn(page);
+        Page<Patient> page =
+                new PageImpl<>(List.of(patientA));
 
-        var result = patientService.getPatients(0, 10, "createdAt", "desc");
+        when(
+                patientRepository
+                        .findAllByOrganization_IdAndDeletedAtIsNull(
+                                eq(orgA.getId()),
+                                any(Pageable.class)
+                        )
+        ).thenReturn(page);
 
-        assertThat(result.getContent()).hasSize(1);
-        ArgumentCaptor<UUID> orgIdCaptor = ArgumentCaptor.forClass(UUID.class);
-        verify(patientRepository).findAllByOrganization_Id(orgIdCaptor.capture(), any(Pageable.class));
-        assertThat(orgIdCaptor.getValue()).isEqualTo(orgA.getId());
+        var result =
+                patientService.getPatients(
+                        0,
+                        10,
+                        "createdAt",
+                        "desc",
+                        null
+                );
+
+        assertThat(result.getContent())
+                .hasSize(1);
+
+        ArgumentCaptor<UUID> orgIdCaptor =
+                ArgumentCaptor.forClass(UUID.class);
+
+        verify(patientRepository)
+                .findAllByOrganization_IdAndDeletedAtIsNull(
+                        orgIdCaptor.capture(),
+                        any(Pageable.class)
+                );
+
+        assertThat(orgIdCaptor.getValue())
+                .isEqualTo(orgA.getId());
     }
 
+    // ============================================================
+    // SUPER ADMIN ORGANIZATION ISOLATION
+    // ============================================================
+
     @Test
-    @DisplayName("Tenant Security: SUPER_ADMIN has no organization and cannot call organization-scoped services")
+    @DisplayName(
+            "Tenant Security: SUPER_ADMIN has no organization and "
+                    + "cannot call organization-scoped services"
+    )
     void testSuperAdmin_CannotAccessOrgScopedServices() {
+
         User superAdmin = User.builder()
                 .id(UUID.randomUUID())
                 .email("admin@swasthai.com")
@@ -190,16 +281,29 @@ class TenantIsolationAndRbacTest {
                 .organization(null)
                 .build();
 
-        when(currentUserService.getCurrentUser()).thenReturn(superAdmin);
+        when(currentUserService.getCurrentUser())
+                .thenReturn(superAdmin);
 
-        assertThatThrownBy(() -> currentOrgServiceImpl.getCurrentOrganization())
+        assertThatThrownBy(
+                () -> currentOrgServiceImpl.getCurrentOrganization()
+        )
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("SUPER_ADMIN is not associated with an organization");
+                .hasMessageContaining(
+                        "SUPER_ADMIN is not associated with an organization"
+                );
     }
 
+    // ============================================================
+    // USER RBAC
+    // ============================================================
+
     @Test
-    @DisplayName("RBAC: ORG_ADMIN cannot create another ORG_ADMIN (only SUPER_ADMIN can)")
+    @DisplayName(
+            "RBAC: ORG_ADMIN cannot create another ORG_ADMIN "
+                    + "(only SUPER_ADMIN can)"
+    )
     void testRbac_OrgAdminCannotCreateOrgAdmin() {
+
         User orgAdmin = User.builder()
                 .id(UUID.randomUUID())
                 .email("admin@alpha.com")
@@ -207,25 +311,40 @@ class TenantIsolationAndRbacTest {
                 .organization(orgA)
                 .build();
 
-        when(currentUserService.getCurrentUser()).thenReturn(orgAdmin);
-        when(userRepository.existsByEmailIgnoreCase("newadmin@alpha.com")).thenReturn(false);
+        when(currentUserService.getCurrentUser())
+                .thenReturn(orgAdmin);
 
-        CreateUserRequest request = CreateUserRequest.builder()
-                .name("New Admin")
-                .email("newadmin@alpha.com")
-                .password("SecurePass123!")
-                .role(Role.ORG_ADMIN)
-                .organizationRefId(orgA.getRefId())
-                .build();
+        when(
+                userRepository
+                        .existsByEmailIgnoreCase(
+                                "newadmin@alpha.com"
+                        )
+        ).thenReturn(false);
 
-        assertThatThrownBy(() -> userService.createUser(request))
+        CreateUserRequest request =
+                CreateUserRequest.builder()
+                        .name("New Admin")
+                        .email("newadmin@alpha.com")
+                        .password("SecurePass123!")
+                        .role(Role.ORG_ADMIN)
+                        .organizationRefId(orgA.getRefId())
+                        .build();
+
+        assertThatThrownBy(
+                () -> userService.createUser(request)
+        )
                 .isInstanceOf(ForbiddenException.class)
-                .hasMessageContaining("Only SUPER_ADMIN can create an ORG_ADMIN");
+                .hasMessageContaining(
+                        "Only SUPER_ADMIN can create an ORG_ADMIN"
+                );
     }
 
     @Test
-    @DisplayName("RBAC: LAB_STAFF cannot create any users")
+    @DisplayName(
+            "RBAC: LAB_STAFF cannot create any users"
+    )
     void testRbac_LabStaffCannotCreateUsers() {
+
         User labStaff = User.builder()
                 .id(UUID.randomUUID())
                 .email("staff@alpha.com")
@@ -233,24 +352,39 @@ class TenantIsolationAndRbacTest {
                 .organization(orgA)
                 .build();
 
-        when(currentUserService.getCurrentUser()).thenReturn(labStaff);
-        when(userRepository.existsByEmailIgnoreCase("tech@alpha.com")).thenReturn(false);
+        when(currentUserService.getCurrentUser())
+                .thenReturn(labStaff);
 
-        CreateUserRequest request = CreateUserRequest.builder()
-                .name("New Tech")
-                .email("tech@alpha.com")
-                .password("SecurePass123!")
-                .role(Role.LAB_STAFF)
-                .build();
+        when(
+                userRepository
+                        .existsByEmailIgnoreCase(
+                                "tech@alpha.com"
+                        )
+        ).thenReturn(false);
 
-        assertThatThrownBy(() -> userService.createUser(request))
+        CreateUserRequest request =
+                CreateUserRequest.builder()
+                        .name("New Tech")
+                        .email("tech@alpha.com")
+                        .password("SecurePass123!")
+                        .role(Role.LAB_STAFF)
+                        .build();
+
+        assertThatThrownBy(
+                () -> userService.createUser(request)
+        )
                 .isInstanceOf(ForbiddenException.class)
-                .hasMessageContaining("LAB_STAFF cannot create users");
+                .hasMessageContaining(
+                        "LAB_STAFF cannot create users"
+                );
     }
 
     @Test
-    @DisplayName("RBAC: Only one SUPER_ADMIN is allowed in the entire system")
+    @DisplayName(
+            "RBAC: Only one SUPER_ADMIN is allowed in the entire system"
+    )
     void testRbac_SingleSuperAdminConstraint() {
+
         User superAdmin = User.builder()
                 .id(UUID.randomUUID())
                 .email("admin@swasthai.com")
@@ -258,18 +392,30 @@ class TenantIsolationAndRbacTest {
                 .organization(null)
                 .build();
 
-        when(currentUserService.getCurrentUser()).thenReturn(superAdmin);
-        when(userRepository.existsByEmailIgnoreCase("admin2@swasthai.com")).thenReturn(false);
+        when(currentUserService.getCurrentUser())
+                .thenReturn(superAdmin);
 
-        CreateUserRequest request = CreateUserRequest.builder()
-                .name("Second Super Admin")
-                .email("admin2@swasthai.com")
-                .password("SecurePass123!")
-                .role(Role.SUPER_ADMIN)
-                .build();
+        when(
+                userRepository
+                        .existsByEmailIgnoreCase(
+                                "admin2@swasthai.com"
+                        )
+        ).thenReturn(false);
 
-        assertThatThrownBy(() -> userService.createUser(request))
+        CreateUserRequest request =
+                CreateUserRequest.builder()
+                        .name("Second Super Admin")
+                        .email("admin2@swasthai.com")
+                        .password("SecurePass123!")
+                        .role(Role.SUPER_ADMIN)
+                        .build();
+
+        assertThatThrownBy(
+                () -> userService.createUser(request)
+        )
                 .isInstanceOf(ResourceAlreadyExistsException.class)
-                .hasMessageContaining("Only one SUPER_ADMIN is allowed");
+                .hasMessageContaining(
+                        "Only one SUPER_ADMIN is allowed"
+                );
     }
 }

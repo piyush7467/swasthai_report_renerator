@@ -16,7 +16,17 @@ public interface OrganizationRepository
 
     boolean existsByCode(String code);
 
+    boolean existsByCodeAndIdNot(
+            String code,
+            UUID id
+    );
+
     boolean existsByNameIgnoreCase(String name);
+
+    boolean existsByNameIgnoreCaseAndIdNot(
+            String name,
+            UUID id
+    );
 
     Optional<Organization> findByIdAndStatus(
             UUID id,

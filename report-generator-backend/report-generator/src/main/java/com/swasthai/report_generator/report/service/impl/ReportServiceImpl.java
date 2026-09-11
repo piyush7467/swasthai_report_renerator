@@ -984,26 +984,24 @@ public class ReportServiceImpl implements ReportService {
 
 
     private void validatePatientOwnership(
-            String patientRefId,
-            UUID organizationId) {
+        String patientRefId,
+        UUID organizationId) {
 
-        boolean patientExists =
-                patientRepository
-                        .findByRefIdAndOrganization_Id(
-                                patientRefId,
-                                organizationId
-                        )
-                        .isPresent();
+    boolean patientExists =
+            patientRepository
+                    .findByRefIdAndOrganization_IdAndDeletedAtIsNull(
+                            patientRefId,
+                            organizationId
+                    )
+                    .isPresent();
 
-        if (!patientExists) {
-
-            throw new IllegalArgumentException(
-                    "Patient not found or does not belong to your organization: "
-                            + patientRefId
-            );
-        }
+    if (!patientExists) {
+        throw new IllegalArgumentException(
+                "Patient not found or does not belong to your organization: "
+                        + patientRefId
+        );
     }
-
+}
 
     private void validateTestAssignment(
             String testRefId,

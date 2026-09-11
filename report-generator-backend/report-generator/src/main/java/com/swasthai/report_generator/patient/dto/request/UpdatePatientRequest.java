@@ -14,7 +14,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CreatePatientRequest {
+public class UpdatePatientRequest {
 
     @NotNull(message = "Salutation is required")
     private Salutation salutation;
@@ -26,13 +26,6 @@ public class CreatePatientRequest {
     )
     private String name;
 
-    /*
-     * true:
-     *     dateOfBirth is required.
-     *
-     * false:
-     *     ageValue and ageUnit are required.
-     */
     @NotNull(message = "Date of birth known flag is required")
     private Boolean dateOfBirthKnown;
 

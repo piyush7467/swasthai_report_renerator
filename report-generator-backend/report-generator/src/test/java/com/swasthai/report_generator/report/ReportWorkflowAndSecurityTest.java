@@ -6,6 +6,7 @@ import com.swasthai.report_generator.organization.entity.OrganizationStatus;
 import com.swasthai.report_generator.organization.repository.OrganizationRepository;
 import com.swasthai.report_generator.patient.entity.Gender;
 import com.swasthai.report_generator.patient.entity.Patient;
+import com.swasthai.report_generator.patient.entity.Salutation;
 import com.swasthai.report_generator.patient.repository.PatientRepository;
 import com.swasthai.report_generator.report.dto.request.AddReportTestRequest;
 import com.swasthai.report_generator.report.dto.request.CreateReportRequest;
@@ -132,16 +133,20 @@ class ReportWorkflowAndSecurityTest {
         // Setup Patients
         patientOrgA = patientRepository.save(Patient.builder()
                 .organization(orgA)
+                .salutation(Salutation.MR)
                 .name("John Doe")
                 .patientCode("PA-" + suffix)
+                .dateOfBirthKnown(true)
                 .dateOfBirth(LocalDate.of(1990, 1, 1))
                 .gender(Gender.MALE)
                 .build());
 
         patientOrgB = patientRepository.save(Patient.builder()
                 .organization(orgB)
+                .salutation(Salutation.MS)
                 .name("Jane Smith")
                 .patientCode("PB-" + suffix)
+                .dateOfBirthKnown(true)
                 .dateOfBirth(LocalDate.of(1995, 5, 5))
                 .gender(Gender.FEMALE)
                 .build());
