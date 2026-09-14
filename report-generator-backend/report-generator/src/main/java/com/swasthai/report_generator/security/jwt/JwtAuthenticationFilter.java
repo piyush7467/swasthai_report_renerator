@@ -75,7 +75,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
              * - current organization
              */
             User user =
-                    userRepository.findByRefId(userRefId)
+                    userRepository.findByRefIdWithOrganization(userRefId)
                             .orElse(null);
 
             if (user == null || user.getStatus() != UserStatus.ACTIVE) {

@@ -25,6 +25,11 @@ spring:
     baseline-version: 0
     validate-on-migrate: true
 
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
 security:
   jwt:
     private-key-path: ${JWT_PRIVATE_KEY_PATH}
@@ -82,3 +87,8 @@ report:
 
 license:
   duration-days: ${LICENSE_DURATION_DAYS:365}
+
+
+storage:
+  root-path: ${STORAGE_ROOT_PATH:E:/swasthai-storage/report-generator}
+  max-image-size-bytes: ${STORAGE_MAX_IMAGE_SIZE_BYTES:5242880}

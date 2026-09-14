@@ -46,4 +46,8 @@ public interface ReportService {
             String reportRefId,
             com.swasthai.report_generator.report.dto.request.BreakGlassAccessRequest request,
             String clientIp);
+
+    byte[] generateReportPdf(String reportRefId);
+
+    com.swasthai.report_generator.report.pdf.ReportPdfData getReportPdfData(String reportRefId);
 }

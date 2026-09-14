@@ -89,7 +89,7 @@ public class ReportController {
         // 4. ADD TEST TO REPORT DRAFT
 
         @PostMapping("/{reportRefId}/tests")
-        @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ORG_ADMIN', 'LAB_STAFF')")
+        @PreAuthorize("hasAnyRole('ORG_ADMIN', 'LAB_STAFF')")
         public ApiResponse<ReportResponse> addTest(
                         @PathVariable String reportRefId,
                         @Valid @RequestBody AddReportTestRequest request) {
@@ -101,7 +101,7 @@ public class ReportController {
         // 5. REMOVE TEST FROM REPORT DRAFT
 
         @DeleteMapping("/{reportRefId}/tests/{reportTestRefId}")
-        @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ORG_ADMIN', 'LAB_STAFF')")
+        @PreAuthorize("hasAnyRole('ORG_ADMIN', 'LAB_STAFF')")
         public ApiResponse<ReportResponse> removeTest(
                         @PathVariable String reportRefId,
                         @PathVariable String reportTestRefId) {
@@ -113,7 +113,7 @@ public class ReportController {
         // 6. UPDATE PARAMETER VALUES / AUTOSAVE
 
         @PatchMapping("/{reportRefId}/tests/{reportTestRefId}/parameters")
-        @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ORG_ADMIN', 'LAB_STAFF')")
+        @PreAuthorize("hasAnyRole('ORG_ADMIN', 'LAB_STAFF')")
         public ApiResponse<ReportResponse> updateParameterValues(
                         @PathVariable String reportRefId,
                         @PathVariable String reportTestRefId,
@@ -126,7 +126,7 @@ public class ReportController {
         // 7. REORDER TESTS
 
         @PatchMapping("/{reportRefId}/tests/reorder")
-        @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ORG_ADMIN', 'LAB_STAFF')")
+        @PreAuthorize("hasAnyRole('ORG_ADMIN', 'LAB_STAFF')")
         public ApiResponse<ReportResponse> reorderTests(
                         @PathVariable String reportRefId,
                         @Valid @RequestBody ReorderReportTestsRequest request) {
@@ -138,7 +138,7 @@ public class ReportController {
         // 8. FINALIZE REPORT
 
         @PostMapping("/{reportRefId}/finalize")
-        @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ORG_ADMIN', 'LAB_STAFF')")
+        @PreAuthorize("hasAnyRole('ORG_ADMIN', 'LAB_STAFF')")
         public ApiResponse<ReportResponse> finalizeReport(
                         @PathVariable String reportRefId) {
                 return ApiResponse.success(
@@ -177,6 +177,20 @@ public class ReportController {
                 return ApiResponse.success(
                                 "Date-range reports processed for deletion",
                                 reportService.deleteReportsByDateRange(request));
+        }
+
+        // 12. GENERATE REPORT PDF (FINALIZED REPORTS ONLY)
+
+        @GetMapping("/{reportRefId}/pdf")
+        @PreAuthorize("hasAnyRole('ORG_ADMIN', 'LAB_STAFF')")
+        public org.springframework.http.ResponseEntity<byte[]> generateReportPdf(
+                        @PathVariable String reportRefId) {
+                byte[] pdfBytes = reportService.generateReportPdf(reportRefId);
+                return org.springframework.http.ResponseEntity.ok()
+                                .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
+                                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                                                "inline; filename=\"report-" + reportRefId + ".pdf\"")
+                                .body(pdfBytes);
         }
 
 }

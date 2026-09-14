@@ -6,7 +6,9 @@ import com.swasthai.report_generator.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -122,8 +124,131 @@ public class Report {
                 }
         }
 
+        // ============================================================
+        // Historical Patient Snapshot
+        // ============================================================
+
+        @Column(name = "patient_name", length = 150)
+        private String patientName;
+
+        @Column(name = "patient_salutation", length = 20)
+        private String patientSalutation;
+
+        @Column(name = "patient_code", length = 30)
+        private String patientCode;
+
+        @Column(name = "patient_gender", length = 20)
+        private String patientGender;
+
+        @Column(name = "patient_date_of_birth_known")
+        private Boolean patientDateOfBirthKnown;
+
+        @Column(name = "patient_date_of_birth")
+        private LocalDate patientDateOfBirth;
+
+        @Column(name = "patient_age_at_reporting_value")
+        private Integer patientAgeAtReportingValue;
+
+        @Column(name = "patient_age_at_reporting_unit", length = 10)
+        private String patientAgeAtReportingUnit;
+
+        @Column(name = "patient_phone", length = 30)
+        private String patientPhone;
+
+        @Column(name = "patient_email", length = 150)
+        private String patientEmail;
+
+        @Column(name = "patient_address", length = 500)
+        private String patientAddress;
+
+        @Column(name = "patient_weight_kg", precision = 6, scale = 3)
+        private BigDecimal patientWeightKg;
+
+        // ============================================================
+        // Historical Organization Snapshot
+        // ============================================================
+
+        @Column(name = "organization_name", length = 150)
+        private String organizationName;
+
+        @Column(name = "organization_code", length = 50)
+        private String organizationCode;
+
+        // ============================================================
+        // Historical Creator Snapshot
+        // ============================================================
+
+        @Column(name = "created_by_name", length = 150)
+        private String createdByName;
+
+        @Column(name = "created_by_email", length = 255)
+        private String createdByEmail;
+
+        // ============================================================
+        // Historical Finalizer Snapshot
+        // ============================================================
+
+        @Column(name = "finalized_by_name", length = 150)
+        private String finalizedByName;
+
+        @Column(name = "finalized_by_email", length = 255)
+        private String finalizedByEmail;
+
+        // ============================================================
+        // Historical Organization Profile Snapshot
+        // ============================================================
+
+        @Column(name = "organization_address_line1", length = 200)
+        private String organizationAddressLine1;
+
+        @Column(name = "organization_address_line2", length = 200)
+        private String organizationAddressLine2;
+
+        @Column(name = "organization_city", length = 100)
+        private String organizationCity;
+
+        @Column(name = "organization_state", length = 100)
+        private String organizationState;
+
+        @Column(name = "organization_postal_code", length = 20)
+        private String organizationPostalCode;
+
+        @Column(name = "organization_country", length = 100)
+        private String organizationCountry;
+
+        @Column(name = "organization_phone", length = 30)
+        private String organizationPhone;
+
+        @Column(name = "organization_alternate_phone", length = 30)
+        private String organizationAlternatePhone;
+
+        @Column(name = "organization_email", length = 150)
+        private String organizationEmail;
+
+        @Column(name = "organization_website", length = 255)
+        private String organizationWebsite;
+
+        @Column(name = "organization_logo_storage_key", length = 500)
+        private String organizationLogoStorageKey;
+
+        @Column(name = "organization_signature_storage_key", length = 500)
+        private String organizationSignatureStorageKey;
+
+        @Column(name = "organization_signature_owner_name", length = 150)
+        private String organizationSignatureOwnerName;
+
+        @Column(name = "organization_signature_owner_email", length = 255)
+        private String organizationSignatureOwnerEmail;
+
+        @Column(name = "organization_report_footer_text", length = 1000)
+        private String organizationReportFooterText;
+
+        @Column(name = "organization_report_disclaimer", length = 2000)
+        private String organizationReportDisclaimer;
+
         @PreUpdate
         protected void onUpdate() {
+
                 updatedAt = Instant.now();
         }
 
