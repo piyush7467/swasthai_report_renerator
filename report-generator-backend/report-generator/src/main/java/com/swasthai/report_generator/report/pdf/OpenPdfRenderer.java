@@ -49,6 +49,8 @@ public class OpenPdfRenderer implements PdfRenderer {
 
         private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd MMM yyyy");
 
+        private final VerificationQrCodeGenerator verificationQrCodeGenerator;
+
         /*
          * ============================================================
          * PAGE
@@ -208,8 +210,11 @@ public class OpenPdfRenderer implements PdfRenderer {
                                         document,
                                         outputStream);
 
+                        Image qrImage = verificationQrCodeGenerator.generate(
+                                        data.verificationUrl());
+
                         writer.setPageEvent(
-                                        new ReportPageEvent(data));
+                                        new ReportPageEvent(data, qrImage));
 
                         document.open();
 
@@ -330,6 +335,11 @@ public class OpenPdfRenderer implements PdfRenderer {
 
                         throw new IllegalStateException(
                                         "PDF report signature owner is missing");
+                }
+
+                if (isBlank(data.verificationUrl())) {
+                        throw new IllegalStateException(
+                                        "PDF report is missing verification URL");
                 }
         }
 
@@ -1407,8 +1417,7 @@ public class OpenPdfRenderer implements PdfRenderer {
                         Document document,
                         ReportPdfData data) throws DocumentException {
 
-                document.add(
-                                createSpacer(10f));
+                document.add(createSpacer(10f));
 
                 PdfPTable table = new PdfPTable(1);
 
@@ -1418,11 +1427,9 @@ public class OpenPdfRenderer implements PdfRenderer {
 
                 cell.setPadding(8f);
 
-                cell.setBackgroundColor(
-                                COLOR_LIGHT_BACKGROUND);
+                cell.setBackgroundColor(COLOR_LIGHT_BACKGROUND);
 
-                cell.setBorderColor(
-                                COLOR_LIGHT_BORDER);
+                cell.setBorderColor(COLOR_LIGHT_BORDER);
 
                 Paragraph heading = new Paragraph(
                                 "REPORT VERIFICATION",
@@ -1547,10 +1554,13 @@ public class OpenPdfRenderer implements PdfRenderer {
                         extends PdfPageEventHelper {
 
                 private final ReportPdfData data;
+                private final Image qrImage;
 
                 private ReportPageEvent(
-                                ReportPdfData data) {
+                                ReportPdfData data,
+                                Image qrImage) {
                         this.data = data;
+                        this.qrImage = qrImage;
                 }
 
                 @Override
@@ -1581,7 +1591,34 @@ public class OpenPdfRenderer implements PdfRenderer {
                         canvas.stroke();
 
                         /*
+                         * Verification QR code.
+                         *
+                         * Rendered on every page using direct canvas coordinates.
+                         * Placed in the left footer area below the separator line.
+                         */
+
+                        float qrWidth = 34f;
+                        float qrHeight = 34f;
+                        float qrX = document.left();
+                        float qrY = document.bottom() - 44f;
+
+                        if (qrImage != null) {
+                                try {
+                                        Image pageQr = Image.getInstance(qrImage);
+                                        pageQr.scaleAbsolute(qrWidth, qrHeight);
+                                        pageQr.setAbsolutePosition(qrX, qrY);
+                                        canvas.addImage(pageQr);
+                                } catch (DocumentException exception) {
+                                        throw new IllegalStateException(
+                                                        "Failed to render verification QR code on PDF page",
+                                                        exception);
+                                }
+                        }
+
+                        /*
                          * Left footer.
+                         *
+                         * Positioned to the right of the QR code so there is no overlap.
                          */
 
                         String reportId = data != null
@@ -1600,7 +1637,7 @@ public class OpenPdfRenderer implements PdfRenderer {
                                         canvas,
                                         Element.ALIGN_LEFT,
                                         leftFooter,
-                                        document.left(),
+                                        document.left() + qrWidth + 6f,
                                         document.bottom() - 22f,
                                         0);
 
@@ -1916,4 +1953,5 @@ public class OpenPdfRenderer implements PdfRenderer {
                 return value == null
                                 || value.isBlank();
         }
+
 }

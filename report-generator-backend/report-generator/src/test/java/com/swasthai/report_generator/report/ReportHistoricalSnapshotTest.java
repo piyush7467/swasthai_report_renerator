@@ -39,6 +39,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.openpdf.text.pdf.PdfDictionary;
+import org.openpdf.text.pdf.PdfName;
 import org.openpdf.text.pdf.PdfReader;
 import org.openpdf.text.pdf.parser.PdfTextExtractor;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,6 +62,9 @@ class ReportHistoricalSnapshotTest {
 
     @Autowired
     private ReportService reportService;
+
+    @Autowired
+    private com.swasthai.report_generator.report.pdf.OpenPdfRenderer openPdfRenderer;
 
     @Autowired
     private ReportRepository reportRepository;
@@ -795,5 +800,125 @@ class ReportHistoricalSnapshotTest {
         ReportPdfData pdfData = reportService.getReportPdfData(finalized.refId());
         assertThat(pdfData.patient().ageValue()).isEqualTo(45);
         assertThat(pdfData.patient().ageUnit()).isEqualTo("YEARS");
+    }
+
+    @Test
+    @DisplayName("18. PDF generation fails safely when verification URL is missing or blank")
+    void testPdfGeneration_FailsSafely_WhenVerificationUrlMissing() {
+        authenticateUser(labStaffOrgA);
+        ReportResponse finalized = createAndFinalizeReport();
+        ReportPdfData validData = reportService.getReportPdfData(finalized.refId());
+
+        ReportPdfData invalidData = ReportPdfData.builder()
+                .reportRefId(validData.reportRefId())
+                .status(validData.status())
+                .reportVersion(validData.reportVersion())
+                .createdAt(validData.createdAt())
+                .finalizedAt(validData.finalizedAt())
+                .organization(validData.organization())
+                .patient(validData.patient())
+                .createdBy(validData.createdBy())
+                .finalizedBy(validData.finalizedBy())
+                .tests(validData.tests())
+                .verificationUrl("   ")
+                .build();
+
+        assertThatThrownBy(() -> openPdfRenderer.render(invalidData))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("missing verification URL");
+    }
+
+    @Test
+    @DisplayName("19. QR code image is present in footer on EVERY page of multi-page report")
+    void testMultiPageReport_ContainsQrCodeOnEveryPage() {
+        authenticateUser(labStaffOrgA);
+
+        // Create a test with many parameters to cause a dynamic page break
+        String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        com.swasthai.report_generator.test.entity.Test largeTest = testRepository.save(
+                com.swasthai.report_generator.test.entity.Test.builder()
+                        .name("Comprehensive Metabolic Panel " + suffix)
+                        .code("CMP-" + suffix)
+                        .shortName("CMP")
+                        .category(paramHgb.getTest().getCategory())
+                        .sampleType(SampleType.SERUM)
+                        .specimenContainer("SST Vacutainer (Gold Top)")
+                        .reportSection("BIOCHEMISTRY")
+                        .status(TestStatus.ACTIVE)
+                        .version(1)
+                        .build()
+        );
+
+        organizationTestRepository.save(
+                OrganizationTest.builder()
+                        .organization(orgA)
+                        .test(largeTest)
+                        .status(OrganizationTestStatus.ACTIVE)
+                        .build()
+        );
+
+        java.util.List<TestParameterResultInput> paramInputs = new java.util.ArrayList<>();
+        for (int i = 1; i <= 25; i++) {
+            TestParameter p = testParameterRepository.save(TestParameter.builder()
+                    .test(largeTest)
+                    .code("P_" + i)
+                    .name("Metabolic Parameter " + i)
+                    .dataType(TestParameterDataType.DECIMAL)
+                    .inputType(ParameterInputType.MANUAL)
+                    .unit("mg/dL")
+                    .referenceMin(new BigDecimal("10.0"))
+                    .referenceMax(new BigDecimal("100.0"))
+                    .displayOrder(i)
+                    .required(true)
+                    .status(TestParameterStatus.ACTIVE)
+                    .build());
+            paramInputs.add(new TestParameterResultInput(p.getRefId(), "P_" + i, "50.0"));
+        }
+
+        ReportResponse report = reportService.createReport(new CreateReportRequest(patientOrgA.getRefId()));
+        report = reportService.addTest(report.refId(), new AddReportTestRequest(cbcTest.getRefId(), null));
+        report = reportService.addTest(report.refId(), new AddReportTestRequest(largeTest.getRefId(), null));
+
+        String cbcRefId = report.tests().get(0).refId();
+        String cmpRefId = report.tests().get(1).refId();
+
+        reportService.updateParameterValues(report.refId(), cbcRefId, new UpdateReportParametersRequest(
+                null,
+                List.of(
+                        new TestParameterResultInput(paramHgb.getRefId(), "HGB", "14.0"),
+                        new TestParameterResultInput(paramRbc.getRefId(), "RBC", "4.8"),
+                        new TestParameterResultInput(paramHct.getRefId(), "HCT", "42.0")
+                )
+        ));
+
+        reportService.updateParameterValues(report.refId(), cmpRefId, new UpdateReportParametersRequest(
+                null,
+                paramInputs
+        ));
+
+        ReportResponse finalized = reportService.finalizeReport(report.refId());
+        byte[] pdfBytes = reportService.generateReportPdf(finalized.refId());
+        assertThat(pdfBytes).isNotNull().isNotEmpty();
+
+        try (PdfReader reader = new PdfReader(pdfBytes)) {
+            int pageCount = reader.getNumberOfPages();
+            assertThat(pageCount).as("Must produce a multi-page document").isGreaterThanOrEqualTo(2);
+
+            for (int p = 1; p <= pageCount; p++) {
+                PdfDictionary pageDict = reader.getPageN(p);
+                PdfDictionary resources = pageDict.getAsDict(PdfName.RESOURCES);
+                assertThat(resources).as("Page " + p + " must have resources").isNotNull();
+                PdfDictionary xobjects = resources.getAsDict(PdfName.XOBJECT);
+                assertThat(xobjects).as("Page " + p + " must have XObjects (QR code)").isNotNull();
+                assertThat(xobjects.getKeys()).as("Page " + p + " must contain QR code image").isNotEmpty();
+
+                PdfTextExtractor extractor = new PdfTextExtractor(reader);
+                String pageText = extractor.getTextFromPage(p);
+                assertThat(pageText).as("Page " + p + " must contain Report ID").contains("Report ID: " + finalized.refId());
+                assertThat(pageText).as("Page " + p + " must contain Page number").contains("Page " + p);
+            }
+        } catch (java.io.IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
