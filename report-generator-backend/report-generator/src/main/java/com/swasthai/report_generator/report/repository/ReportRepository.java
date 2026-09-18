@@ -50,6 +50,11 @@ public interface ReportRepository
             String refId
     );
 
+    Optional<Report> findByRefIdAndStatusAndDeletedAtIsNull(
+            String refId,
+            ReportStatus status
+    );
+
     Optional<Report> findByRefIdAndOrganization_IdAndDeletedAtIsNull(
             String refId,
             UUID organizationId

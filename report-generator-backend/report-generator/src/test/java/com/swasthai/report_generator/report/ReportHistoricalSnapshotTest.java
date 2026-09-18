@@ -2,6 +2,7 @@ package com.swasthai.report_generator.report;
 
 import com.swasthai.report_generator.common.exception.ResourceNotFoundException;
 import com.swasthai.report_generator.organization.entity.Organization;
+import com.swasthai.report_generator.organization.entity.OrganizationProfile;
 import com.swasthai.report_generator.organization.entity.OrganizationStatus;
 import com.swasthai.report_generator.organization.repository.OrganizationRepository;
 import com.swasthai.report_generator.patient.entity.Gender;
@@ -96,8 +97,13 @@ class ReportHistoricalSnapshotTest {
     @Autowired
     private com.swasthai.report_generator.license.repository.LicenseRepository licenseRepository;
 
+    @Autowired
+    private com.swasthai.report_generator.organization.repository.OrganizationProfileRepository organizationProfileRepository;
+
     private Organization orgA;
     private Organization orgB;
+    private User orgAdminOrgA;
+    private User orgAdminOrgB;
     private User labStaffOrgA;
     private User labStaffOrgB;
     private Patient patientOrgA;
@@ -154,6 +160,24 @@ class ReportHistoricalSnapshotTest {
                 .build());
 
         // Setup Users
+        orgAdminOrgA = userRepository.save(User.builder()
+                .email("snapshot-admin-a-" + suffix + "@alpha.com")
+                .name("Dr. Alpha Admin")
+                .passwordHash("hashed")
+                .role(Role.ORG_ADMIN)
+                .status(UserStatus.ACTIVE)
+                .organization(orgA)
+                .build());
+
+        orgAdminOrgB = userRepository.save(User.builder()
+                .email("snapshot-admin-b-" + suffix + "@beta.com")
+                .name("Dr. Beta Admin")
+                .passwordHash("hashed")
+                .role(Role.ORG_ADMIN)
+                .status(UserStatus.ACTIVE)
+                .organization(orgB)
+                .build());
+
         labStaffOrgA = userRepository.save(User.builder()
                 .email("snapshot-staff-a-" + suffix + "@alpha.com")
                 .name("Dr. Alpha Staff")
@@ -920,5 +944,133 @@ class ReportHistoricalSnapshotTest {
         } catch (java.io.IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Test
+    @DisplayName("20. Finalizing report fails when signature is configured but signatureOwnerRefId is missing")
+    void testFinalizeReport_Fails_WhenSignatureConfigured_ButSignatureOwnerNotConfigured() {
+        OrganizationProfile profile = organizationProfileRepository.findByOrganization_Id(orgA.getId())
+                .orElseGet(() -> OrganizationProfile.builder().organization(orgA).build());
+        profile.setSignatureStorageKey("orgA/signatures/sig.png");
+        profile.setSignatureOwnerRefId(null);
+        organizationProfileRepository.save(profile);
+
+        authenticateUser(labStaffOrgA);
+        ReportResponse draft = createPopulatedReportDraft();
+
+        assertThatThrownBy(() -> reportService.finalizeReport(draft.refId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("signature owner is not configured");
+    }
+
+    @Test
+    @DisplayName("21. Finalizing report fails when configured signature owner belongs to a different organization")
+    void testFinalizeReport_Fails_WhenSignatureOwner_BelongsToDifferentOrg() {
+        OrganizationProfile profile = organizationProfileRepository.findByOrganization_Id(orgA.getId())
+                .orElseGet(() -> OrganizationProfile.builder().organization(orgA).build());
+        profile.setSignatureStorageKey("orgA/signatures/sig.png");
+        profile.setSignatureOwnerRefId(orgAdminOrgB.getRefId());
+        organizationProfileRepository.save(profile);
+
+        authenticateUser(labStaffOrgA);
+        ReportResponse draft = createPopulatedReportDraft();
+
+        assertThatThrownBy(() -> reportService.finalizeReport(draft.refId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("does not belong to the organization");
+    }
+
+    @Test
+    @DisplayName("22. Finalizing report fails when configured signature owner is not an ORG_ADMIN")
+    void testFinalizeReport_Fails_WhenSignatureOwner_IsNotOrgAdmin() {
+        OrganizationProfile profile = organizationProfileRepository.findByOrganization_Id(orgA.getId())
+                .orElseGet(() -> OrganizationProfile.builder().organization(orgA).build());
+        profile.setSignatureStorageKey("orgA/signatures/sig.png");
+        profile.setSignatureOwnerRefId(labStaffOrgA.getRefId());
+        organizationProfileRepository.save(profile);
+
+        authenticateUser(labStaffOrgA);
+        ReportResponse draft = createPopulatedReportDraft();
+
+        assertThatThrownBy(() -> reportService.finalizeReport(draft.refId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("must be an ORG_ADMIN");
+    }
+
+    @Test
+    @DisplayName("23. Finalizing report fails when configured signature owner is inactive")
+    void testFinalizeReport_Fails_WhenSignatureOwner_IsInactive() {
+        orgAdminOrgA.setStatus(UserStatus.INACTIVE);
+        userRepository.save(orgAdminOrgA);
+
+        OrganizationProfile profile = organizationProfileRepository.findByOrganization_Id(orgA.getId())
+                .orElseGet(() -> OrganizationProfile.builder().organization(orgA).build());
+        profile.setSignatureStorageKey("orgA/signatures/sig.png");
+        profile.setSignatureOwnerRefId(orgAdminOrgA.getRefId());
+        organizationProfileRepository.save(profile);
+
+        authenticateUser(labStaffOrgA);
+        ReportResponse draft = createPopulatedReportDraft();
+
+        assertThatThrownBy(() -> reportService.finalizeReport(draft.refId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("is inactive");
+    }
+
+    @Test
+    @DisplayName("24. Finalizing report resolves the exact ORG_ADMIN specified by signatureOwnerRefId when multiple ORG_ADMINs exist")
+    void testFinalizeReport_ResolvesExactOrgAdmin_WhenMultipleOrgAdminsExist() {
+        User orgAdminOrgA2 = userRepository.save(User.builder()
+                .email("snapshot-admin-a2@alpha.com")
+                .name("Dr. Alpha Second Admin")
+                .passwordHash("hashed")
+                .role(Role.ORG_ADMIN)
+                .status(UserStatus.ACTIVE)
+                .organization(orgA)
+                .build());
+
+        OrganizationProfile profile = organizationProfileRepository.findByOrganization_Id(orgA.getId())
+                .orElseGet(() -> OrganizationProfile.builder().organization(orgA).build());
+        profile.setSignatureStorageKey("orgA/signatures/sig.png");
+        profile.setSignatureOwnerRefId(orgAdminOrgA2.getRefId());
+        organizationProfileRepository.save(profile);
+
+        authenticateUser(labStaffOrgA);
+        ReportResponse draft = createPopulatedReportDraft();
+        ReportResponse finalized = reportService.finalizeReport(draft.refId());
+
+        Report reportEntity = reportRepository.findByRefIdAndOrganization_IdAndDeletedAtIsNull(finalized.refId(), orgA.getId()).orElseThrow();
+        assertThat(reportEntity.getOrganizationSignatureOwnerName()).isEqualTo("Dr. Alpha Second Admin");
+        assertThat(reportEntity.getOrganizationSignatureOwnerEmail()).isEqualTo("snapshot-admin-a2@alpha.com");
+        assertThat(reportEntity.getOrganizationSignatureOwnerName()).isNotEqualTo(orgAdminOrgA.getName());
+
+        ReportPdfData pdfData = reportService.getReportPdfData(finalized.refId());
+        assertThat(pdfData.organization().signatureOwnerName()).isEqualTo("Dr. Alpha Second Admin");
+    }
+
+    @Test
+    @DisplayName("25. PDF generation fails with IllegalStateException when verification URL is null")
+    void testPdfGeneration_Fails_WhenVerificationUrlIsNull() {
+        authenticateUser(labStaffOrgA);
+        ReportResponse finalized = createAndFinalizeReport();
+        ReportPdfData validData = reportService.getReportPdfData(finalized.refId());
+
+        ReportPdfData nullUrlData = ReportPdfData.builder()
+                .reportRefId(validData.reportRefId())
+                .status(validData.status())
+                .reportVersion(validData.reportVersion())
+                .createdAt(validData.createdAt())
+                .finalizedAt(validData.finalizedAt())
+                .organization(validData.organization())
+                .patient(validData.patient())
+                .createdBy(validData.createdBy())
+                .finalizedBy(validData.finalizedBy())
+                .tests(validData.tests())
+                .verificationUrl(null)
+                .build();
+
+        assertThatThrownBy(() -> openPdfRenderer.render(nullUrlData))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("missing verification URL");
     }
 }

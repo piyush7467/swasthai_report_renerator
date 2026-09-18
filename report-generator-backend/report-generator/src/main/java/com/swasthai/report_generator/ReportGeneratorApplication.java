@@ -10,6 +10,7 @@ import com.swasthai.report_generator.license.config.LicenseProperties;
 import com.swasthai.report_generator.report.config.ReportRetentionProperties;
 import com.swasthai.report_generator.security.jwt.JwtProperties;
 
+import com.swasthai.report_generator.report.config.ReportVerificationRateLimitProperties;
 import com.swasthai.report_generator.storage.StorageProperties;
 
 @SpringBootApplication
@@ -19,7 +20,8 @@ import com.swasthai.report_generator.storage.StorageProperties;
 		ReportRetentionProperties.class,
 		LicenseProperties.class,
 		AuthRateLimitProperties.class,
-		StorageProperties.class
+		StorageProperties.class,
+		ReportVerificationRateLimitProperties.class
 })
 public class ReportGeneratorApplication {
 

@@ -188,6 +188,13 @@ public class ReportPdfDataBuilder {
                         .map(this::buildTestPdfItem)
                         .toList();
 
+        String verificationUrl = VERIFICATION_BASE_URL + report.getRefId().trim();
+        if (isBlank(verificationUrl)) {
+            throw new IllegalStateException(
+                    "Finalized report verification URL cannot be blank"
+            );
+        }
+
         return ReportPdfData.builder()
                 .reportRefId(
                         report.getRefId()
@@ -220,8 +227,7 @@ public class ReportPdfDataBuilder {
                         testItems
                 )
                 .verificationUrl(
-                        VERIFICATION_BASE_URL
-                                + report.getRefId()
+                        verificationUrl
                 )
                 .build();
     }

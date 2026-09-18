@@ -240,6 +240,25 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleRateLimitExceeded(
+            RateLimitExceededException exception,
+            HttpServletRequest request
+    ) {
+        log.warn("Rate limit exceeded on {}: {}", request.getRequestURI(), exception.getMessage());
+
+        ErrorResponse response = ErrorResponse.builder()
+                .success(false)
+                .status(HttpStatus.TOO_MANY_REQUESTS.value())
+                .code("RATE_LIMIT_EXCEEDED")
+                .message(exception.getMessage())
+                .path(request.getRequestURI())
+                .timestamp(Instant.now())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(response);
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleMessageNotReadable(
             HttpMessageNotReadableException exception,

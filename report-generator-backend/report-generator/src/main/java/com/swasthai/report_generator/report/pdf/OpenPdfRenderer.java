@@ -213,6 +213,11 @@ public class OpenPdfRenderer implements PdfRenderer {
                         Image qrImage = verificationQrCodeGenerator.generate(
                                         data.verificationUrl());
 
+                        if (qrImage == null) {
+                                throw new IllegalStateException(
+                                                "Failed to generate verification QR code image");
+                        }
+
                         writer.setPageEvent(
                                         new ReportPageEvent(data, qrImage));
 
@@ -1602,17 +1607,20 @@ public class OpenPdfRenderer implements PdfRenderer {
                         float qrX = document.left();
                         float qrY = document.bottom() - 44f;
 
-                        if (qrImage != null) {
-                                try {
-                                        Image pageQr = Image.getInstance(qrImage);
-                                        pageQr.scaleAbsolute(qrWidth, qrHeight);
-                                        pageQr.setAbsolutePosition(qrX, qrY);
-                                        canvas.addImage(pageQr);
-                                } catch (DocumentException exception) {
-                                        throw new IllegalStateException(
-                                                        "Failed to render verification QR code on PDF page",
-                                                        exception);
-                                }
+                        if (qrImage == null) {
+                                throw new IllegalStateException(
+                                                "Verification QR code image is required on every PDF page");
+                        }
+
+                        try {
+                                Image pageQr = Image.getInstance(qrImage);
+                                pageQr.scaleAbsolute(qrWidth, qrHeight);
+                                pageQr.setAbsolutePosition(qrX, qrY);
+                                canvas.addImage(pageQr);
+                        } catch (DocumentException exception) {
+                                throw new IllegalStateException(
+                                                "Failed to render verification QR code on PDF page",
+                                                exception);
                         }
 
                         /*
