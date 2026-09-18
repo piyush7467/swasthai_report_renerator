@@ -32,6 +32,10 @@ public interface ReportService {
 
     ReportResponse reorderTests(String reportRefId, ReorderReportTestsRequest request);
 
+    ReportResponse updateHeaderOption(
+            String reportRefId,
+            com.swasthai.report_generator.report.dto.request.UpdateReportHeaderOptionRequest request);
+
     ReportResponse finalizeReport(String reportRefId);
 
     DeleteReportResponse deleteReport(String reportRefId);

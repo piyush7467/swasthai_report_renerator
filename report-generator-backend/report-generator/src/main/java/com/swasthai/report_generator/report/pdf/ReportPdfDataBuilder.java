@@ -229,6 +229,11 @@ public class ReportPdfDataBuilder {
                 .verificationUrl(
                         verificationUrl
                 )
+                .includeOrganizationHeader(
+                        Boolean.TRUE.equals(
+                                report.getIncludeOrganizationHeader()
+                        )
+                )
                 .build();
     }
 

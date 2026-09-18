@@ -532,7 +532,7 @@ class ReportHistoricalSnapshotTest {
     void testPdfLayerDoesNotRecalculateFlags() {
         authenticateUser(labStaffOrgA);
 
-        ReportResponse report = reportService.createReport(new CreateReportRequest(patientOrgA.getRefId()));
+        ReportResponse report = reportService.createReport(new CreateReportRequest(patientOrgA.getRefId(), true));
         report = reportService.addTest(report.refId(), new AddReportTestRequest(cbcTest.getRefId(), null));
         String testRefId = report.tests().get(0).refId();
 
@@ -1072,5 +1072,138 @@ class ReportHistoricalSnapshotTest {
         assertThatThrownBy(() -> openPdfRenderer.render(nullUrlData))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("missing verification URL");
+    }
+
+    @Test
+    @DisplayName("26. Finalized report historical snapshot preserves includeOrganizationHeader setting")
+    void testHistoricalSnapshot_PreservesIncludeOrganizationHeader_WhenFinalized() {
+        authenticateUser(labStaffOrgA);
+
+        // Report 1: default false
+        ReportResponse draft1 = createPopulatedReportDraft();
+        ReportResponse finalized1 = reportService.finalizeReport(draft1.refId());
+        Report report1 = reportRepository.findByRefIdAndOrganization_IdAndDeletedAtIsNull(finalized1.refId(), orgA.getId()).orElseThrow();
+        assertThat(report1.getIncludeOrganizationHeader()).isFalse();
+        ReportPdfData pdfData1 = reportService.getReportPdfData(finalized1.refId());
+        assertThat(pdfData1.includeOrganizationHeader()).isFalse();
+
+        // Report 2: updated to true before finalization
+        ReportResponse draft2 = createPopulatedReportDraft();
+        reportService.updateHeaderOption(draft2.refId(), new com.swasthai.report_generator.report.dto.request.UpdateReportHeaderOptionRequest(true));
+        ReportResponse finalized2 = reportService.finalizeReport(draft2.refId());
+        Report report2 = reportRepository.findByRefIdAndOrganization_IdAndDeletedAtIsNull(finalized2.refId(), orgA.getId()).orElseThrow();
+        assertThat(report2.getIncludeOrganizationHeader()).isTrue();
+        ReportPdfData pdfData2 = reportService.getReportPdfData(finalized2.refId());
+        assertThat(pdfData2.includeOrganizationHeader()).isTrue();
+    }
+
+    @Test
+    @DisplayName("27. PDF text extraction: header omitted when includeOrganizationHeader is false")
+    void testPdfRendering_HeaderOmittedWhenIncludeOrganizationHeaderIsFalse() {
+        authenticateUser(labStaffOrgA);
+        ReportResponse draft = createPopulatedReportDraft();
+        // default is false
+        ReportResponse finalized = reportService.finalizeReport(draft.refId());
+
+        byte[] pdfBytes = reportService.generateReportPdf(finalized.refId());
+        assertThat(pdfBytes).isNotNull().isNotEmpty();
+
+        try (PdfReader reader = new PdfReader(pdfBytes)) {
+            PdfTextExtractor extractor = new PdfTextExtractor(reader);
+            String pageText = extractor.getTextFromPage(1);
+
+            // Organization name and header title must NOT appear
+            assertThat(pageText).doesNotContain(orgA.getName());
+            assertThat(pageText).doesNotContain("CLINICAL LABORATORY REPORT");
+
+            // Patient and test information must still appear
+            assertThat(pageText).contains(patientOrgA.getName());
+            assertThat(pageText).contains("PATIENT & REPORT INFORMATION");
+            assertThat(pageText).contains("Complete Blood Profile");
+        } catch (java.io.IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    @DisplayName("28. PDF text extraction: header included when includeOrganizationHeader is true")
+    void testPdfRendering_HeaderIncludedWhenIncludeOrganizationHeaderIsTrue() {
+        authenticateUser(labStaffOrgA);
+        ReportResponse draft = createPopulatedReportDraft();
+        reportService.updateHeaderOption(draft.refId(), new com.swasthai.report_generator.report.dto.request.UpdateReportHeaderOptionRequest(true));
+        ReportResponse finalized = reportService.finalizeReport(draft.refId());
+
+        byte[] pdfBytes = reportService.generateReportPdf(finalized.refId());
+        assertThat(pdfBytes).isNotNull().isNotEmpty();
+
+        try (PdfReader reader = new PdfReader(pdfBytes)) {
+            PdfTextExtractor extractor = new PdfTextExtractor(reader);
+            String pageText = extractor.getTextFromPage(1);
+
+            // Organization name and header title MUST appear
+            assertThat(pageText).contains(orgA.getName());
+            assertThat(pageText).contains("CLINICAL LABORATORY REPORT");
+
+            // Patient and test information must also appear
+            assertThat(pageText).contains(patientOrgA.getName());
+            assertThat(pageText).contains("PATIENT & REPORT INFORMATION");
+            assertThat(pageText).contains("Complete Blood Profile");
+        } catch (java.io.IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    @DisplayName("29. PDF rendering preserves reserved header space when includeOrganizationHeader is false")
+    void testPdfRendering_ReservedHeaderSpacePreserved() {
+        authenticateUser(labStaffOrgA);
+        ReportResponse draft = createPopulatedReportDraft();
+        ReportResponse finalized = reportService.finalizeReport(draft.refId());
+
+        ReportPdfData basePdfData = reportService.getReportPdfData(finalized.refId());
+
+        ReportPdfData dataWithHeader = ReportPdfData.builder()
+                .reportRefId(basePdfData.reportRefId())
+                .status(basePdfData.status())
+                .reportVersion(basePdfData.reportVersion())
+                .createdAt(basePdfData.createdAt())
+                .finalizedAt(basePdfData.finalizedAt())
+                .organization(basePdfData.organization())
+                .patient(basePdfData.patient())
+                .createdBy(basePdfData.createdBy())
+                .finalizedBy(basePdfData.finalizedBy())
+                .tests(basePdfData.tests())
+                .verificationUrl(basePdfData.verificationUrl())
+                .includeOrganizationHeader(true)
+                .build();
+
+        ReportPdfData dataWithoutHeader = ReportPdfData.builder()
+                .reportRefId(basePdfData.reportRefId())
+                .status(basePdfData.status())
+                .reportVersion(basePdfData.reportVersion())
+                .createdAt(basePdfData.createdAt())
+                .finalizedAt(basePdfData.finalizedAt())
+                .organization(basePdfData.organization())
+                .patient(basePdfData.patient())
+                .createdBy(basePdfData.createdBy())
+                .finalizedBy(basePdfData.finalizedBy())
+                .tests(basePdfData.tests())
+                .verificationUrl(basePdfData.verificationUrl())
+                .includeOrganizationHeader(false)
+                .build();
+
+        byte[] pdfWithHeader = openPdfRenderer.render(dataWithHeader);
+        byte[] pdfWithoutHeader = openPdfRenderer.render(dataWithoutHeader);
+
+        assertThat(pdfWithHeader).isNotNull().isNotEmpty();
+        assertThat(pdfWithoutHeader).isNotNull().isNotEmpty();
+
+        // Both documents should have identical page count
+        try (PdfReader reader1 = new PdfReader(pdfWithHeader);
+             PdfReader reader2 = new PdfReader(pdfWithoutHeader)) {
+            assertThat(reader1.getNumberOfPages()).isEqualTo(reader2.getNumberOfPages());
+        } catch (java.io.IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

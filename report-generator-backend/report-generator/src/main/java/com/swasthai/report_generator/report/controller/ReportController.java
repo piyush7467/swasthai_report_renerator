@@ -135,6 +135,18 @@ public class ReportController {
                                 reportService.reorderTests(reportRefId, request));
         }
 
+        // 7b. UPDATE HEADER OPTION
+
+        @PatchMapping("/{reportRefId}/header-option")
+        @PreAuthorize("hasAnyRole('ORG_ADMIN', 'LAB_STAFF')")
+        public ApiResponse<ReportResponse> updateHeaderOption(
+                        @PathVariable String reportRefId,
+                        @Valid @RequestBody UpdateReportHeaderOptionRequest request) {
+                return ApiResponse.success(
+                                "Report header option updated successfully",
+                                reportService.updateHeaderOption(reportRefId, request));
+        }
+
         // 8. FINALIZE REPORT
 
         @PostMapping("/{reportRefId}/finalize")

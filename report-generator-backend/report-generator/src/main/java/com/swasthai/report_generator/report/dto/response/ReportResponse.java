@@ -24,6 +24,7 @@ public record ReportResponse(
         Instant finalizedAt,
         Instant createdAt,
         Instant updatedAt,
-        List<ReportTestItemResponse> tests
+        List<ReportTestItemResponse> tests,
+        Boolean includeOrganizationHeader
 ) {
 }

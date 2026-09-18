@@ -29,6 +29,8 @@ public record ReportPdfData(
 
         List<TestPdfItem> tests,
 
-        String verificationUrl
+        String verificationUrl,
+
+        Boolean includeOrganizationHeader
 ) {
 }

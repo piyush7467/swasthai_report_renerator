@@ -514,4 +514,86 @@ class ReportWorkflowAndSecurityTest {
                 .isInstanceOf(ObjectOptimisticLockingFailureException.class)
                 .hasMessageContaining("Report has been modified by another transaction");
     }
+
+    @Test
+    @DisplayName("Header Option: Default value is false when creating report")
+    void testReportCreation_DefaultIncludeOrganizationHeaderIsFalse() {
+        authenticateUser(labStaffOrgA);
+        ReportResponse report = reportService.createReport(new CreateReportRequest(patientOrgA.getRefId()));
+
+        assertThat(report.includeOrganizationHeader()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Header Option: Explicit true is respected when creating report")
+    void testReportCreation_ExplicitIncludeOrganizationHeaderIsTrue() {
+        authenticateUser(labStaffOrgA);
+        ReportResponse report = reportService.createReport(new CreateReportRequest(patientOrgA.getRefId(), true));
+
+        assertThat(report.includeOrganizationHeader()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Header Option: Can toggle option on draft report via updateHeaderOption")
+    void testUpdateHeaderOption_Success() {
+        authenticateUser(labStaffOrgA);
+        ReportResponse report = reportService.createReport(new CreateReportRequest(patientOrgA.getRefId()));
+        assertThat(report.includeOrganizationHeader()).isFalse();
+
+        ReportResponse updated = reportService.updateHeaderOption(
+                report.refId(),
+                new com.swasthai.report_generator.report.dto.request.UpdateReportHeaderOptionRequest(true)
+        );
+        assertThat(updated.includeOrganizationHeader()).isTrue();
+
+        ReportResponse updatedBack = reportService.updateHeaderOption(
+                report.refId(),
+                new com.swasthai.report_generator.report.dto.request.UpdateReportHeaderOptionRequest(false)
+        );
+        assertThat(updatedBack.includeOrganizationHeader()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Header Option: Cannot update header option on finalized report")
+    void testUpdateHeaderOption_ForbiddenOnFinalizedReport() {
+        authenticateUser(labStaffOrgA);
+        ReportResponse report = reportService.createReport(new CreateReportRequest(patientOrgA.getRefId()));
+        report = reportService.addTest(report.refId(), new AddReportTestRequest(cbcTest.getRefId(), null));
+        String testRefId = report.tests().get(0).refId();
+
+        UpdateReportParametersRequest updateReq = new UpdateReportParametersRequest(
+                null,
+                List.of(
+                        new TestParameterResultInput(paramHgb.getRefId(), "HGB", "14.5"),
+                        new TestParameterResultInput(paramRbc.getRefId(), "RBC", "5.0"),
+                        new TestParameterResultInput(paramHct.getRefId(), "HCT", "45.0")
+                )
+        );
+        reportService.updateParameterValues(report.refId(), testRefId, updateReq);
+        ReportResponse finalized = reportService.finalizeReport(report.refId());
+        assertThat(finalized.status()).isEqualTo(ReportStatus.FINALIZED);
+
+        final String finalizedRefId = finalized.refId();
+        assertThatThrownBy(() -> reportService.updateHeaderOption(
+                finalizedRefId,
+                new com.swasthai.report_generator.report.dto.request.UpdateReportHeaderOptionRequest(true)
+        ))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Finalized report cannot be modified");
+    }
+
+    @Test
+    @DisplayName("Header Option: Cross-tenant update of header option is rejected")
+    void testUpdateHeaderOption_TenantIsolation() {
+        authenticateUser(labStaffOrgA);
+        ReportResponse report = reportService.createReport(new CreateReportRequest(patientOrgA.getRefId()));
+
+        authenticateUser(labStaffOrgB);
+        final String orgAReportRefId = report.refId();
+        assertThatThrownBy(() -> reportService.updateHeaderOption(
+                orgAReportRefId,
+                new com.swasthai.report_generator.report.dto.request.UpdateReportHeaderOptionRequest(true)
+        ))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
 }

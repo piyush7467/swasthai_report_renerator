@@ -58,6 +58,10 @@ public class Report {
         @Builder.Default
         private Integer reportVersion = 1;
 
+        @Column(name = "include_organization_header", nullable = false)
+        @Builder.Default
+        private Boolean includeOrganizationHeader = false;
+
         @Version
         @Column(name = "lock_version", nullable = false)
         @Builder.Default
@@ -113,6 +117,10 @@ public class Report {
 
                 if (reportVersion == null) {
                         reportVersion = 1;
+                }
+
+                if (includeOrganizationHeader == null) {
+                        includeOrganizationHeader = false;
                 }
 
                 if (lockVersion == null) {

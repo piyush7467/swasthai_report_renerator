@@ -179,6 +179,7 @@ public class ReportServiceImpl implements ReportService {
                 .createdBy(currentUser)
                 .createdByName(currentUser.getName())
                 .createdByEmail(currentUser.getEmail())
+                .includeOrganizationHeader(Boolean.TRUE.equals(request.includeOrganizationHeader()))
                 .build();
 
         Report saved =
@@ -758,6 +759,40 @@ public class ReportServiceImpl implements ReportService {
                                         test.getDisplayOrder() == null
                                                 ? Integer.MAX_VALUE
                                                 : test.getDisplayOrder()));
+
+        Report saved =
+                reportRepository.save(report);
+
+        return mapToResponse(saved);
+    }
+
+
+    // ============================================================
+    // 7b. UPDATE HEADER OPTION
+    // ============================================================
+
+    @Override
+    public ReportResponse updateHeaderOption(
+            String reportRefId,
+            com.swasthai.report_generator.report.dto.request.UpdateReportHeaderOptionRequest request) {
+
+        if (request == null || request.includeOrganizationHeader() == null) {
+            throw new IllegalArgumentException(
+                    "includeOrganizationHeader is required");
+        }
+
+        User currentUser =
+                getCurrentUser();
+
+        Report report =
+                findAuthorizedReport(
+                        reportRefId,
+                        currentUser);
+
+        validateDraftStatus(report);
+
+        report.setIncludeOrganizationHeader(
+                Boolean.TRUE.equals(request.includeOrganizationHeader()));
 
         Report saved =
                 reportRepository.save(report);
@@ -2139,6 +2174,11 @@ public class ReportServiceImpl implements ReportService {
                 .updatedAt(
                         report.getUpdatedAt())
                 .tests(testItems)
+                .includeOrganizationHeader(
+                        Boolean.TRUE.equals(
+                                report.getIncludeOrganizationHeader()
+                        )
+                )
                 .build();
     }
 

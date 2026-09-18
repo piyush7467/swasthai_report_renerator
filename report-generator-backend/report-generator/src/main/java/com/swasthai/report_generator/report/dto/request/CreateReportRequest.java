@@ -14,6 +14,11 @@ import jakarta.validation.constraints.Size;
 public record CreateReportRequest(
         @NotBlank(message = "Patient reference ID is required")
         @Size(max = 50, message = "Patient reference ID must not exceed 50 characters")
-        String patientRefId
+        String patientRefId,
+
+        Boolean includeOrganizationHeader
 ) {
+    public CreateReportRequest(String patientRefId) {
+        this(patientRefId, false);
+    }
 }

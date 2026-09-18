@@ -424,9 +424,31 @@ public class OpenPdfRenderer implements PdfRenderer {
 
                 header.addCell(detailsCell);
 
-                document.add(header);
+                if (Boolean.TRUE.equals(data.includeOrganizationHeader())) {
+                        document.add(header);
+                        addHorizontalRule(document);
+                } else {
+                        /*
+                         * Preserves the exact reserved header space so the report layout
+                         * remains consistent when printing on pre-printed letterhead.
+                         */
+                        float contentWidth = document.right() - document.left();
+                        header.setTotalWidth(contentWidth);
+                        float headerHeight = header.calculateHeights(true);
 
-                addHorizontalRule(document);
+                        PdfPTable placeholder = new PdfPTable(1);
+                        placeholder.setWidthPercentage(100);
+                        placeholder.setSpacingAfter(header.spacingAfter());
+
+                        PdfPCell blankCell = new PdfPCell();
+                        blankCell.setBorder(Rectangle.NO_BORDER);
+                        blankCell.setFixedHeight(headerHeight);
+                        placeholder.addCell(blankCell);
+
+                        document.add(placeholder);
+
+                        addBlankRuleSpacer(document);
+                }
         }
 
         private PdfPCell createLogoCell(
@@ -1528,6 +1550,29 @@ public class OpenPdfRenderer implements PdfRenderer {
 
                 cell.setBackgroundColor(
                                 COLOR_PRIMARY);
+
+                rule.addCell(cell);
+
+                document.add(rule);
+
+                document.add(
+                                createSpacer(7f));
+        }
+
+        private void addBlankRuleSpacer(
+                        Document document) throws DocumentException {
+
+                PdfPTable rule = new PdfPTable(1);
+
+                rule.setWidthPercentage(100);
+
+                PdfPCell cell = new PdfPCell(
+                                new Phrase(""));
+
+                cell.setFixedHeight(2f);
+
+                cell.setBorder(
+                                Rectangle.NO_BORDER);
 
                 rule.addCell(cell);
 
