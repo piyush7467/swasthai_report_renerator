@@ -1,6 +1,7 @@
 package com.swasthai.report_generator.organization.service;
 
 import com.swasthai.report_generator.organization.dto.request.UpdateOrganizationProfileRequest;
+import com.swasthai.report_generator.organization.dto.response.OrganizationImageResponse;
 import com.swasthai.report_generator.organization.dto.response.OrganizationProfileResponse;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,11 +28,15 @@ public interface OrganizationProfileService {
 
     OrganizationProfileResponse deleteMyLogo();
 
+    OrganizationImageResponse getMyLogo();
+
     OrganizationProfileResponse uploadMySignature(
             MultipartFile file
     );
 
     OrganizationProfileResponse deleteMySignature();
+
+    OrganizationImageResponse getMySignature();
 
     OrganizationProfileResponse uploadLogoForOrganization(
             String organizationRefId,
@@ -42,12 +47,20 @@ public interface OrganizationProfileService {
             String organizationRefId
     );
 
+    OrganizationImageResponse getLogoForOrganization(
+            String organizationRefId
+    );
+
     OrganizationProfileResponse uploadSignatureForOrganization(
             String organizationRefId,
             MultipartFile file
     );
 
     OrganizationProfileResponse deleteSignatureForOrganization(
+            String organizationRefId
+    );
+
+    OrganizationImageResponse getSignatureForOrganization(
             String organizationRefId
     );
 }

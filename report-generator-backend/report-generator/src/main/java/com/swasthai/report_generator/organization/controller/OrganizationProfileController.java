@@ -2,6 +2,7 @@ package com.swasthai.report_generator.organization.controller;
 
 import com.swasthai.report_generator.common.response.ApiResponse;
 import com.swasthai.report_generator.organization.dto.request.UpdateOrganizationProfileRequest;
+import com.swasthai.report_generator.organization.dto.response.OrganizationImageResponse;
 import com.swasthai.report_generator.organization.dto.response.OrganizationProfileResponse;
 import com.swasthai.report_generator.organization.service.OrganizationProfileService;
 import jakarta.validation.Valid;
@@ -90,6 +91,17 @@ public class OrganizationProfileController {
         );
     }
 
+    @GetMapping(value = "/me/logo")
+    @PreAuthorize("hasAnyRole('ORG_ADMIN', 'LAB_STAFF')")
+    public ResponseEntity<byte[]> getMyLogo() {
+
+        OrganizationImageResponse image = profileService.getMyLogo();
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(image.getContentType()))
+                .body(image.getBytes());
+    }
+
     // ============================================================
     // ORG ADMIN - SIGNATURE
     // ============================================================
@@ -125,6 +137,17 @@ public class OrganizationProfileController {
                         .data(profileService.deleteMySignature())
                         .build()
         );
+    }
+
+    @GetMapping(value = "/me/signature")
+    @PreAuthorize("hasAnyRole('ORG_ADMIN', 'LAB_STAFF')")
+    public ResponseEntity<byte[]> getMySignature() {
+
+        OrganizationImageResponse image = profileService.getMySignature();
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(image.getContentType()))
+                .body(image.getBytes());
     }
 
     // ============================================================
@@ -215,11 +238,25 @@ public class OrganizationProfileController {
                         .message("Organization logo removed successfully.")
                         .data(
                                 profileService.deleteLogoForOrganization(
-                                        organizationRefId
+                                         organizationRefId
                                 )
                         )
                         .build()
         );
+    }
+
+    @GetMapping(value = "/organizations/{organizationRefId}/logo")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<byte[]> getOrganizationLogo(
+            @PathVariable String organizationRefId
+    ) {
+
+        OrganizationImageResponse image =
+                profileService.getLogoForOrganization(organizationRefId);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(image.getContentType()))
+                .body(image.getBytes());
     }
 
     // ============================================================
@@ -269,5 +306,19 @@ public class OrganizationProfileController {
                         )
                         .build()
         );
+    }
+
+    @GetMapping(value = "/organizations/{organizationRefId}/signature")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<byte[]> getOrganizationSignature(
+            @PathVariable String organizationRefId
+    ) {
+
+        OrganizationImageResponse image =
+                profileService.getSignatureForOrganization(organizationRefId);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(image.getContentType()))
+                .body(image.getBytes());
     }
 }

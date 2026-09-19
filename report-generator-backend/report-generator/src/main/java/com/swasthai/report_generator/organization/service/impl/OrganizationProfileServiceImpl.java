@@ -3,6 +3,7 @@ package com.swasthai.report_generator.organization.service.impl;
 import com.swasthai.report_generator.auth.service.CurrentUserService;
 import com.swasthai.report_generator.common.exception.ResourceNotFoundException;
 import com.swasthai.report_generator.organization.dto.request.UpdateOrganizationProfileRequest;
+import com.swasthai.report_generator.organization.dto.response.OrganizationImageResponse;
 import com.swasthai.report_generator.organization.dto.response.OrganizationProfileResponse;
 import com.swasthai.report_generator.organization.entity.Organization;
 import com.swasthai.report_generator.organization.entity.OrganizationProfile;
@@ -182,6 +183,31 @@ public class OrganizationProfileServiceImpl
         return mapToResponse(profile);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public OrganizationImageResponse getMyLogo() {
+
+        User currentUser =
+                currentUserService.getCurrentUser();
+
+        Organization organization =
+                requireOrganizationUser(currentUser);
+
+        validateActiveOrganization(organization);
+
+        OrganizationProfile profile =
+                getRequiredProfile(organization.getId());
+
+        if (profile.getLogoStorageKey() == null) {
+            throw new ResourceNotFoundException(
+                    "Organization logo is not configured."
+            );
+        }
+
+        byte[] bytes = fileStorageService.load(profile.getLogoStorageKey());
+        return new OrganizationImageResponse(bytes, resolveContentType(profile.getLogoStorageKey()));
+    }
+
     // ORG ADMIN SIGNATURE
 
     @Override
@@ -252,6 +278,31 @@ public class OrganizationProfileServiceImpl
         return mapToResponse(profile);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public OrganizationImageResponse getMySignature() {
+
+        User currentUser =
+                currentUserService.getCurrentUser();
+
+        Organization organization =
+                requireOrganizationUser(currentUser);
+
+        validateActiveOrganization(organization);
+
+        OrganizationProfile profile =
+                getRequiredProfile(organization.getId());
+
+        if (profile.getSignatureStorageKey() == null) {
+            throw new ResourceNotFoundException(
+                    "Organization signature is not configured."
+            );
+        }
+
+        byte[] bytes = fileStorageService.load(profile.getSignatureStorageKey());
+        return new OrganizationImageResponse(bytes, resolveContentType(profile.getSignatureStorageKey()));
+    }
+
     // SUPER ADMIN LOGO
 
     @Override
@@ -313,6 +364,30 @@ public class OrganizationProfileServiceImpl
         profileRepository.save(profile);
 
         return mapToResponse(profile);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OrganizationImageResponse getLogoForOrganization(
+            String organizationRefId
+    ) {
+
+        requireSuperAdmin();
+
+        Organization organization =
+                getOrganizationByRefId(organizationRefId);
+
+        OrganizationProfile profile =
+                getRequiredProfile(organization.getId());
+
+        if (profile.getLogoStorageKey() == null) {
+            throw new ResourceNotFoundException(
+                    "Organization logo is not configured."
+            );
+        }
+
+        byte[] bytes = fileStorageService.load(profile.getLogoStorageKey());
+        return new OrganizationImageResponse(bytes, resolveContentType(profile.getLogoStorageKey()));
     }
 
     // SUPER ADMIN SIGNATURE
@@ -411,6 +486,46 @@ public class OrganizationProfileServiceImpl
         profileRepository.save(profile);
 
         return mapToResponse(profile);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OrganizationImageResponse getSignatureForOrganization(
+            String organizationRefId
+    ) {
+
+        requireSuperAdmin();
+
+        Organization organization =
+                getOrganizationByRefId(organizationRefId);
+
+        OrganizationProfile profile =
+                getRequiredProfile(organization.getId());
+
+        if (profile.getSignatureStorageKey() == null) {
+            throw new ResourceNotFoundException(
+                    "Organization signature is not configured."
+            );
+        }
+
+        byte[] bytes = fileStorageService.load(profile.getSignatureStorageKey());
+        return new OrganizationImageResponse(bytes, resolveContentType(profile.getSignatureStorageKey()));
+    }
+
+    private String resolveContentType(String storageKey) {
+        if (storageKey != null) {
+            String lower = storageKey.toLowerCase();
+            if (lower.endsWith(".png")) {
+                return "image/png";
+            }
+            if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
+                return "image/jpeg";
+            }
+            if (lower.endsWith(".webp")) {
+                return "image/webp";
+            }
+        }
+        return "application/octet-stream";
     }
 
     // AUTHORIZATION

@@ -15,64 +15,65 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthService authService;
+        private final AuthService authService;
 
-    @PostMapping("/login")
-    public ResponseEntity<ApiResponse<LoginResponse>> login(
-            @Valid @RequestBody LoginRequest request,
-            jakarta.servlet.http.HttpServletRequest httpRequest) {
-
-        String clientIp = extractClientIp(httpRequest);
-        LoginResponse response =
-                authService.login(request, clientIp);
-
-        return ResponseEntity.ok(
-                ApiResponse.<LoginResponse>builder()
-                        .success(true)
-                        .message("Login successful.")
-                        .data(response)
-                        .build()
-        );
-    }
-
-    @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<LoginResponse>> refresh(
-            @Valid @RequestBody RefreshTokenRequest request,
-            jakarta.servlet.http.HttpServletRequest httpRequest) {
-
-        String clientIp = extractClientIp(httpRequest);
-        LoginResponse response =
-                authService.refreshAccessToken(request, clientIp);
-
-        return ResponseEntity.ok(
-                ApiResponse.<LoginResponse>builder()
-                        .success(true)
-                        .message("Access token refreshed successfully.")
-                        .data(response)
-                        .build()
-        );
-    }
-
-    private String extractClientIp(jakarta.servlet.http.HttpServletRequest request) {
-        if (request == null) {
-            return null;
+        @GetMapping("/health")
+        public ResponseEntity<String> health() {
+                return ResponseEntity.ok("UP");
         }
-        // Rely exclusively on verified peer socket address to prevent spoofed X-Forwarded-For rate-limit bypass
-        return request.getRemoteAddr();
-    }
 
-    @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logout(
-            @Valid @RequestBody RefreshTokenRequest request) {
+        @PostMapping("/login")
+        public ResponseEntity<ApiResponse<LoginResponse>> login(
+                        @Valid @RequestBody LoginRequest request,
+                        jakarta.servlet.http.HttpServletRequest httpRequest) {
 
-        authService.logout(request);
+                String clientIp = extractClientIp(httpRequest);
+                LoginResponse response = authService.login(request, clientIp);
 
-        return ResponseEntity.ok(
-                ApiResponse.<Void>builder()
-                        .success(true)
-                        .message("Logout successful.")
-                        .data(null)
-                        .build()
-        );
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.<LoginResponse>builder()
+                                                .success(true)
+                                                .message("Login successful.")
+                                                .data(response)
+                                                .build());
+        }
+
+        @PostMapping("/refresh")
+        public ResponseEntity<ApiResponse<LoginResponse>> refresh(
+                        @Valid @RequestBody RefreshTokenRequest request,
+                        jakarta.servlet.http.HttpServletRequest httpRequest) {
+
+                String clientIp = extractClientIp(httpRequest);
+                LoginResponse response = authService.refreshAccessToken(request, clientIp);
+
+                return ResponseEntity.ok(
+                                ApiResponse.<LoginResponse>builder()
+                                                .success(true)
+                                                .message("Access token refreshed successfully.")
+                                                .data(response)
+                                                .build());
+        }
+
+        private String extractClientIp(jakarta.servlet.http.HttpServletRequest request) {
+                if (request == null) {
+                        return null;
+                }
+                // Rely exclusively on verified peer socket address to prevent spoofed
+                // X-Forwarded-For rate-limit bypass
+                return request.getRemoteAddr();
+        }
+
+        @PostMapping("/logout")
+        public ResponseEntity<ApiResponse<Void>> logout(
+                        @Valid @RequestBody RefreshTokenRequest request) {
+
+                authService.logout(request);
+
+                return ResponseEntity.ok(
+                                ApiResponse.<Void>builder()
+                                                .success(true)
+                                                .message("Logout successful.")
+                                                .data(null)
+                                                .build());
+        }
 }
