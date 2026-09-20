@@ -1,25 +1,15 @@
-import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
-  ArrowLeft,
+  ArrowRight,
   Building2,
-  Calendar,
-  Clock,
-  Edit,
   ExternalLink,
-  FileSignature,
   FileText,
   Globe,
-  Hash,
-  ImageIcon,
-  ImageOff,
   Mail,
   MapPin,
   Phone,
-  RefreshCw,
-  ShieldCheck,
-  SlidersHorizontal,
+  Users,
 } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -34,65 +24,60 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { organizationApi } from "../api/organizationApi";
-import { ChangeOrganizationStatusDialog } from "../components/ChangeOrganizationStatusDialog";
-import { EditOrganizationDialog } from "../components/EditOrganizationDialog";
 import { OrganizationStatusBadge } from "../components/OrganizationStatusBadge";
+import { OrganizationHeaderNav } from "../components/OrganizationHeaderNav";
 import {
   useOrganizationQuery,
   useOrganizationProfileQuery,
 } from "../hooks/useOrganizations";
 
 export default function OrganizationDetailsPage() {
-  const { orgRefId } = useParams<{ orgRefId: string }>();
+  const params = useParams<{ refId?: string; orgRefId?: string }>();
+  const refId = params.refId || params.orgRefId || "";
   const navigate = useNavigate();
 
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
-
-  const organizationQuery = useOrganizationQuery(orgRefId ?? "");
-  const profileQuery = useOrganizationProfileQuery(orgRefId ?? "");
+  const organizationQuery = useOrganizationQuery(refId);
+  const profileQuery = useOrganizationProfileQuery(refId);
 
   const organization = organizationQuery.data;
   const profile = profileQuery.data;
 
   // Fetch Logo image blob when configured
   const logoQuery = useQuery({
-    queryKey: ["organizations", orgRefId, "logo"],
+    queryKey: ["organizations", refId, "logo"],
     queryFn: async () => {
-      const blob = await organizationApi.getOrganizationLogo(orgRefId!);
+      const blob = await organizationApi.getOrganizationLogo(refId);
       return URL.createObjectURL(blob);
     },
-    enabled: Boolean(orgRefId && profile?.logoConfigured),
+    enabled: Boolean(refId && profile?.logoConfigured),
     staleTime: 5 * 60 * 1000,
   });
 
   // Fetch Signature image blob when configured
   const signatureQuery = useQuery({
-    queryKey: ["organizations", orgRefId, "signature"],
+    queryKey: ["organizations", refId, "signature"],
     queryFn: async () => {
-      const blob = await organizationApi.getOrganizationSignature(orgRefId!);
+      const blob = await organizationApi.getOrganizationSignature(refId);
       return URL.createObjectURL(blob);
     },
-    enabled: Boolean(orgRefId && profile?.signatureConfigured),
+    enabled: Boolean(refId && profile?.signatureConfigured),
     staleTime: 5 * 60 * 1000,
   });
 
   const logoUrl = logoQuery.data ?? null;
-  const logoLoading = logoQuery.isLoading;
-  const logoError = logoQuery.isError;
-
   const signatureUrl = signatureQuery.data ?? null;
-  const signatureLoading = signatureQuery.isLoading;
-  const signatureError = signatureQuery.isError;
 
-  if (!orgRefId) {
+  if (!refId) {
     return (
       <div className="p-6">
         <Alert variant="destructive">
           <AlertDescription>No organization identifier provided.</AlertDescription>
         </Alert>
-        <Button variant="outline" className="mt-4" onClick={() => navigate("/super-admin/organizations")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+        <Button
+          variant="outline"
+          className="mt-4"
+          onClick={() => navigate("/super-admin/organizations")}
+        >
           Back to Organizations
         </Button>
       </div>
@@ -110,78 +95,18 @@ export default function OrganizationDetailsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Top Breadcrumb & Actions Bar */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className="text-slate-600 hover:text-slate-900"
-          >
-            <Link to="/super-admin/organizations">
-              <ArrowLeft className="mr-1.5 h-4 w-4" />
-              Organizations
-            </Link>
-          </Button>
-          <span className="text-slate-300">/</span>
-          <span className="text-sm font-semibold text-slate-700">
-            {organization?.name ?? orgRefId}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={organizationQuery.isFetching || profileQuery.isFetching}
-          >
-            <RefreshCw
-              className={`mr-1.5 h-3.5 w-3.5 ${
-                organizationQuery.isFetching || profileQuery.isFetching
-                  ? "animate-spin"
-                  : ""
-              }`}
-            />
-            Refresh
-          </Button>
-
-          {organization && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                asChild
-                className="text-slate-700 hover:text-slate-900"
-              >
-                <Link to={`/super-admin/organizations/${organization.refId}/profile`}>
-                  <FileText className="mr-1.5 h-3.5 w-3.5" />
-                  Profile & Branding
-                </Link>
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setEditDialogOpen(true)}
-              >
-                <Edit className="mr-1.5 h-3.5 w-3.5" />
-                Edit Organization
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setStatusDialogOpen(true)}
-              >
-                <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
-                Change Status
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
+      {/* Context & Navigation Header with Tabs */}
+      <OrganizationHeaderNav
+        organization={organization}
+        isLoading={organizationQuery.isLoading}
+        onRefresh={handleRefresh}
+        isRefreshing={
+          organizationQuery.isFetching ||
+          profileQuery.isFetching ||
+          logoQuery.isFetching ||
+          signatureQuery.isFetching
+        }
+      />
 
       {/* Error Display */}
       {organizationQuery.isError && (
@@ -196,262 +121,126 @@ export default function OrganizationDetailsPage() {
 
       {/* Loading Skeleton */}
       {isLoading && (
-        <div className="space-y-6">
-          <Card className="border-slate-200 bg-white">
-            <CardHeader className="pb-4">
-              <Skeleton className="h-8 w-64" />
-              <Skeleton className="mt-2 h-4 w-48" />
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-20 w-full" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-64 w-full" />
-          </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Skeleton className="h-48 w-full rounded-xl" />
+          <Skeleton className="h-48 w-full rounded-xl" />
+          <Skeleton className="h-64 w-full rounded-xl" />
+          <Skeleton className="h-64 w-full rounded-xl" />
         </div>
       )}
 
-      {/* Main Content */}
+      {/* Overview Cards */}
       {!isLoading && organization && (
-        <>
-          {/* Organization Header Hero Card */}
-          <Card className="border-slate-200 bg-white shadow-xs">
-            <CardHeader className="border-b border-slate-100 pb-4">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-3">
-                    <Building2 className="h-6 w-6 text-slate-700" />
-                    <CardTitle className="text-2xl font-bold tracking-tight text-slate-900">
-                      {organization.name}
-                    </CardTitle>
-                    <OrganizationStatusBadge status={organization.status} />
-                  </div>
-                  <CardDescription className="font-mono text-xs text-slate-500">
-                    Ref ID: {organization.refId} &bull; Code: {organization.code}
-                  </CardDescription>
+        <div className="space-y-6">
+          {/* Top Row: System Identifiers & Quick Action Modules */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* System Information Card */}
+            <Card className="border-slate-200 bg-white shadow-xs">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-slate-700" />
+                  <CardTitle className="text-base font-semibold text-slate-900">
+                    System Identifiers
+                  </CardTitle>
                 </div>
+                <CardDescription className="text-xs text-slate-500">
+                  Core registration and status metadata in SwasthAI.
+                </CardDescription>
+              </CardHeader>
 
-                <Badge variant="outline" className="w-fit font-mono text-xs text-slate-600">
-                  {organization.code}
-                </Badge>
-              </div>
-            </CardHeader>
-
-            <CardContent className="pt-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="flex items-start gap-3 rounded-lg border border-slate-100 bg-slate-50/60 p-3">
-                  <Hash className="mt-0.5 h-4 w-4 text-slate-500 shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium text-slate-500">System Reference ID</p>
-                    <p className="mt-0.5 truncate font-mono text-xs font-semibold text-slate-900">
-                      {organization.refId}
+              <CardContent className="pt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-3">
+                    <p className="text-xs font-medium text-slate-500">Tenant Code</p>
+                    <p className="mt-1 font-mono text-sm font-semibold text-slate-900">
+                      {organization.code}
                     </p>
                   </div>
-                </div>
 
-                <div className="flex items-start gap-3 rounded-lg border border-slate-100 bg-slate-50/60 p-3">
-                  <ShieldCheck className="mt-0.5 h-4 w-4 text-slate-500 shrink-0" />
-                  <div className="min-w-0 flex-1">
+                  <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-3">
                     <p className="text-xs font-medium text-slate-500">Operational Status</p>
-                    <div className="mt-0.5">
+                    <div className="mt-1">
                       <OrganizationStatusBadge status={organization.status} />
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-start gap-3 rounded-lg border border-slate-100 bg-slate-50/60 p-3">
-                  <Calendar className="mt-0.5 h-4 w-4 text-slate-500 shrink-0" />
-                  <div className="min-w-0 flex-1">
+                  <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-3">
                     <p className="text-xs font-medium text-slate-500">Registered On</p>
-                    <p className="mt-0.5 truncate text-xs font-semibold text-slate-900">
-                      {new Date(organization.createdAt).toLocaleString()}
+                    <p className="mt-1 text-xs font-semibold text-slate-800">
+                      {new Date(organization.createdAt).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
                     </p>
                   </div>
-                </div>
 
-                <div className="flex items-start gap-3 rounded-lg border border-slate-100 bg-slate-50/60 p-3">
-                  <Clock className="mt-0.5 h-4 w-4 text-slate-500 shrink-0" />
-                  <div className="min-w-0 flex-1">
+                  <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-3">
                     <p className="text-xs font-medium text-slate-500">Last Updated</p>
-                    <p className="mt-0.5 truncate text-xs font-semibold text-slate-900">
-                      {new Date(organization.updatedAt).toLocaleString()}
+                    <p className="mt-1 text-xs font-semibold text-slate-800">
+                      {new Date(organization.updatedAt).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
                     </p>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Images Section: Logo & Signature */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* Organization Logo Card */}
-            <Card className="border-slate-200 bg-white shadow-xs">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ImageIcon className="h-4 w-4 text-blue-600" />
-                    <CardTitle className="text-base font-semibold text-slate-900">
-                      Organization Logo
-                    </CardTitle>
-                  </div>
-                  {profile?.logoConfigured ? (
-                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
-                      Configured
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-slate-500">
-                      Not Configured
-                    </Badge>
-                  )}
-                </div>
-                <CardDescription className="text-xs text-slate-500">
-                  Rendered in the diagnostic report header when organization header is enabled.
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent className="pt-2">
-                {profile?.logoConfigured ? (
-                  <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/70 p-6 min-h-[180px]">
-                    {logoLoading && (
-                      <div className="flex flex-col items-center gap-2">
-                        <RefreshCw className="h-6 w-6 animate-spin text-slate-400" />
-                        <p className="text-xs text-slate-500">Loading logo image...</p>
-                      </div>
-                    )}
-
-                    {logoError && (
-                      <div className="flex flex-col items-center gap-2 text-center">
-                        <ImageOff className="h-8 w-8 text-amber-500" />
-                        <p className="text-xs font-medium text-amber-800">
-                          Unable to render logo image
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          Logo file key is configured in database, but image content could not be retrieved.
-                        </p>
-                      </div>
-                    )}
-
-                    {!logoLoading && !logoError && logoUrl && (
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="rounded-md border border-slate-200 bg-white p-3 shadow-xs">
-                          <img
-                            src={logoUrl}
-                            alt={`${organization.name} Logo`}
-                            className="max-h-36 max-w-full object-contain"
-                          />
-                        </div>
-                        <p className="text-[11px] text-slate-500">
-                          Secure preview loaded directly from backend file storage.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center min-h-[180px]">
-                    <ImageOff className="h-8 w-8 text-slate-400" />
-                    <p className="mt-2 text-xs font-semibold text-slate-700">
-                      No Logo Configured
-                    </p>
-                    <p className="mt-0.5 text-xs text-slate-500 max-w-xs">
-                      This organization has not uploaded a clinical laboratory logo yet.
-                    </p>
-                  </div>
-                )}
               </CardContent>
             </Card>
 
-            {/* Authorized Signature Card */}
-            <Card className="border-slate-200 bg-white shadow-xs">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileSignature className="h-4 w-4 text-emerald-600" />
-                    <CardTitle className="text-base font-semibold text-slate-900">
-                      Authorized Signature
-                    </CardTitle>
-                  </div>
-                  {profile?.signatureConfigured ? (
-                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
-                      Configured
+            {/* Organization Users Quick Link Card */}
+            <Card className="border-slate-200 bg-white shadow-xs flex flex-col justify-between">
+              <div>
+                <CardHeader className="pb-3 border-b border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-slate-700" />
+                      <CardTitle className="text-base font-semibold text-slate-900">
+                        Organization Users
+                      </CardTitle>
+                    </div>
+                    <Badge variant="outline" className="text-xs text-slate-600">
+                      Primary Workflow
                     </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-slate-500">
-                      Not Configured
-                    </Badge>
-                  )}
-                </div>
-                <CardDescription className="text-xs text-slate-500">
-                  Affixed alongside doctor credentials when laboratory reports are finalized.
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent className="pt-2">
-                {profile?.signatureConfigured ? (
-                  <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/70 p-6 min-h-[180px]">
-                    {signatureLoading && (
-                      <div className="flex flex-col items-center gap-2">
-                        <RefreshCw className="h-6 w-6 animate-spin text-slate-400" />
-                        <p className="text-xs text-slate-500">Loading signature image...</p>
-                      </div>
-                    )}
-
-                    {signatureError && (
-                      <div className="flex flex-col items-center gap-2 text-center">
-                        <ImageOff className="h-8 w-8 text-amber-500" />
-                        <p className="text-xs font-medium text-amber-800">
-                          Unable to render signature image
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          Signature file key is configured in database, but image content could not be retrieved.
-                        </p>
-                      </div>
-                    )}
-
-                    {!signatureLoading && !signatureError && signatureUrl && (
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="rounded-md border border-slate-200 bg-white p-3 shadow-xs">
-                          <img
-                            src={signatureUrl}
-                            alt="Authorized Organization Signature"
-                            className="max-h-28 max-w-full object-contain"
-                          />
-                        </div>
-                        {profile?.signatureOwnerRefId && (
-                          <p className="text-[11px] font-mono text-slate-600">
-                            Owner: {profile.signatureOwnerRefId}
-                          </p>
-                        )}
-                      </div>
-                    )}
                   </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center min-h-[180px]">
-                    <FileSignature className="h-8 w-8 text-slate-400" />
-                    <p className="mt-2 text-xs font-semibold text-slate-700">
-                      No Signature Configured
-                    </p>
-                    <p className="mt-0.5 text-xs text-slate-500 max-w-xs">
-                      An authorized organization admin must upload an initial signature specimen.
+                  <CardDescription className="text-xs text-slate-500">
+                    Manage facility administrators and clinical lab staff for this tenant.
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="pt-4 space-y-2">
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Create laboratory managers (Org Admin) or operators (Lab Staff) directly within this organization&apos;s isolated scope.
+                  </p>
+                  <div className="rounded-lg border border-blue-100 bg-blue-50/60 p-3 text-xs text-blue-900">
+                    <p className="font-medium">Direct Personnel Assignment</p>
+                    <p className="text-[11px] text-blue-700 mt-0.5">
+                      Users created in the Organization Users section are automatically mapped to {organization.name}.
                     </p>
                   </div>
-                )}
-              </CardContent>
+                </CardContent>
+              </div>
+
+              <div className="p-4 pt-0">
+                <Button
+                  asChild
+                  className="w-full bg-slate-900 text-white hover:bg-slate-800 text-xs"
+                >
+                  <Link to={`/super-admin/organizations/${organization.refId}/users`}>
+                    View Organization Users
+                    <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </div>
             </Card>
           </div>
 
-          {/* Profile & Contact Details Section */}
+          {/* Middle Row: Contact & Address Information */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* Address & Facility Information */}
+            {/* Facility Address Card */}
             <Card className="border-slate-200 bg-white shadow-xs">
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-slate-700" />
                   <CardTitle className="text-base font-semibold text-slate-900">
@@ -459,29 +248,25 @@ export default function OrganizationDetailsPage() {
                   </CardTitle>
                 </div>
                 <CardDescription className="text-xs text-slate-500">
-                  Physical location printed on diagnostic headers and invoices.
+                  Location printed on diagnostic report headers.
                 </CardDescription>
               </CardHeader>
 
-              <CardContent className="space-y-3 pt-1">
-                <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3.5 space-y-2">
+              <CardContent className="space-y-3 pt-4">
+                <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-3.5 space-y-2">
                   <div>
-                    <p className="text-xs font-medium text-slate-500">Address Line 1</p>
+                    <p className="text-xs font-medium text-slate-500">Street Address</p>
                     <p className="mt-0.5 text-sm font-semibold text-slate-900">
                       {profile?.addressLine1 || "Not specified"}
                     </p>
-                  </div>
-
-                  {profile?.addressLine2 && (
-                    <div>
-                      <p className="text-xs font-medium text-slate-500">Address Line 2</p>
-                      <p className="mt-0.5 text-sm font-medium text-slate-800">
+                    {profile?.addressLine2 && (
+                      <p className="text-xs text-slate-600 mt-0.5">
                         {profile.addressLine2}
                       </p>
-                    </div>
-                  )}
+                    )}
+                  </div>
 
-                  <div className="grid grid-cols-2 gap-3 pt-1 border-t border-slate-200/60">
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200/60">
                     <div>
                       <p className="text-xs font-medium text-slate-500">City</p>
                       <p className="mt-0.5 text-xs font-semibold text-slate-800">
@@ -511,22 +296,22 @@ export default function OrganizationDetailsPage() {
               </CardContent>
             </Card>
 
-            {/* Contact & Digital Channels */}
+            {/* Contact Channels Card */}
             <Card className="border-slate-200 bg-white shadow-xs">
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-slate-700" />
                   <CardTitle className="text-base font-semibold text-slate-900">
-                    Contact Channels
+                    Official Contact
                   </CardTitle>
                 </div>
                 <CardDescription className="text-xs text-slate-500">
-                  Official contact information for patients and clinical inquiries.
+                  Communications and online channels for patients and clinicians.
                 </CardDescription>
               </CardHeader>
 
-              <CardContent className="space-y-3 pt-1">
-                <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3.5 space-y-3">
+              <CardContent className="space-y-3 pt-4">
+                <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-3.5 space-y-3">
                   <div className="flex items-start gap-2.5">
                     <Mail className="mt-0.5 h-4 w-4 text-slate-400 shrink-0" />
                     <div className="min-w-0 flex-1">
@@ -583,55 +368,93 @@ export default function OrganizationDetailsPage() {
             </Card>
           </div>
 
-          {/* Report Customization Text Section */}
+          {/* Bottom Row: Branding Snapshot */}
           <Card className="border-slate-200 bg-white shadow-xs">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-slate-700" />
-                <CardTitle className="text-base font-semibold text-slate-900">
-                  Report Texts & Disclaimers
-                </CardTitle>
+            <CardHeader className="pb-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-slate-700" />
+                  <CardTitle className="text-base font-semibold text-slate-900">
+                    Branding & Diagnostic Report Assets
+                  </CardTitle>
+                </div>
+                <CardDescription className="text-xs text-slate-500">
+                  Configured laboratory logo, signature specimen, and report texts.
+                </CardDescription>
               </div>
-              <CardDescription className="text-xs text-slate-500">
-                Printed verbatim on generated PDF reports for this tenant.
-              </CardDescription>
+
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="text-xs text-slate-700 hover:text-slate-900"
+              >
+                <Link to={`/super-admin/organizations/${organization.refId}/profile`}>
+                  Manage Profile & Branding
+                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </Link>
+              </Button>
             </CardHeader>
 
-            <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2 pt-1">
-              <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3.5 space-y-1">
-                <p className="text-xs font-medium text-slate-500">Report Footer Text</p>
-                <p className="text-xs font-medium text-slate-800 whitespace-pre-wrap">
-                  {profile?.reportFooterText || "Standard default footer text"}
-                </p>
-              </div>
+            <CardContent className="pt-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {/* Logo Snapshot */}
+                <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
+                    <span className="text-xs font-semibold text-slate-700">Laboratory Logo</span>
+                    {profile?.logoConfigured ? (
+                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px]">
+                        Configured
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-slate-500 text-[10px]">
+                        Not Uploaded
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="mt-3 flex items-center justify-center min-h-[100px]">
+                    {profile?.logoConfigured && logoUrl ? (
+                      <img
+                        src={logoUrl}
+                        alt="Logo Preview"
+                        className="max-h-20 max-w-full object-contain"
+                      />
+                    ) : (
+                      <p className="text-xs text-slate-400">No logo image specimen</p>
+                    )}
+                  </div>
+                </div>
 
-              <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3.5 space-y-1">
-                <p className="text-xs font-medium text-slate-500">Report Legal Disclaimer</p>
-                <p className="text-xs font-medium text-slate-800 whitespace-pre-wrap">
-                  {profile?.reportDisclaimer ||
-                    "This is a digitally generated medical diagnostic report."}
-                </p>
+                {/* Signature Snapshot */}
+                <div className="rounded-lg border border-slate-100 bg-slate-50/60 p-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
+                    <span className="text-xs font-semibold text-slate-700">Authorized Signature</span>
+                    {profile?.signatureConfigured ? (
+                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px]">
+                        Configured
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-slate-500 text-[10px]">
+                        Not Uploaded
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="mt-3 flex items-center justify-center min-h-[100px]">
+                    {profile?.signatureConfigured && signatureUrl ? (
+                      <img
+                        src={signatureUrl}
+                        alt="Signature Preview"
+                        className="max-h-16 max-w-full object-contain"
+                      />
+                    ) : (
+                      <p className="text-xs text-slate-400">No signature specimen</p>
+                    )}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
-        </>
-      )}
-
-      {/* Action Dialogs */}
-      {organization && (
-        <>
-          <EditOrganizationDialog
-            organization={organization}
-            open={editDialogOpen}
-            onOpenChange={setEditDialogOpen}
-          />
-
-          <ChangeOrganizationStatusDialog
-            organization={organization}
-            open={statusDialogOpen}
-            onOpenChange={setStatusDialogOpen}
-          />
-        </>
+        </div>
       )}
     </div>
   );

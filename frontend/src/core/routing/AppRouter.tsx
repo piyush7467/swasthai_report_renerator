@@ -17,6 +17,8 @@ import { RoleRoute } from "./RoleRoute";
 import OrganizationsPage from "@/modules/super-admin/organizations/OrganizationsPage";
 import OrganizationDetailsPage from "@/modules/super-admin/organizations/OrganizationDetailsPage";
 import OrganizationProfilePage from "@/modules/super-admin/pages/OrganizationProfilePage";
+import OrganizationUsersPage from "@/modules/super-admin/pages/OrganizationUsersPage";
+import UsersPage from "@/modules/super-admin/users/UsersPage";
 
 function NotFoundPage() {
   return (
@@ -85,13 +87,28 @@ export function AppRouter() {
               />
 
               <Route
+                path="/super-admin/organizations/:refId"
+                element={<OrganizationDetailsPage />}
+              />
+
+              <Route
                 path="/super-admin/organizations/:orgRefId"
                 element={<OrganizationDetailsPage />}
               />
 
               <Route
+                path="/super-admin/organizations/:refId/users"
+                element={<OrganizationUsersPage />}
+              />
+
+              <Route
                 path="/super-admin/organizations/:refId/profile"
                 element={<OrganizationProfilePage />}
+              />
+
+              <Route
+                path="/super-admin/users"
+                element={<UsersPage />}
               />
 
             </Route>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -19,7 +19,6 @@ import {
   Mail,
   MapPin,
   Phone,
-  RefreshCw,
   Save,
   Trash2,
   Upload,
@@ -43,6 +42,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { organizationApi } from "../api/organizationApi";
 import { DeleteImageConfirmationDialog } from "../components/DeleteImageConfirmationDialog";
 import { OrganizationStatusBadge } from "../components/OrganizationStatusBadge";
+import { OrganizationHeaderNav } from "../components/OrganizationHeaderNav";
 import {
   useOrganizationProfileQuery,
   useOrganizationQuery,
@@ -398,48 +398,18 @@ export default function OrganizationProfilePage() {
 
   return (
     <div className="space-y-6">
-      {/* Top Header & Breadcrumbs */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className="text-slate-600 hover:text-slate-900"
-          >
-            <Link to={`/super-admin/organizations/${organizationRefId}`}>
-              <ArrowLeft className="mr-1.5 h-4 w-4" />
-              Organization Details
-            </Link>
-          </Button>
-          <span className="text-slate-300">/</span>
-          <span className="text-sm font-semibold text-slate-700">
-            {organization?.name ?? organizationRefId}
-          </span>
-          <span className="text-slate-300">/</span>
-          <span className="text-sm font-semibold text-slate-900">
-            Profile & Branding
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefreshAll}
-            disabled={organizationQuery.isFetching || profileQuery.isFetching}
-          >
-            <RefreshCw
-              className={`mr-1.5 h-3.5 w-3.5 ${
-                organizationQuery.isFetching || profileQuery.isFetching
-                  ? "animate-spin"
-                  : ""
-              }`}
-            />
-            Refresh
-          </Button>
-        </div>
-      </div>
+      {/* Context & Navigation Header with Tabs */}
+      <OrganizationHeaderNav
+        organization={organization}
+        isLoading={organizationQuery.isLoading}
+        onRefresh={handleRefreshAll}
+        isRefreshing={
+          organizationQuery.isFetching ||
+          profileQuery.isFetching ||
+          logoQuery.isFetching ||
+          signatureQuery.isFetching
+        }
+      />
 
       {/* Inactive Organization Warning */}
       {isSuspendedOrDisabled && (
