@@ -20,6 +20,16 @@ import OrganizationProfilePage from "@/modules/super-admin/pages/OrganizationPro
 import OrganizationUsersPage from "@/modules/super-admin/pages/OrganizationUsersPage";
 import UsersPage from "@/modules/super-admin/users/UsersPage";
 
+import TestCatalogPage from "@/modules/super-admin/tests/pages/TestCatalogPage";
+import CreateTestPage from "@/modules/super-admin/tests/pages/CreateTestPage";
+import EditTestPage from "@/modules/super-admin/tests/pages/EditTestPage";
+import TestDetailsPage from "@/modules/super-admin/tests/pages/TestDetailsPage";
+import CreateParameterPage from "@/modules/super-admin/tests/pages/CreateParameterPage";
+import EditParameterPage from "@/modules/super-admin/tests/pages/EditParameterPage";
+import CategoriesPage from "@/modules/super-admin/tests/pages/CategoriesPage";
+import AssignmentsPage from "@/modules/super-admin/tests/pages/AssignmentsPage";
+import AssignTestsPage from "@/modules/super-admin/tests/pages/AssignTestsPage";
+
 function NotFoundPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
@@ -111,6 +121,43 @@ export function AppRouter() {
                 element={<UsersPage />}
               />
 
+              {/* TEST SYSTEM */}
+              <Route
+                path="/super-admin/tests"
+                element={<TestCatalogPage />}
+              />
+              <Route
+                path="/super-admin/tests/new"
+                element={<CreateTestPage />}
+              />
+              <Route
+                path="/super-admin/tests/categories"
+                element={<CategoriesPage />}
+              />
+              <Route
+                path="/super-admin/tests/assignments"
+                element={<AssignmentsPage />}
+              />
+              <Route
+                path="/super-admin/tests/assignments/new"
+                element={<AssignTestsPage />}
+              />
+              <Route
+                path="/super-admin/tests/:refId"
+                element={<TestDetailsPage />}
+              />
+              <Route
+                path="/super-admin/tests/:refId/edit"
+                element={<EditTestPage />}
+              />
+              <Route
+                path="/super-admin/tests/:refId/parameters/new"
+                element={<CreateParameterPage />}
+              />
+              <Route
+                path="/super-admin/tests/:refId/parameters/:parameterRefId/edit"
+                element={<EditParameterPage />}
+              />
             </Route>
 
             {/* ORGANIZATION ADMIN */}

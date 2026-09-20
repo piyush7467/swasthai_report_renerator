@@ -9,10 +9,16 @@ import {
 
 import type { UserRole } from "../auth/authTypes";
 
+export interface NavigationSubItem {
+  label: string;
+  href: string;
+}
+
 export interface NavigationItem {
   label: string;
   href: string;
   icon: LucideIcon;
+  children?: NavigationSubItem[];
 }
 
 const navigationByRole: Record<
@@ -39,6 +45,20 @@ const navigationByRole: Record<
       label: "Tests",
       href: "/super-admin/tests",
       icon: FlaskConical,
+      children: [
+        {
+          label: "Test Catalog",
+          href: "/super-admin/tests",
+        },
+        {
+          label: "Categories",
+          href: "/super-admin/tests/categories",
+        },
+        {
+          label: "Assignments",
+          href: "/super-admin/tests/assignments",
+        },
+      ],
     },
     {
       label: "Reports",
