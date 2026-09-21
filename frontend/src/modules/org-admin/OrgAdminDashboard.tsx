@@ -1,4 +1,5 @@
 import {
+  ArrowRight,
   Building2,
   FileCheck2,
   FlaskConical,
@@ -7,6 +8,7 @@ import {
   User,
   Users,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import {
   Card,
@@ -15,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/core/auth/AuthContext";
 
@@ -118,19 +121,25 @@ export function OrgAdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 bg-white">
+        <Card className="border-slate-200 bg-white flex flex-col justify-between hover:border-blue-300 transition-colors">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-slate-600">
+              <CardTitle className="text-sm font-semibold text-slate-900">
                 Diagnostic Reports
               </CardTitle>
-              <FileCheck2 className="h-4 w-4 text-slate-400" />
+              <FileCheck2 className="h-4 w-4 text-blue-600" />
             </div>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-slate-600">
+          <CardContent className="space-y-3">
+            <p className="text-xs text-slate-600">
               Create drafts, enter results, finalize reports, and issue verified PDFs.
             </p>
+            <Button asChild size="sm" variant="outline" className="w-full text-xs justify-between">
+              <Link to="/org-admin/reports">
+                Manage Reports
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
           </CardContent>
         </Card>
 

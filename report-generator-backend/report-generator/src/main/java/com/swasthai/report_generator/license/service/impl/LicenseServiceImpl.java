@@ -182,7 +182,21 @@ public class LicenseServiceImpl
         Instant newStartedAt;
         Instant newExpiresAt;
 
-        if (isCurrentlyUsable(license)) {
+        if (license.getStatus() == LicenseStatus.DEACTIVATED) {
+
+            long remainingSeconds = license.getPausedRemainingSeconds() != null
+                    ? license.getPausedRemainingSeconds()
+                    : 0L;
+
+            newStartedAt = now;
+
+            newExpiresAt = now.plusSeconds(remainingSeconds)
+                    .plus(licenseProperties.getDurationDays(), ChronoUnit.DAYS);
+
+            license.setPausedRemainingSeconds(null);
+            license.setDeactivatedAt(null);
+
+        } else if (isCurrentlyUsable(license)) {
 
             newStartedAt = license.getStartedAt();
 
@@ -210,6 +224,96 @@ public class LicenseServiceImpl
         return mapToResponse(
                 licenseRepository.saveAndFlush(
                         license));
+    }
+
+    // SUPER ADMIN - DEACTIVATE (FREEZE REMAINING DURATION)
+
+    @Override
+    public LicenseResponse deactivateLicense(
+            String organizationRefId) {
+
+        requireSuperAdmin();
+
+        Organization organization = findOrganization(organizationRefId);
+
+        License license = licenseRepository
+                .findByOrganizationIdForUpdate(
+                        organization.getId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "License not found for organization."));
+
+        if (license.getStatus() == LicenseStatus.DEACTIVATED) {
+            throw new IllegalStateException(
+                    "Organization license is already deactivated.");
+        }
+
+        refreshStatusIfExpired(license);
+
+        if (license.getStatus() == LicenseStatus.EXPIRED) {
+            throw new IllegalStateException(
+                    "Cannot deactivate an expired license.");
+        }
+
+        Instant now = Instant.now();
+        long remainingSeconds = 0;
+        if (license.getExpiresAt() != null && now.isBefore(license.getExpiresAt())) {
+            remainingSeconds = ChronoUnit.SECONDS.between(now, license.getExpiresAt());
+        }
+
+        license.setStatus(LicenseStatus.DEACTIVATED);
+        license.setPausedRemainingSeconds(remainingSeconds);
+        license.setDeactivatedAt(now);
+
+        return mapToResponse(
+                licenseRepository.saveAndFlush(license));
+    }
+
+    // SUPER ADMIN - REACTIVATE (RESUME REMAINING DURATION FROM TODAY)
+
+    @Override
+    public LicenseResponse reactivateLicense(
+            String organizationRefId) {
+
+        requireSuperAdmin();
+
+        Organization organization = findOrganization(organizationRefId);
+        validateOrganizationCanBeLicensed(organization);
+
+        License license = licenseRepository
+                .findByOrganizationIdForUpdate(
+                        organization.getId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "License not found for organization."));
+
+        if (license.getStatus() == LicenseStatus.ACTIVE) {
+            throw new IllegalStateException(
+                    "Organization license is already active.");
+        }
+
+        if (license.getStatus() == LicenseStatus.EXPIRED) {
+            throw new IllegalStateException(
+                    "License has expired. Please renew or activate a new license.");
+        }
+
+        Instant now = Instant.now();
+        long remainingSeconds = license.getPausedRemainingSeconds() != null
+                ? license.getPausedRemainingSeconds()
+                : 0L;
+
+        if (remainingSeconds <= 0) {
+            throw new IllegalStateException(
+                    "No remaining validity left to resume. Please renew the license.");
+        }
+
+        Instant newExpiresAt = now.plusSeconds(remainingSeconds);
+
+        license.setStatus(LicenseStatus.ACTIVE);
+        license.setExpiresAt(newExpiresAt);
+        license.setPausedRemainingSeconds(null);
+        license.setDeactivatedAt(null);
+
+        return mapToResponse(
+                licenseRepository.saveAndFlush(license));
     }
 
     // ORGANIZATION - OWN LICENSE

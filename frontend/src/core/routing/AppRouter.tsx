@@ -29,6 +29,21 @@ import EditParameterPage from "@/modules/super-admin/tests/pages/EditParameterPa
 import CategoriesPage from "@/modules/super-admin/tests/pages/CategoriesPage";
 import AssignmentsPage from "@/modules/super-admin/tests/pages/AssignmentsPage";
 import AssignTestsPage from "@/modules/super-admin/tests/pages/AssignTestsPage";
+import ParametersDirectoryPage from "@/modules/super-admin/tests/pages/ParametersDirectoryPage";
+
+import PlansPage from "@/modules/super-admin/licensing/pages/PlansPage";
+import CreatePlanPage from "@/modules/super-admin/licensing/pages/CreatePlanPage";
+import EditPlanPage from "@/modules/super-admin/licensing/pages/EditPlanPage";
+import OrganizationLicensesPage from "@/modules/super-admin/licensing/pages/OrganizationLicensesPage";
+import OrganizationLicensePage from "@/modules/super-admin/organizations/OrganizationLicensePage";
+
+import ReportOverviewPage from "@/modules/super-admin/reports/pages/ReportOverviewPage";
+import ReportActivityPage from "@/modules/super-admin/reports/pages/ReportActivityPage";
+import ReportAuditPage from "@/modules/super-admin/reports/pages/ReportAuditPage";
+import SettingsPage from "@/modules/super-admin/settings/pages/SettingsPage";
+
+import ReportsListPage from "@/modules/org-admin/reports/pages/ReportsListPage";
+import ReportWorkspacePage from "@/modules/org-admin/reports/pages/ReportWorkspacePage";
 
 function NotFoundPage() {
   return (
@@ -117,8 +132,45 @@ export function AppRouter() {
               />
 
               <Route
+                path="/super-admin/organizations/:refId/license"
+                element={<OrganizationLicensePage />}
+              />
+
+              <Route
                 path="/super-admin/users"
                 element={<UsersPage />}
+              />
+
+              {/* REPORT ANALYTICS & AUDIT MODULE */}
+              <Route
+                path="/super-admin/reports"
+                element={<ReportOverviewPage />}
+              />
+              <Route
+                path="/super-admin/reports/activity"
+                element={<ReportActivityPage />}
+              />
+              <Route
+                path="/super-admin/reports/audit"
+                element={<ReportAuditPage />}
+              />
+
+              {/* LICENSING MODULE */}
+              <Route
+                path="/super-admin/licensing/plans"
+                element={<PlansPage />}
+              />
+              <Route
+                path="/super-admin/licensing/plans/new"
+                element={<CreatePlanPage />}
+              />
+              <Route
+                path="/super-admin/licensing/plans/:refId/edit"
+                element={<EditPlanPage />}
+              />
+              <Route
+                path="/super-admin/licensing/licenses"
+                element={<OrganizationLicensesPage />}
               />
 
               {/* TEST SYSTEM */}
@@ -133,6 +185,10 @@ export function AppRouter() {
               <Route
                 path="/super-admin/tests/categories"
                 element={<CategoriesPage />}
+              />
+              <Route
+                path="/super-admin/tests/parameters"
+                element={<ParametersDirectoryPage />}
               />
               <Route
                 path="/super-admin/tests/assignments"
@@ -158,6 +214,12 @@ export function AppRouter() {
                 path="/super-admin/tests/:refId/parameters/:parameterRefId/edit"
                 element={<EditParameterPage />}
               />
+
+              {/* SETTINGS */}
+              <Route
+                path="/super-admin/settings"
+                element={<SettingsPage />}
+              />
             </Route>
 
             {/* ORGANIZATION ADMIN */}
@@ -171,6 +233,14 @@ export function AppRouter() {
               <Route
                 path="/org-admin"
                 element={<OrgAdminDashboard />}
+              />
+              <Route
+                path="/org-admin/reports"
+                element={<ReportsListPage />}
+              />
+              <Route
+                path="/org-admin/reports/:reportRefId"
+                element={<ReportWorkspacePage />}
               />
             </Route>
 

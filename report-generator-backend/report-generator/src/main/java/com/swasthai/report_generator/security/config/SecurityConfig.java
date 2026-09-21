@@ -77,7 +77,9 @@ public class SecurityConfig {
                                                 .permitAll()
 
                                                 .requestMatchers(
-                                                                "/api/v1/plans/**")
+                                                                "/api/v1/plans/**",
+                                                                "/api/v1/admin/analytics/**",
+                                                                "/api/v1/admin/audit/**")
                                                 .hasRole("SUPER_ADMIN")
 
                                                 .requestMatchers(

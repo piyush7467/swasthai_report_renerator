@@ -4,6 +4,7 @@ import {
   FlaskConical,
   LayoutDashboard,
   Settings,
+  ShieldCheck,
   Users,
 } from "lucide-react";
 
@@ -42,6 +43,25 @@ const navigationByRole: Record<
       icon: Users,
     },
     {
+      label: "Reports",
+      href: "/super-admin/reports",
+      icon: FileText,
+      children: [
+        {
+          label: "Overview",
+          href: "/super-admin/reports",
+        },
+        {
+          label: "Activity",
+          href: "/super-admin/reports/activity",
+        },
+        {
+          label: "Audit",
+          href: "/super-admin/reports/audit",
+        },
+      ],
+    },
+    {
       label: "Tests",
       href: "/super-admin/tests",
       icon: FlaskConical,
@@ -55,15 +75,29 @@ const navigationByRole: Record<
           href: "/super-admin/tests/categories",
         },
         {
+          label: "Parameters",
+          href: "/super-admin/tests/parameters",
+        },
+        {
           label: "Assignments",
           href: "/super-admin/tests/assignments",
         },
       ],
     },
     {
-      label: "Reports",
-      href: "/super-admin/reports",
-      icon: FileText,
+      label: "Licensing",
+      href: "/super-admin/licensing/plans",
+      icon: ShieldCheck,
+      children: [
+        {
+          label: "Plans",
+          href: "/super-admin/licensing/plans",
+        },
+        {
+          label: "Organization Licenses",
+          href: "/super-admin/licensing/licenses",
+        },
+      ],
     },
     {
       label: "Settings",

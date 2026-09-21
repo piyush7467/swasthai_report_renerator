@@ -9,6 +9,7 @@ import {
   Mail,
   MapPin,
   Phone,
+  ShieldCheck,
   Users,
 } from "lucide-react";
 
@@ -30,6 +31,9 @@ import {
   useOrganizationQuery,
   useOrganizationProfileQuery,
 } from "../hooks/useOrganizations";
+import { useOrganizationLicenseQuery } from "../licensing/hooks/useLicensing";
+import { LicenseStatusBadge } from "../licensing/components/LicenseStatusBadge";
+import { getLicenseExpiryInfo } from "../licensing/types/licensingTypes";
 
 export default function OrganizationDetailsPage() {
   const params = useParams<{ refId?: string; orgRefId?: string }>();
@@ -38,9 +42,11 @@ export default function OrganizationDetailsPage() {
 
   const organizationQuery = useOrganizationQuery(refId);
   const profileQuery = useOrganizationProfileQuery(refId);
+  const licenseQuery = useOrganizationLicenseQuery(refId);
 
   const organization = organizationQuery.data;
   const profile = profileQuery.data;
+  const license = licenseQuery.data;
 
   // Fetch Logo image blob when configured
   const logoQuery = useQuery({
@@ -89,6 +95,7 @@ export default function OrganizationDetailsPage() {
   const handleRefresh = () => {
     void organizationQuery.refetch();
     void profileQuery.refetch();
+    void licenseQuery.refetch();
     void logoQuery.refetch();
     void signatureQuery.refetch();
   };
@@ -103,6 +110,7 @@ export default function OrganizationDetailsPage() {
         isRefreshing={
           organizationQuery.isFetching ||
           profileQuery.isFetching ||
+          licenseQuery.isFetching ||
           logoQuery.isFetching ||
           signatureQuery.isFetching
         }
@@ -132,8 +140,8 @@ export default function OrganizationDetailsPage() {
       {/* Overview Cards */}
       {!isLoading && organization && (
         <div className="space-y-6">
-          {/* Top Row: System Identifiers & Quick Action Modules */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* Top Row: System Identifiers, Users & Subscription License */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* System Information Card */}
             <Card className="border-slate-200 bg-white shadow-xs">
               <CardHeader className="pb-3 border-b border-slate-100">
@@ -144,7 +152,7 @@ export default function OrganizationDetailsPage() {
                   </CardTitle>
                 </div>
                 <CardDescription className="text-xs text-slate-500">
-                  Core registration and status metadata in SwasthAI.
+                  Core registration and status metadata.
                 </CardDescription>
               </CardHeader>
 
@@ -201,11 +209,11 @@ export default function OrganizationDetailsPage() {
                       </CardTitle>
                     </div>
                     <Badge variant="outline" className="text-xs text-slate-600">
-                      Primary Workflow
+                      Primary
                     </Badge>
                   </div>
                   <CardDescription className="text-xs text-slate-500">
-                    Manage facility administrators and clinical lab staff for this tenant.
+                    Facility administrators and lab staff.
                   </CardDescription>
                 </CardHeader>
 
@@ -213,10 +221,10 @@ export default function OrganizationDetailsPage() {
                   <p className="text-xs text-slate-600 leading-relaxed">
                     Create laboratory managers (Org Admin) or operators (Lab Staff) directly within this organization&apos;s isolated scope.
                   </p>
-                  <div className="rounded-lg border border-blue-100 bg-blue-50/60 p-3 text-xs text-blue-900">
+                  <div className="rounded-lg border border-blue-100 bg-blue-50/60 p-2.5 text-xs text-blue-900">
                     <p className="font-medium">Direct Personnel Assignment</p>
                     <p className="text-[11px] text-blue-700 mt-0.5">
-                      Users created in the Organization Users section are automatically mapped to {organization.name}.
+                      Users created here are mapped to {organization.name}.
                     </p>
                   </div>
                 </CardContent>
@@ -228,7 +236,102 @@ export default function OrganizationDetailsPage() {
                   className="w-full bg-slate-900 text-white hover:bg-slate-800 text-xs"
                 >
                   <Link to={`/super-admin/organizations/${organization.refId}/users`}>
-                    View Organization Users
+                    View Users
+                    <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </div>
+            </Card>
+
+            {/* Subscription License Overview Card */}
+            <Card className="border-slate-200 bg-white shadow-xs flex flex-col justify-between">
+              <div>
+                <CardHeader className="pb-3 border-b border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                      <CardTitle className="text-base font-semibold text-slate-900">
+                        Subscription License
+                      </CardTitle>
+                    </div>
+                    {license ? (
+                      <LicenseStatusBadge
+                        status={license.status}
+                        currentlyUsable={license.currentlyUsable}
+                        showUsability
+                        expiresAt={license.expiresAt}
+                        showDaysLeft
+                      />
+                    ) : (
+                      <Badge variant="outline" className="text-xs text-amber-600 border-amber-200 bg-amber-50">
+                        Unlicensed
+                      </Badge>
+                    )}
+                  </div>
+                  <CardDescription className="text-xs text-slate-500">
+                    Authorization for clinical reporting operations.
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="pt-4 space-y-2.5">
+                  {license ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500 font-medium">Assigned Plan:</span>
+                        <span className="font-semibold text-slate-900">
+                          {license.planName} ({license.planCode})
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500 font-medium">Expires On:</span>
+                        <span className="font-medium text-slate-800">
+                          {new Date(license.expiresAt).toLocaleDateString(undefined, {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
+                      </div>
+                      {(() => {
+                        const info = getLicenseExpiryInfo(license.expiresAt);
+                        if (!info) return null;
+                        return (
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-500 font-medium">Time Remaining:</span>
+                            <span
+                              className={`font-semibold ${
+                                info.isExpired
+                                  ? "text-rose-600"
+                                  : info.isExpiringSoon
+                                  ? "text-amber-600"
+                                  : "text-emerald-700"
+                              }`}
+                            >
+                              {info.label}
+                            </span>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-amber-100 bg-amber-50/60 p-2.5 text-xs text-amber-900">
+                      <p className="font-medium">No Active License</p>
+                      <p className="text-[11px] text-amber-700 mt-0.5">
+                        Activate a subscription plan to allow report creation.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </div>
+
+              <div className="p-4 pt-0">
+                <Button
+                  asChild
+                  variant="outline"
+                  className="w-full text-slate-800 hover:text-slate-900 text-xs"
+                >
+                  <Link to={`/super-admin/organizations/${organization.refId}/license`}>
+                    Manage License
                     <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                   </Link>
                 </Button>

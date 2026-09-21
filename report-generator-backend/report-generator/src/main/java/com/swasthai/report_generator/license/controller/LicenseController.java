@@ -103,6 +103,32 @@ public class LicenseController {
         );
     }
 
+    @PostMapping(
+            "/organizations/{organizationRefId}/license/deactivate"
+    )
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public LicenseResponse deactivateLicense(
+            @PathVariable String organizationRefId
+    ) {
+
+        return licenseService.deactivateLicense(
+                organizationRefId
+        );
+    }
+
+    @PostMapping(
+            "/organizations/{organizationRefId}/license/reactivate"
+    )
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public LicenseResponse reactivateLicense(
+            @PathVariable String organizationRefId
+    ) {
+
+        return licenseService.reactivateLicense(
+                organizationRefId
+        );
+    }
+
     @GetMapping(
             "/organizations/{organizationRefId}/license"
     )

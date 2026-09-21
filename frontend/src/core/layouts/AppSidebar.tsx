@@ -20,13 +20,21 @@ export function AppSidebar({
   const { user, logout } = useAuth();
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({
+    Reports: true,
     Tests: true,
+    Licensing: true,
   });
 
   // Automatically expand if currently navigating within a parent's route
   useEffect(() => {
+    if (location.pathname.startsWith("/super-admin/reports")) {
+      setExpandedItems((prev) => ({ ...prev, Reports: true }));
+    }
     if (location.pathname.startsWith("/super-admin/tests")) {
       setExpandedItems((prev) => ({ ...prev, Tests: true }));
+    }
+    if (location.pathname.startsWith("/super-admin/licensing")) {
+      setExpandedItems((prev) => ({ ...prev, Licensing: true }));
     }
   }, [location.pathname]);
 
@@ -77,11 +85,16 @@ export function AppSidebar({
               item.children.some((child) =>
                 child.href === item.href
                   ? location.pathname === child.href ||
+                    (child.href === "/super-admin/reports" &&
+                      location.pathname.startsWith("/super-admin/reports")) ||
                     (child.href === "/super-admin/tests" &&
                       (location.pathname.startsWith("/super-admin/tests/new") ||
                         (location.pathname.startsWith("/super-admin/tests/") &&
                           !location.pathname.startsWith("/super-admin/tests/categories") &&
-                          !location.pathname.startsWith("/super-admin/tests/assignments"))))
+                          !location.pathname.startsWith("/super-admin/tests/assignments") &&
+                          !location.pathname.startsWith("/super-admin/tests/parameters"))))
+                  : child.href === "/super-admin/licensing/plans"
+                  ? location.pathname.startsWith("/super-admin/licensing/plans")
                   : location.pathname.startsWith(child.href),
               ));
 
@@ -121,7 +134,10 @@ export function AppSidebar({
                             location.pathname.startsWith("/super-admin/tests/new") ||
                             (location.pathname.startsWith("/super-admin/tests/") &&
                               !location.pathname.startsWith("/super-admin/tests/categories") &&
-                              !location.pathname.startsWith("/super-admin/tests/assignments"))
+                              !location.pathname.startsWith("/super-admin/tests/assignments") &&
+                              !location.pathname.startsWith("/super-admin/tests/parameters"))
+                          : child.href === "/super-admin/licensing/plans"
+                          ? location.pathname.startsWith("/super-admin/licensing/plans")
                           : location.pathname.startsWith(child.href);
 
                       return (

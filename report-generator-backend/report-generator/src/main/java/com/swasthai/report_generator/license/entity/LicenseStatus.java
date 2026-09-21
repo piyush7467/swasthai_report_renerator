@@ -5,5 +5,7 @@ public enum LicenseStatus {
 
     ACTIVE,
 
+    DEACTIVATED,
+
     EXPIRED
 }

@@ -9,6 +9,7 @@ import {
   FileText,
   LayoutDashboard,
   RefreshCw,
+  ShieldCheck,
   SlidersHorizontal,
   Users,
 } from "lucide-react";
@@ -72,6 +73,14 @@ export function OrganizationHeaderNav({
       icon: FileText,
       isActive: location.pathname.startsWith(
         `/super-admin/organizations/${refId}/profile`,
+      ),
+    },
+    {
+      label: "License",
+      href: `/super-admin/organizations/${refId}/license`,
+      icon: ShieldCheck,
+      isActive: location.pathname.startsWith(
+        `/super-admin/organizations/${refId}/license`,
       ),
     },
   ];

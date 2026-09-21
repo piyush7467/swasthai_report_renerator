@@ -126,6 +126,12 @@ public class License {
     @Column(name = "payment_verified_at")
     private Instant paymentVerifiedAt;
 
+    @Column(name = "paused_remaining_seconds")
+    private Long pausedRemainingSeconds;
+
+    @Column(name = "deactivated_at")
+    private Instant deactivatedAt;
+
     @Version
     @Column(
             name = "lock_version",

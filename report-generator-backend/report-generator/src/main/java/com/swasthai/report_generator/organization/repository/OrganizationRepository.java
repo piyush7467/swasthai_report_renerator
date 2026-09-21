@@ -32,4 +32,8 @@ public interface OrganizationRepository
             UUID id,
             OrganizationStatus status
     );
+
+    long countByStatus(OrganizationStatus status);
+
+    java.util.List<Organization> findAllByRefIdIn(java.util.Collection<String> refIds);
 }

@@ -16,6 +16,14 @@ public interface LicenseService {
             RenewLicenseRequest request
     );
 
+    LicenseResponse deactivateLicense(
+            String organizationRefId
+    );
+
+    LicenseResponse reactivateLicense(
+            String organizationRefId
+    );
+
     LicenseResponse getOwnLicense();
 
     LicenseResponse getLicenseForOrganization(
