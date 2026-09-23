@@ -85,6 +85,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -134,6 +135,19 @@ public class ReportServiceImpl implements ReportService {
     private final PdfRenderer pdfRenderer;
 
     private final VerificationQrCodeGenerator verificationQrCodeGenerator;
+
+    private final com.swasthai.report_generator.report.repository.ReportShareRepository reportShareRepository;
+
+    private static final java.security.SecureRandom SECURE_RANDOM = new java.security.SecureRandom();
+    private static final String SHARE_TOKEN_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    private String generateSecureShareToken() {
+        StringBuilder sb = new StringBuilder(48);
+        for (int i = 0; i < 48; i++) {
+            sb.append(SHARE_TOKEN_CHARS.charAt(SECURE_RANDOM.nextInt(SHARE_TOKEN_CHARS.length())));
+        }
+        return sb.toString();
+    }
 
 
     // ============================================================
@@ -2900,5 +2914,146 @@ public class ReportServiceImpl implements ReportService {
 
         String verificationUrl = "https://verify.swasthai.com/reports/" + report.getRefId().trim();
         return verificationQrCodeGenerator.generatePngBytes(verificationUrl);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ReportResponse> getPatientReports(String patientRefId, Pageable pageable) {
+        User currentUser = getCurrentUser();
+        Organization organization = getRequiredOrganization(currentUser);
+        String normalizedPatientRefId = patientRefId != null ? patientRefId.trim() : "";
+
+        patientRepository.findByRefIdAndOrganization_IdAndDeletedAtIsNull(
+                normalizedPatientRefId,
+                organization.getId()
+        ).orElseThrow(() -> new ResourceNotFoundException("Patient not found: " + normalizedPatientRefId));
+
+        Page<Report> reports = reportRepository.findAllByOrganization_IdAndPatientRefIdAndDeletedAtIsNull(
+                organization.getId(),
+                normalizedPatientRefId,
+                pageable
+        );
+
+        return reports.map(this::mapToResponse);
+    }
+
+    @Override
+    public com.swasthai.report_generator.report.dto.response.ReportShareResponse createReportShare(
+            String reportRefId,
+            com.swasthai.report_generator.report.dto.request.CreateReportShareRequest request) {
+
+        User currentUser = getCurrentUser();
+        Report report = findAuthorizedReport(reportRefId, currentUser);
+
+        if (report.getStatus() != ReportStatus.FINALIZED) {
+            throw new IllegalStateException("Only finalized reports can be shared.");
+        }
+
+        int expiresInDays = (request.expiresInDays() != null && request.expiresInDays() > 0)
+                ? request.expiresInDays()
+                : 7;
+
+        Instant now = Instant.now();
+        Instant expiresAt = now.plus(expiresInDays, ChronoUnit.DAYS);
+        String shareToken = generateSecureShareToken();
+
+        String recipientEmail = null;
+        String recipientPhone = null;
+        String channel = request.channel() != null ? request.channel().toUpperCase(Locale.ROOT) : "LINK";
+        if ("EMAIL".equals(channel) && request.recipient() != null && !request.recipient().isBlank()) {
+            recipientEmail = request.recipient().trim();
+        } else if ("WHATSAPP".equals(channel) && request.recipient() != null && !request.recipient().isBlank()) {
+            recipientPhone = request.recipient().trim();
+        }
+
+        com.swasthai.report_generator.report.entity.ReportShare share =
+                com.swasthai.report_generator.report.entity.ReportShare.builder()
+                        .shareToken(shareToken)
+                        .report(report)
+                        .organization(report.getOrganization())
+                        .reportRefId(report.getRefId())
+                        .sharedBy(currentUser)
+                        .shareChannel(channel)
+                        .recipientEmail(recipientEmail)
+                        .recipientPhone(recipientPhone)
+                        .expiresAt(expiresAt)
+                        .revoked(false)
+                        .accessCount(0)
+                        .build();
+
+        com.swasthai.report_generator.report.entity.ReportShare saved = reportShareRepository.save(share);
+
+        String shareUrl = "/shared/reports/" + saved.getShareToken();
+
+        return com.swasthai.report_generator.report.dto.response.ReportShareResponse.builder()
+                .shareToken(saved.getShareToken())
+                .reportRefId(saved.getReportRefId())
+                .shareChannel(saved.getShareChannel())
+                .shareUrl(shareUrl)
+                .expiresAt(saved.getExpiresAt())
+                .createdAt(saved.getCreatedAt())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public com.swasthai.report_generator.report.dto.response.SharedReportResponse getSharedReport(String shareToken) {
+        if (shareToken == null || shareToken.isBlank()) {
+            throw new ResourceNotFoundException("Invalid share token");
+        }
+
+        com.swasthai.report_generator.report.entity.ReportShare share =
+                reportShareRepository.findByShareTokenAndRevokedFalse(shareToken.trim())
+                        .orElseThrow(() -> new ResourceNotFoundException("Shared report link is invalid, expired, or has been revoked"));
+
+        if (share.getExpiresAt().isBefore(Instant.now())) {
+            throw new IllegalStateException("This shared report link has expired.");
+        }
+
+        Report report = share.getReport();
+        if (report == null || report.getDeletedAt() != null) {
+            throw new ResourceNotFoundException("Report is no longer available");
+        }
+
+        if (report.getStatus() != ReportStatus.FINALIZED) {
+            throw new IllegalStateException("Shared report is not finalized");
+        }
+
+        share.setAccessCount(share.getAccessCount() + 1);
+        share.setLastAccessedAt(Instant.now());
+        reportShareRepository.save(share);
+
+        String verificationUrl = "https://verify.swasthai.com/reports/" + report.getRefId().trim();
+
+        return com.swasthai.report_generator.report.dto.response.SharedReportResponse.builder()
+                .shareToken(share.getShareToken())
+                .expiresAt(share.getExpiresAt())
+                .verificationUrl(verificationUrl)
+                .report(mapToResponse(report))
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] getSharedReportPdf(String shareToken) {
+        if (shareToken == null || shareToken.isBlank()) {
+            throw new ResourceNotFoundException("Invalid share token");
+        }
+
+        com.swasthai.report_generator.report.entity.ReportShare share =
+                reportShareRepository.findByShareTokenAndRevokedFalse(shareToken.trim())
+                        .orElseThrow(() -> new ResourceNotFoundException("Shared report link is invalid, expired, or has been revoked"));
+
+        if (share.getExpiresAt().isBefore(Instant.now())) {
+            throw new IllegalStateException("This shared report link has expired.");
+        }
+
+        Report report = share.getReport();
+        if (report == null || report.getDeletedAt() != null || report.getStatus() != ReportStatus.FINALIZED) {
+            throw new ResourceNotFoundException("Report is not available");
+        }
+
+        ReportPdfData pdfData = reportPdfDataBuilder.build(report);
+        return pdfRenderer.render(pdfData);
     }
 }

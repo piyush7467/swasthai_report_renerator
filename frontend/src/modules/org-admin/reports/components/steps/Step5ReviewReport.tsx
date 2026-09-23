@@ -2,9 +2,12 @@ import { useState, useEffect } from "react";
 import {
   Building2,
   Calculator,
+  Download,
   Eye,
   FileCheck2,
+  Loader2,
   Printer,
+  Share2,
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +15,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ParameterResultFlagBadge } from "../ParameterResultFlagBadge";
 import { ReportStatusBadge } from "../ReportStatusBadge";
 import { FinalizeReportDialog } from "../FinalizeReportDialog";
+import { ShareReportModal } from "../ShareReportModal";
+import { reportApi } from "../../api/reportApi";
 import { formatDisplayUnit } from "../../utils/unitFormatter";
 import type { ReportResponse } from "../../types/reportTypes";
 import type { PatientResponse } from "@/modules/org-admin/patients/types/patientTypes";
@@ -38,6 +43,8 @@ export function Step5ReviewReport({
   isFinalizing,
 }: Step5ReviewReportProps) {
   const [isFinalizeDialogOpen, setIsFinalizeDialogOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [isRecalculating, setIsRecalculating] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
@@ -99,6 +106,25 @@ export function Step5ReviewReport({
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPdf = async () => {
+    setIsDownloadingPdf(true);
+    try {
+      const blob = await reportApi.downloadReportPdf(report.refId);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `report-${report.refId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PDF download failed", err);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
   };
 
   return (
@@ -422,14 +448,42 @@ export function Step5ReviewReport({
           &larr; Back to Results Editor
         </Button>
 
-        <Button
-          type="button"
-          onClick={() => setIsFinalizeDialogOpen(true)}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-9 px-6 font-semibold flex items-center gap-1.5 shadow-sm"
-        >
-          <FileCheck2 className="h-4 w-4" />
-          Finalize & Sign Report
-        </Button>
+        {report.status === "FINALIZED" ? (
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDownloadPdf}
+              disabled={isDownloadingPdf}
+              className="text-xs h-9 px-4 border-teal-300 text-teal-800 hover:bg-teal-50 flex items-center gap-1.5 font-medium"
+            >
+              {isDownloadingPdf ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 text-[#0F766E]" />
+              )}
+              Download PDF
+            </Button>
+
+            <Button
+              type="button"
+              onClick={() => setIsShareModalOpen(true)}
+              className="bg-[#0F766E] hover:bg-[#115E59] text-white text-xs h-9 px-5 font-semibold flex items-center gap-1.5 shadow-sm"
+            >
+              <Share2 className="h-4 w-4" />
+              Share Report
+            </Button>
+          </div>
+        ) : (
+          <Button
+            type="button"
+            onClick={() => setIsFinalizeDialogOpen(true)}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-9 px-6 font-semibold flex items-center gap-1.5 shadow-sm"
+          >
+            <FileCheck2 className="h-4 w-4" />
+            Finalize & Sign Report
+          </Button>
+        )}
       </div>
 
       {/* Finalize Confirmation Dialog */}
@@ -443,6 +497,15 @@ export function Step5ReviewReport({
         }}
         isLoading={isFinalizing}
       />
+
+      {/* Share Report Modal */}
+      {isShareModalOpen && (
+        <ShareReportModal
+          report={report}
+          open={isShareModalOpen}
+          onOpenChange={setIsShareModalOpen}
+        />
+      )}
     </div>
   );
 }

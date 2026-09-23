@@ -161,4 +161,33 @@ export const reportApi = {
     );
     return response.data;
   },
+
+  async createReportShare(
+    reportRefId: string,
+    request: import("../types/reportTypes").CreateReportShareRequest,
+  ): Promise<import("../types/reportTypes").ReportShareResponse> {
+    const response = await apiClient.post<
+      ApiResponse<import("../types/reportTypes").ReportShareResponse>
+    >(`/reports/${encodeURIComponent(reportRefId)}/shares`, request);
+    return response.data.data;
+  },
+
+  async getSharedReport(
+    shareToken: string,
+  ): Promise<import("../types/reportTypes").SharedReportResponse> {
+    const response = await apiClient.get<
+      ApiResponse<import("../types/reportTypes").SharedReportResponse>
+    >(`/shared/reports/${encodeURIComponent(shareToken)}`);
+    return response.data.data;
+  },
+
+  async downloadSharedReportPdf(shareToken: string): Promise<Blob> {
+    const response = await apiClient.get<Blob>(
+      `/shared/reports/${encodeURIComponent(shareToken)}/pdf`,
+      {
+        responseType: "blob",
+      },
+    );
+    return response.data;
+  },
 };

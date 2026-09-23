@@ -83,6 +83,40 @@ public interface ReportRepository
     );
 
     @Query("""
+        SELECT new com.swasthai.report_generator.report.dto.response.PatientReportStats(
+            r.patientRefId,
+            COUNT(r),
+            MAX(r.createdAt)
+        )
+        FROM Report r
+        WHERE r.organization.id = :organizationId
+          AND r.deletedAt IS NULL
+          AND r.patientRefId IN :patientRefIds
+        GROUP BY r.patientRefId
+        """)
+    List<com.swasthai.report_generator.report.dto.response.PatientReportStats> getReportStatsForPatients(
+            @Param("organizationId") UUID organizationId,
+            @Param("patientRefIds") Collection<String> patientRefIds
+    );
+
+    @Query("""
+        SELECT new com.swasthai.report_generator.report.dto.response.PatientReportStats(
+            r.patientRefId,
+            COUNT(r),
+            MAX(r.createdAt)
+        )
+        FROM Report r
+        WHERE r.organization.id = :organizationId
+          AND r.deletedAt IS NULL
+          AND r.patientRefId = :patientRefId
+        GROUP BY r.patientRefId
+        """)
+    Optional<com.swasthai.report_generator.report.dto.response.PatientReportStats> getReportStatsForPatient(
+            @Param("organizationId") UUID organizationId,
+            @Param("patientRefId") String patientRefId
+    );
+
+    @Query("""
         SELECT r
         FROM Report r
         WHERE r.organization.id = :organizationId

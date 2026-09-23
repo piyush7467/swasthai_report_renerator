@@ -51,6 +51,10 @@ public class PatientResponse {
 
     private String organizationRefId;
 
+    private Long totalReports;
+
+    private Instant lastReportDate;
+
     private Instant createdAt;
 
     private Instant updatedAt;

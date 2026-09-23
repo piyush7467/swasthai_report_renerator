@@ -53,6 +53,9 @@ class TenantIsolationAndRbacTest {
     private PatientRepository patientRepository;
 
     @Mock
+    private com.swasthai.report_generator.report.repository.ReportRepository reportRepository;
+
+    @Mock
     private CurrentOrganizationService currentOrganizationService;
 
     @Mock
@@ -82,6 +85,7 @@ class TenantIsolationAndRbacTest {
 
         patientService = new PatientServiceImpl(
                 patientRepository,
+                reportRepository,
                 currentOrganizationService,
                 currentUserService,
                 organizationSequenceService

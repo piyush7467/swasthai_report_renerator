@@ -60,4 +60,14 @@ public interface ReportService {
     com.swasthai.report_generator.report.pdf.ReportPdfData getReportPdfData(String reportRefId);
 
     byte[] getReportQrPngBytes(String reportRefId);
+
+    Page<ReportResponse> getPatientReports(String patientRefId, Pageable pageable);
+
+    com.swasthai.report_generator.report.dto.response.ReportShareResponse createReportShare(
+            String reportRefId,
+            com.swasthai.report_generator.report.dto.request.CreateReportShareRequest request);
+
+    com.swasthai.report_generator.report.dto.response.SharedReportResponse getSharedReport(String shareToken);
+
+    byte[] getSharedReportPdf(String shareToken);
 }

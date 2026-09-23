@@ -41,6 +41,9 @@ export default function ReportWorkspacePage() {
     ? "/lab-staff/reports"
     : "/org-admin/reports";
 
+  const queryParams = new URLSearchParams(location.search);
+  const preselectedPatientRefId = queryParams.get("patientRefId");
+
   // Stepper State
   const [currentStep, setCurrentStep] = useState<ReportStepIndex>(1);
   const [selectedPatientForNew, setSelectedPatientForNew] =
@@ -63,10 +66,18 @@ export default function ReportWorkspacePage() {
   } = useReportQuery(isNewReportFlow ? undefined : reportRefId);
 
   const patientRefIdToFetch = isNewReportFlow
-    ? selectedPatientForNew?.refId
+    ? (selectedPatientForNew?.refId || preselectedPatientRefId || undefined)
     : report?.patientRefId;
 
   const { data: patientData } = usePatientQuery(patientRefIdToFetch);
+
+  // Automatically select preselected patient from query param when loaded
+  useEffect(() => {
+    if (isNewReportFlow && preselectedPatientRefId && patientData && !selectedPatientForNew) {
+      setSelectedPatientForNew(patientData);
+    }
+  }, [isNewReportFlow, preselectedPatientRefId, patientData, selectedPatientForNew]);
+
   const activePatient = isNewReportFlow ? selectedPatientForNew : patientData;
 
   // Mutations

@@ -44,6 +44,9 @@ import SettingsPage from "@/modules/super-admin/settings/pages/SettingsPage";
 
 import ReportsListPage from "@/modules/org-admin/reports/pages/ReportsListPage";
 import ReportWorkspacePage from "@/modules/org-admin/reports/pages/ReportWorkspacePage";
+import PatientsListPage from "@/modules/org-admin/patients/pages/PatientsListPage";
+import PatientProfilePage from "@/modules/org-admin/patients/pages/PatientProfilePage";
+import SharedReportViewerPage from "@/modules/public/pages/SharedReportViewerPage";
 
 function NotFoundPage() {
   return (
@@ -82,6 +85,11 @@ export function AppRouter() {
         <Route
           path="/unauthorized"
           element={<UnauthorizedPage />}
+        />
+
+        <Route
+          path="/shared/reports/:shareToken"
+          element={<SharedReportViewerPage />}
         />
 
         {/* =========================
@@ -235,6 +243,14 @@ export function AppRouter() {
                 element={<OrgAdminDashboard />}
               />
               <Route
+                path="/org-admin/patients"
+                element={<PatientsListPage />}
+              />
+              <Route
+                path="/org-admin/patients/:patientRefId"
+                element={<PatientProfilePage />}
+              />
+              <Route
                 path="/org-admin/reports"
                 element={<ReportsListPage />}
               />
@@ -259,6 +275,14 @@ export function AppRouter() {
               <Route
                 path="/lab-staff"
                 element={<LabStaffDashboard />}
+              />
+              <Route
+                path="/lab-staff/patients"
+                element={<PatientsListPage />}
+              />
+              <Route
+                path="/lab-staff/patients/:patientRefId"
+                element={<PatientProfilePage />}
               />
               <Route
                 path="/lab-staff/reports"

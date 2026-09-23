@@ -240,4 +240,16 @@ public class ReportController {
                                 .body(qrPngBytes);
         }
 
+        // 14. CREATE REPORT SHARE LINK (FINALIZED REPORTS ONLY)
+
+        @PostMapping("/{reportRefId}/shares")
+        @PreAuthorize("hasAnyRole('ORG_ADMIN', 'LAB_STAFF')")
+        public ApiResponse<com.swasthai.report_generator.report.dto.response.ReportShareResponse> createReportShare(
+                        @PathVariable String reportRefId,
+                        @Valid @RequestBody com.swasthai.report_generator.report.dto.request.CreateReportShareRequest request) {
+                return ApiResponse.success(
+                                "Report share link generated successfully",
+                                reportService.createReportShare(reportRefId, request));
+        }
+
 }

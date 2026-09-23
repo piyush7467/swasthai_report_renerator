@@ -211,3 +211,26 @@ export function useDeleteReportMutation(): UseMutationResult<
     },
   });
 }
+
+export function useCreateReportShareMutation(
+  reportRefId: string,
+): UseMutationResult<
+  import("../types/reportTypes").ReportShareResponse,
+  Error,
+  import("../types/reportTypes").CreateReportShareRequest
+> {
+  return useMutation({
+    mutationFn: (request) => reportApi.createReportShare(reportRefId, request),
+  });
+}
+
+export function useSharedReportQuery(
+  shareToken: string | undefined,
+): UseQueryResult<import("../types/reportTypes").SharedReportResponse, Error> {
+  return useQuery({
+    queryKey: ["reports", "shared", shareToken],
+    queryFn: () => reportApi.getSharedReport(shareToken!),
+    enabled: Boolean(shareToken),
+    retry: false,
+  });
+}

@@ -11,12 +11,16 @@ import type {
   PagedPatientsResponse,
   PatientQueryParams,
   PatientResponse,
+  UpdatePatientRequest,
 } from "../types/patientTypes";
+import type { PagedReportsResponse } from "../../reports/types/reportTypes";
 
 export const PATIENT_QUERY_KEYS = {
   all: ["patients"] as const,
   list: (params: PatientQueryParams) => ["patients", "list", params] as const,
   detail: (refId: string) => ["patients", "detail", refId] as const,
+  reports: (refId: string, params?: unknown) =>
+    ["patients", "reports", refId, params] as const,
 };
 
 export function usePatientsQuery(
@@ -39,6 +43,18 @@ export function usePatientQuery(
   });
 }
 
+export function usePatientReportsQuery(
+  patientRefId: string | undefined,
+  params: { page?: number; size?: number; sortBy?: string; sortDirection?: "asc" | "desc" } = {},
+): UseQueryResult<PagedReportsResponse, Error> {
+  return useQuery({
+    queryKey: PATIENT_QUERY_KEYS.reports(patientRefId || "", params),
+    queryFn: () => patientApi.getPatientReports(patientRefId!, params),
+    enabled: Boolean(patientRefId),
+    placeholderData: (previousData) => previousData,
+  });
+}
+
 export function useCreatePatientMutation(): UseMutationResult<
   PatientResponse,
   Error,
@@ -53,6 +69,24 @@ export function useCreatePatientMutation(): UseMutationResult<
       queryClient.setQueryData(
         PATIENT_QUERY_KEYS.detail(newPatient.refId),
         newPatient,
+      );
+      void queryClient.invalidateQueries({ queryKey: PATIENT_QUERY_KEYS.all });
+    },
+  });
+}
+
+export function useUpdatePatientMutation(
+  patientRefId: string,
+): UseMutationResult<PatientResponse, Error, UpdatePatientRequest> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (request: UpdatePatientRequest) =>
+      patientApi.updatePatient(patientRefId, request),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(
+        PATIENT_QUERY_KEYS.detail(updated.refId),
+        updated,
       );
       void queryClient.invalidateQueries({ queryKey: PATIENT_QUERY_KEYS.all });
     },

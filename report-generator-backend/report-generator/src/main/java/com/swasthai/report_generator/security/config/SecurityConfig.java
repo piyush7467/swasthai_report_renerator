@@ -69,7 +69,8 @@ public class SecurityConfig {
 
                                                 .requestMatchers(
                                                                 HttpMethod.GET,
-                                                                "/api/v1/public/reports/*/verify")
+                                                                "/api/v1/public/reports/*/verify",
+                                                                "/api/v1/shared/reports/**")
                                                 .permitAll()
 
                                                 .requestMatchers(

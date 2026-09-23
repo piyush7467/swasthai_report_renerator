@@ -13,9 +13,7 @@ import java.util.UUID;
 public interface PatientRepository extends JpaRepository<Patient, UUID> {
 
     /*
-     * ============================================================
      * BASIC LOOKUPS
-     * ============================================================
      */
 
     /**
@@ -48,9 +46,7 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
     );
 
     /*
-     * ============================================================
      * EXISTENCE CHECKS
-     * ============================================================
      */
 
     boolean existsByPatientCodeAndOrganization_Id(
@@ -66,9 +62,7 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
     );
 
     /*
-     * ============================================================
      * ACTIVE PATIENT LIST
-     * ============================================================
      */
 
     Page<Patient> findAllByOrganization_IdAndDeletedAtIsNull(
@@ -77,9 +71,7 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
     );
 
     /*
-     * ============================================================
      * ACTIVE PATIENT SEARCH
-     * ============================================================
      */
 
     @Query("""

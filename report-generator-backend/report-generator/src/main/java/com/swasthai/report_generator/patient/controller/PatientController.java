@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class PatientController {
 
     private final PatientService patientService;
+    private final com.swasthai.report_generator.report.service.ReportService reportService;
 
     // ============================================================
     // CREATE
@@ -65,6 +66,41 @@ public class PatientController {
                         .message(
                                 "Patient retrieved successfully."
                         )
+                        .data(response)
+                        .build()
+        );
+    }
+
+    // ============================================================
+    // GET PATIENT REPORTS
+    // ============================================================
+
+    @GetMapping("/{patientRefId}/reports")
+    @PreAuthorize("hasAnyRole('ORG_ADMIN', 'LAB_STAFF')")
+    public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<com.swasthai.report_generator.report.dto.response.ReportResponse>>> getPatientReports(
+            @PathVariable String patientRefId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "15") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection
+    ) {
+        org.springframework.data.domain.Sort.Direction direction = "asc".equalsIgnoreCase(sortDirection)
+                ? org.springframework.data.domain.Sort.Direction.ASC
+                : org.springframework.data.domain.Sort.Direction.DESC;
+        String safeSort = switch (sortBy) {
+            case "createdAt", "updatedAt", "status" -> sortBy;
+            default -> "createdAt";
+        };
+        org.springframework.data.domain.Pageable pageable =
+                org.springframework.data.domain.PageRequest.of(page, Math.min(Math.max(1, size), 100), org.springframework.data.domain.Sort.by(direction, safeSort));
+
+        org.springframework.data.domain.Page<com.swasthai.report_generator.report.dto.response.ReportResponse> response =
+                reportService.getPatientReports(patientRefId, pageable);
+
+        return ResponseEntity.ok(
+                ApiResponse.<org.springframework.data.domain.Page<com.swasthai.report_generator.report.dto.response.ReportResponse>>builder()
+                        .success(true)
+                        .message("Patient reports retrieved successfully.")
                         .data(response)
                         .build()
         );

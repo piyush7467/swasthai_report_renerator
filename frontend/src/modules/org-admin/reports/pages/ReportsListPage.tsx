@@ -12,6 +12,7 @@ import {
   Loader2,
   Plus,
   RefreshCw,
+  Share2,
   Trash2,
   User,
   X,
@@ -24,6 +25,7 @@ import { useAuth } from "@/core/auth/AuthContext";
 import { useReportsQuery, useDeleteReportMutation } from "../hooks/useReports";
 import { ReportStatusBadge } from "../components/ReportStatusBadge";
 import { DeleteReportDialog } from "../components/DeleteReportDialog";
+import { ShareReportModal } from "../components/ShareReportModal";
 import { reportApi } from "../api/reportApi";
 import type { ReportResponse, ReportStatus } from "../types/reportTypes";
 
@@ -55,6 +57,7 @@ export default function ReportsListPage() {
   const [selectedStatus, setSelectedStatus] = useState<ReportStatus | "ALL">("ALL");
   const [page, setPage] = useState<number>(0);
   const [reportToDelete, setReportToDelete] = useState<ReportResponse | null>(null);
+  const [reportToShare, setReportToShare] = useState<ReportResponse | null>(null);
   const [downloadingRefId, setDownloadingRefId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -331,20 +334,35 @@ export default function ReportsListPage() {
                     <td className="py-3 px-3 text-right">
                       <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
                         {rep.status === "FINALIZED" && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            title="Download PDF"
-                            onClick={(e) => handleDownloadPdf(rep.refId, e)}
-                            disabled={downloadingRefId === rep.refId}
-                            className="h-7 w-7 p-0 text-[#0F766E] hover:bg-teal-50 border-teal-200"
-                          >
-                            {downloadingRefId === rep.refId ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Download className="h-3.5 w-3.5" />
-                            )}
-                          </Button>
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              title="Share Report"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setReportToShare(rep);
+                              }}
+                              className="h-7 w-7 p-0 text-teal-700 hover:bg-teal-50 border-teal-200"
+                            >
+                              <Share2 className="h-3.5 w-3.5" />
+                            </Button>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              title="Download PDF"
+                              onClick={(e) => handleDownloadPdf(rep.refId, e)}
+                              disabled={downloadingRefId === rep.refId}
+                              className="h-7 w-7 p-0 text-[#0F766E] hover:bg-teal-50 border-teal-200"
+                            >
+                              {downloadingRefId === rep.refId ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Download className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
+                          </>
                         )}
 
                         <Button
@@ -427,6 +445,16 @@ export default function ReportsListPage() {
           }}
           onConfirm={handleDeleteConfirm}
           isLoading={deleteMutation.isPending}
+        />
+      )}
+
+      {reportToShare && (
+        <ShareReportModal
+          report={reportToShare}
+          open={Boolean(reportToShare)}
+          onOpenChange={(open) => {
+            if (!open) setReportToShare(null);
+          }}
         />
       )}
     </div>

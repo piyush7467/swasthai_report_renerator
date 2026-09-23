@@ -26,13 +26,15 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.swasthai.report_generator.report.dto.response.PatientReportStats;
+import com.swasthai.report_generator.report.repository.ReportRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.temporal.ChronoUnit;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -51,6 +53,7 @@ public class PatientServiceImpl implements PatientService {
     );
 
     private final PatientRepository patientRepository;
+    private final ReportRepository reportRepository;
     private final CurrentOrganizationService currentOrganizationService;
     private final CurrentUserService currentUserService;
     private final OrganizationSequenceService organizationSequenceService;
@@ -143,7 +146,14 @@ public class PatientServiceImpl implements PatientService {
                                 )
                         );
 
-        return mapToResponse(patient);
+        Optional<PatientReportStats> stats = reportRepository.getReportStatsForPatient(
+                organization.getId(),
+                patient.getRefId()
+        );
+        long totalReports = stats.map(PatientReportStats::totalReports).orElse(0L);
+        Instant lastReportDate = stats.map(PatientReportStats::lastReportDate).orElse(null);
+
+        return mapToResponse(patient, totalReports, lastReportDate);
     }
 
     // ============================================================
@@ -198,11 +208,30 @@ public class PatientServiceImpl implements PatientService {
                     );
         }
 
+        List<Patient> patients = patientPage.getContent();
+        List<String> refIds = patients.stream().map(Patient::getRefId).toList();
+        Map<String, PatientReportStats> statsMap = Collections.emptyMap();
+        if (!refIds.isEmpty()) {
+            List<PatientReportStats> statsList = reportRepository.getReportStatsForPatients(
+                    organization.getId(),
+                    refIds
+            );
+            statsMap = statsList.stream().collect(Collectors.toMap(
+                    PatientReportStats::patientRefId,
+                    s -> s
+            ));
+        }
+
+        Map<String, PatientReportStats> finalStatsMap = statsMap;
         return PagedResponse.<PatientResponse>builder()
                 .content(
-                        patientPage.getContent()
-                                .stream()
-                                .map(this::mapToResponse)
+                        patients.stream()
+                                .map(p -> {
+                                    PatientReportStats s = finalStatsMap.get(p.getRefId());
+                                    long count = s != null ? s.totalReports() : 0L;
+                                    Instant lastDate = s != null ? s.lastReportDate() : null;
+                                    return mapToResponse(p, count, lastDate);
+                                })
                                 .toList()
                 )
                 .page(patientPage.getNumber())
@@ -778,6 +807,10 @@ public class PatientServiceImpl implements PatientService {
     // ============================================================
 
     private PatientResponse mapToResponse(Patient patient) {
+        return mapToResponse(patient, 0L, null);
+    }
+
+    private PatientResponse mapToResponse(Patient patient, Long totalReports, Instant lastReportDate) {
 
         AgeDisplay age =
                 calculateCurrentAge(patient);
@@ -799,6 +832,8 @@ public class PatientServiceImpl implements PatientService {
                 .organizationRefId(
                         patient.getOrganization().getRefId()
                 )
+                .totalReports(totalReports != null ? totalReports : 0L)
+                .lastReportDate(lastReportDate)
                 .createdAt(patient.getCreatedAt())
                 .updatedAt(patient.getUpdatedAt())
                 .build();

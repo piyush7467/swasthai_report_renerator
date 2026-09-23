@@ -146,3 +146,35 @@ export interface ReportQueryParams {
   sort?: "createdAt" | "updatedAt" | "status" | "reportVersion";
   direction?: "asc" | "desc";
 }
+
+export interface PagedReportsResponse {
+  content: ReportResponse[];
+  pageable?: unknown;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+  number: number;
+  size: number;
+}
+
+export interface CreateReportShareRequest {
+  channel: "WHATSAPP" | "EMAIL" | "LINK" | "SYSTEM";
+  recipient?: string | null;
+  expiresInDays?: number;
+}
+
+export interface ReportShareResponse {
+  shareToken: string;
+  reportRefId: string;
+  shareChannel: string;
+  shareUrl: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface SharedReportResponse {
+  shareToken: string;
+  expiresAt: string;
+  verificationUrl: string;
+  report: ReportResponse;
+}
