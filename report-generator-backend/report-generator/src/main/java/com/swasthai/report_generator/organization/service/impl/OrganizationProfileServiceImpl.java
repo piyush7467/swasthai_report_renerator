@@ -708,6 +708,16 @@ public class OrganizationProfileServiceImpl
         Organization organization =
                 profile.getOrganization();
 
+        String sigOwnerName = null;
+        String sigOwnerEmail = null;
+        if (profile.getSignatureOwnerRefId() != null && !profile.getSignatureOwnerRefId().isBlank()) {
+            User sigOwner = userRepository.findByRefId(profile.getSignatureOwnerRefId()).orElse(null);
+            if (sigOwner != null) {
+                sigOwnerName = sigOwner.getName();
+                sigOwnerEmail = sigOwner.getEmail();
+            }
+        }
+
         return OrganizationProfileResponse.builder()
                 .organizationRefId(
                         organization.getRefId()
@@ -753,6 +763,12 @@ public class OrganizationProfileServiceImpl
                 )
                 .signatureOwnerRefId(
                         profile.getSignatureOwnerRefId()
+                )
+                .signatureOwnerName(
+                        sigOwnerName
+                )
+                .signatureOwnerEmail(
+                        sigOwnerEmail
                 )
                 .reportFooterText(
                         profile.getReportFooterText()

@@ -37,3 +37,17 @@ export interface PatientQueryParams {
   sortDirection?: "asc" | "desc";
   search?: string;
 }
+
+export interface CreatePatientRequest {
+  salutation: Salutation;
+  name: string;
+  dateOfBirthKnown: boolean;
+  dateOfBirth?: string | null;
+  ageValue?: number | null;
+  ageUnit?: AgeUnit | null;
+  gender: Gender;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  weightKg?: number | null;
+}

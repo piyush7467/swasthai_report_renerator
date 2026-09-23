@@ -98,6 +98,18 @@ public class ReportController {
                                 reportService.addTest(reportRefId, request));
         }
 
+        // 4b. ADD TESTS BULK TO REPORT DRAFT
+
+        @PostMapping("/{reportRefId}/tests/bulk")
+        @PreAuthorize("hasAnyRole('ORG_ADMIN', 'LAB_STAFF')")
+        public ApiResponse<ReportResponse> addTestsBulk(
+                        @PathVariable String reportRefId,
+                        @Valid @RequestBody AddReportTestsBulkRequest request) {
+                return ApiResponse.success(
+                                "Tests added to report successfully",
+                                reportService.addTestsBulk(reportRefId, request));
+        }
+
         // 5. REMOVE TEST FROM REPORT DRAFT
 
         @DeleteMapping("/{reportRefId}/tests/{reportTestRefId}")
@@ -121,6 +133,17 @@ public class ReportController {
                 return ApiResponse.success(
                                 "Parameter values updated successfully",
                                 reportService.updateParameterValues(reportRefId, reportTestRefId, request));
+        }
+
+        // 6b. RECALCULATE ALL PARAMETERS IN REPORT
+
+        @PostMapping("/{reportRefId}/recalculate")
+        @PreAuthorize("hasAnyRole('ORG_ADMIN', 'LAB_STAFF')")
+        public ApiResponse<ReportResponse> recalculateReport(
+                        @PathVariable String reportRefId) {
+                return ApiResponse.success(
+                                "Report parameters recalculated successfully",
+                                reportService.recalculateReport(reportRefId));
         }
 
         // 7. REORDER TESTS
@@ -203,6 +226,18 @@ public class ReportController {
                                 .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
                                                 "inline; filename=\"report-" + reportRefId + ".pdf\"")
                                 .body(pdfBytes);
+        }
+
+        // 13. GET REPORT QR CODE (FINALIZED REPORTS ONLY)
+
+        @GetMapping("/{reportRefId}/qr")
+        @PreAuthorize("hasAnyRole('ORG_ADMIN', 'LAB_STAFF')")
+        public org.springframework.http.ResponseEntity<byte[]> getReportQrCode(
+                        @PathVariable String reportRefId) {
+                byte[] qrPngBytes = reportService.getReportQrPngBytes(reportRefId);
+                return org.springframework.http.ResponseEntity.ok()
+                                .contentType(org.springframework.http.MediaType.IMAGE_PNG)
+                                .body(qrPngBytes);
         }
 
 }

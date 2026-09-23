@@ -3,6 +3,7 @@ package com.swasthai.report_generator.report.pdf;
 import com.swasthai.report_generator.storage.FileStorageService;
 import com.swasthai.report_generator.test.entity.ResultFlag;
 import lombok.RequiredArgsConstructor;
+import org.openpdf.text.Chunk;
 import org.openpdf.text.Document;
 import org.openpdf.text.DocumentException;
 import org.openpdf.text.Element;
@@ -13,11 +14,13 @@ import org.openpdf.text.PageSize;
 import org.openpdf.text.Paragraph;
 import org.openpdf.text.Phrase;
 import org.openpdf.text.Rectangle;
+import org.openpdf.text.pdf.Barcode128;
 import org.openpdf.text.pdf.ColumnText;
 import org.openpdf.text.pdf.PdfContentByte;
 import org.openpdf.text.pdf.PdfPCell;
 import org.openpdf.text.pdf.PdfPTable;
 import org.openpdf.text.pdf.PdfPageEventHelper;
+import org.openpdf.text.pdf.PdfTemplate;
 import org.openpdf.text.pdf.PdfWriter;
 import org.springframework.stereotype.Component;
 
@@ -25,1986 +28,987 @@ import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
 public class OpenPdfRenderer implements PdfRenderer {
 
-        private static final String DEFAULT_ORGANIZATION_NAME = "Diagnostic Laboratory";
+    private static final String REPORT_TITLE_PILL = "LABORATORY REPORT";
+    private static final String VERIFICATION_MESSAGE = "This report is electronically generated and verified.";
 
-        private static final String REPORT_TITLE = "CLINICAL LABORATORY REPORT";
+    private static final ZoneId REPORT_ZONE = ZoneId.of("Asia/Kolkata");
 
-        private static final String VERIFICATION_MESSAGE = "This report is electronically generated and verified.";
+    private static final DateTimeFormatter DATE_TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm").withZone(REPORT_ZONE);
 
-        private static final String DEFAULT_LOGO_TEXT = "LAB";
+    private static final DateTimeFormatter DATE_FORMATTER =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(REPORT_ZONE);
 
-        private static final ZoneId REPORT_ZONE = ZoneId.of("Asia/Kolkata");
+    private final VerificationQrCodeGenerator verificationQrCodeGenerator;
+    private final FileStorageService fileStorageService;
 
-        private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a")
-                        .withZone(REPORT_ZONE);
+    /*
+     * ============================================================
+     * PAGE DIMENSIONS & MARGINS
+     * ============================================================
+     */
+    private static final float MARGIN_LEFT = 30f;
+    private static final float MARGIN_RIGHT = 30f;
+    private static final float MARGIN_TOP = 28f;
+    private static final float MARGIN_BOTTOM = 36f;
 
-        private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd MMM yyyy");
+    /*
+     * ============================================================
+     * COLOR PALETTE (Matching Reference Medical Layout)
+     * ============================================================
+     */
+    private static final Color COLOR_PRIMARY = new Color(24, 90, 157);        // #185A9D Deep Medical Blue
+    private static final Color COLOR_PRIMARY_DARK = new Color(15, 44, 89);   // #0F2C59 Navy
+    private static final Color COLOR_TEAL_ACCENT = new Color(13, 148, 136);  // #0D9488 Medical Teal
+    private static final Color COLOR_HEADER_BG = new Color(220, 233, 246);   // #DCE9F6 Soft Clinical Header Blue
+    private static final Color COLOR_CARD_BORDER = new Color(203, 213, 225); // #CBD5E1 Slate 300
+    private static final Color COLOR_ROW_BORDER = new Color(241, 245, 249);  // #F1F5F9 Slate 100
+    private static final Color COLOR_SUBHEADER_BG = new Color(241, 245, 249);// #F1F5F9 Soft Slate Tint
+    private static final Color COLOR_TEXT = new Color(15, 23, 42);           // #0F172A Slate 900
+    private static final Color COLOR_MUTED = new Color(100, 116, 139);       // #64748B Slate 500
 
-        private final VerificationQrCodeGenerator verificationQrCodeGenerator;
+    // Abnormal & Normal Flag Colors
+    private static final Color COLOR_FLAG_NORMAL_BG = new Color(234, 247, 238);   // #EAF7EE Soft Green
+    private static final Color COLOR_FLAG_NORMAL_TEXT = new Color(21, 128, 61);   // #15803D Forest Green
+    private static final Color COLOR_FLAG_NORMAL_BORDER = new Color(194, 231, 203);// #C2E7CB
+    private static final Color COLOR_FLAG_ABNORMAL_BG = new Color(253, 232, 232); // #FDE8E8 Soft Red/Pink
+    private static final Color COLOR_FLAG_ABNORMAL_TEXT = new Color(220, 38, 38); // #DC2626 Red
+    private static final Color COLOR_FLAG_ABNORMAL_BORDER = new Color(251, 208, 208);// #FBD0D0
+    private static final Color COLOR_FLAG_CRITICAL_BG = new Color(254, 226, 226); // #FEE2E2
+    private static final Color COLOR_FLAG_CRITICAL_TEXT = new Color(153, 27, 27); // #991B1B Deep Red
 
-        /*
-         * ============================================================
-         * PAGE
-         * ============================================================
-         */
+    // Category Section Ribbons
+    private static final Color COLOR_BANNER_HAEMATOLOGY = new Color(24, 90, 157); // #185A9D
+    private static final Color COLOR_BANNER_BIOCHEMISTRY = new Color(88, 44, 131); // #582C83 Royal Purple
+    private static final Color COLOR_BANNER_MICROBIOLOGY = new Color(13, 148, 136); // #0D9488
+    private static final Color COLOR_BANNER_DEFAULT = new Color(30, 58, 138);     // #1E3A8A
 
-        private static final float MARGIN_LEFT = 36f;
-        private static final float MARGIN_RIGHT = 36f;
-        private static final float MARGIN_TOP = 55f;
-        private static final float MARGIN_BOTTOM = 58f;
+    /*
+     * ============================================================
+     * FONTS
+     * ============================================================
+     */
+    private static final Font FONT_ORG_NAME = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 15, COLOR_PRIMARY_DARK);
+    private static final Font FONT_ORG_SUBTITLE = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, COLOR_TEAL_ACCENT);
+    private static final Font FONT_ORG_CONTACT = FontFactory.getFont(FontFactory.HELVETICA, 7.5f, COLOR_TEXT);
+    private static final Font FONT_ORG_TAGLINE = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8.5f, COLOR_PRIMARY);
 
-        /*
-         * ============================================================
-         * COLORS
-         * ============================================================
-         *
-         * The PDF deliberately avoids pure black for normal body text.
-         * This gives the report a cleaner clinical/professional look.
-         */
+    private static final Font FONT_CARD_LABEL = FontFactory.getFont(FontFactory.HELVETICA, 7.5f, COLOR_TEXT);
+    private static final Font FONT_CARD_VALUE = FontFactory.getFont(FontFactory.HELVETICA, 7.5f, COLOR_TEXT);
+    private static final Font FONT_CARD_VALUE_BOLD = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.8f, COLOR_TEXT);
 
-        private static final Color COLOR_PRIMARY = new Color(25, 75, 125);
+    private static final Font FONT_PILL_TITLE = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10.5f, COLOR_PRIMARY);
 
-        private static final Color COLOR_PRIMARY_DARK = new Color(18, 55, 95);
+    private static final Font FONT_BANNER_TITLE = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9.5f, Color.WHITE);
+    private static final Font FONT_BANNER_MOTTO = FontFactory.getFont(FontFactory.HELVETICA_OBLIQUE, 8f, new Color(241, 245, 249));
 
-        private static final Color COLOR_PRIMARY_LIGHT = new Color(232, 240, 248);
+    private static final Font FONT_TABLE_HEADER = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.8f, COLOR_PRIMARY_DARK);
+    private static final Font FONT_SUBHEADER = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8f, COLOR_PRIMARY_DARK);
 
-        private static final Color COLOR_BORDER = new Color(205, 212, 220);
+    private static final Font FONT_ROW = FontFactory.getFont(FontFactory.HELVETICA, 7.6f, COLOR_TEXT);
+    private static final Font FONT_ROW_BOLD = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8f, COLOR_TEXT);
 
-        private static final Color COLOR_LIGHT_BORDER = new Color(225, 230, 235);
+    private static final Font FONT_FLAG_NORMAL = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.2f, COLOR_FLAG_NORMAL_TEXT);
+    private static final Font FONT_FLAG_ABNORMAL = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.2f, COLOR_FLAG_ABNORMAL_TEXT);
+    private static final Font FONT_FLAG_CRITICAL = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.2f, COLOR_FLAG_CRITICAL_TEXT);
 
-        private static final Color COLOR_LIGHT_BACKGROUND = new Color(248, 249, 251);
+    private static final Font FONT_FOOTER_DOC_NAME = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9f, COLOR_PRIMARY_DARK);
+    private static final Font FONT_FOOTER_DOC_TITLE = FontFactory.getFont(FontFactory.HELVETICA, 7.5f, COLOR_TEXT);
+    private static final Font FONT_FOOTER_DOC_DESIG = FontFactory.getFont(FontFactory.HELVETICA, 7.5f, COLOR_MUTED);
 
-        private static final Color COLOR_TEXT = new Color(35, 35, 35);
+    private static final Font FONT_FOOTER_VERIF_BOLD = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8f, COLOR_TEXT);
+    private static final Font FONT_FOOTER_VERIF_MUTED = FontFactory.getFont(FontFactory.HELVETICA, 6.8f, COLOR_MUTED);
+    private static final Font FONT_PAGE_NUMBER = FontFactory.getFont(FontFactory.HELVETICA, 7.5f, COLOR_TEXT);
 
-        private static final Color COLOR_MUTED = new Color(100, 105, 110);
+    @Override
+    public byte[] render(ReportPdfData data) {
+        validateInput(data);
 
-        private static final Color COLOR_NORMAL = new Color(30, 125, 65);
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        Document document = new Document(
+                PageSize.A4,
+                MARGIN_LEFT,
+                MARGIN_RIGHT,
+                MARGIN_TOP,
+                MARGIN_BOTTOM
+        );
 
-        private static final Color COLOR_ABNORMAL = new Color(190, 45, 40);
+        try {
+            PdfWriter writer = PdfWriter.getInstance(document, outputStream);
 
-        private static final Color COLOR_CRITICAL = new Color(145, 20, 20);
+            Image qrImage = verificationQrCodeGenerator.generate(data.verificationUrl());
+            if (qrImage == null) {
+                throw new IllegalStateException("Failed to generate verification QR code image");
+            }
 
-        private static final Color COLOR_FALLBACK_LOGO = new Color(235, 239, 244);
+            ReportPageEvent pageEvent = new ReportPageEvent();
+            writer.setPageEvent(pageEvent);
 
-        /*
-         * ============================================================
-         * FONTS
-         * ============================================================
-         */
+            document.open();
 
-        private static final Font FONT_ORGANIZATION = FontFactory.getFont(
-                        FontFactory.HELVETICA_BOLD,
-                        18,
-                        COLOR_PRIMARY_DARK);
+            // 1. Organization Header (Optional: rendered or blank spacer)
+            addOrganizationHeader(document, data);
 
-        private static final Font FONT_REPORT_TITLE = FontFactory.getFont(
-                        FontFactory.HELVETICA_BOLD,
-                        10.5f,
-                        COLOR_PRIMARY);
+            // 2. Patient Demographics Card (3-column bordered box with Barcode & QR)
+            addPatientCard(document, data, writer, qrImage);
 
-        private static final Font FONT_SECTION = FontFactory.getFont(
-                        FontFactory.HELVETICA_BOLD,
-                        10,
-                        COLOR_PRIMARY_DARK);
+            // 3. Centered Pill: LABORATORY REPORT
+            addReportTitlePill(document);
 
-        private static final Font FONT_SUBSECTION = FontFactory.getFont(
-                        FontFactory.HELVETICA_BOLD,
-                        9,
-                        COLOR_PRIMARY_DARK);
+            // 4. Test Categories, Banners & Result Tables
+            addCategorySectionsAndTables(document, data);
 
-        private static final Font FONT_LABEL = FontFactory.getFont(
-                        FontFactory.HELVETICA_BOLD,
-                        7.5f,
-                        COLOR_MUTED);
+            // 5. Doctor Signature & Verification Footer
+            addSignOffAndVerificationFooter(document, data, qrImage);
 
-        private static final Font FONT_VALUE = FontFactory.getFont(
-                        FontFactory.HELVETICA,
-                        8.2f,
-                        COLOR_TEXT);
+            document.close();
+            return outputStream.toByteArray();
 
-        private static final Font FONT_RESULT = FontFactory.getFont(
-                        FontFactory.HELVETICA_BOLD,
-                        8.5f,
-                        COLOR_TEXT);
+        } catch (DocumentException exception) {
+            throw new IllegalStateException("Failed to generate report PDF", exception);
+        } finally {
+            if (document.isOpen()) {
+                document.close();
+            }
+        }
+    }
 
-        private static final Font FONT_TABLE_HEADER = FontFactory.getFont(
-                        FontFactory.HELVETICA_BOLD,
-                        8,
-                        Color.WHITE);
+    private void validateInput(ReportPdfData data) {
+        if (data == null) {
+            throw new IllegalArgumentException("PDF report data cannot be null");
+        }
+        if (isBlank(data.reportRefId())) {
+            throw new IllegalStateException("PDF report is missing report reference ID");
+        }
+        if (data.status() == null || !"FINALIZED".equals(data.status().name())) {
+            throw new IllegalStateException("Only finalized reports can be rendered as PDF");
+        }
+        if (data.organization() == null || isBlank(data.organization().name())) {
+            throw new IllegalStateException("PDF report is missing organization information");
+        }
+        if (data.patient() == null || isBlank(data.patient().name()) || isBlank(data.patient().patientCode())) {
+            throw new IllegalStateException("PDF report is missing required patient information");
+        }
+        if (data.tests() == null || data.tests().isEmpty()) {
+            throw new IllegalStateException("PDF report contains no tests");
+        }
+        if (data.finalizedBy() == null || isBlank(data.finalizedBy().name())) {
+            throw new IllegalStateException("PDF report is missing finalizer information");
+        }
+        if (isBlank(data.verificationUrl())) {
+            throw new IllegalStateException("PDF report is missing verification URL");
+        }
+    }
 
-        private static final Font FONT_TABLE = FontFactory.getFont(
-                        FontFactory.HELVETICA,
-                        7.8f,
-                        COLOR_TEXT);
+    /*
+     * ============================================================
+     * 1. TOP ORGANIZATION HEADER
+     * ============================================================
+     */
+    private void addOrganizationHeader(Document document, ReportPdfData data) throws DocumentException {
+        OrganizationPdfSnapshot organization = data.organization();
 
-        private static final Font FONT_TABLE_BOLD = FontFactory.getFont(
-                        FontFactory.HELVETICA_BOLD,
-                        7.8f,
-                        COLOR_TEXT);
+        PdfPTable header = new PdfPTable(3);
+        header.setWidthPercentage(100);
+        header.setWidths(new float[]{ 38f, 38f, 24f });
+        header.setSpacingAfter(6f);
 
-        private static final Font FONT_SMALL = FontFactory.getFont(
-                        FontFactory.HELVETICA,
-                        7,
-                        COLOR_MUTED);
+        // --- Left: Logo & Hospital Name & Subtitle ---
+        PdfPCell leftCell = new PdfPCell();
+        leftCell.setBorder(Rectangle.NO_BORDER);
+        leftCell.setPadding(0f);
 
-        private static final Font FONT_SMALL_BOLD = FontFactory.getFont(
-                        FontFactory.HELVETICA_BOLD,
-                        7,
-                        COLOR_MUTED);
+        PdfPTable brandTable = new PdfPTable(2);
+        brandTable.setWidthPercentage(100);
+        brandTable.setWidths(new float[]{ 24f, 76f });
 
-        private static final Font FONT_NORMAL_FLAG = FontFactory.getFont(
-                        FontFactory.HELVETICA_BOLD,
-                        7.8f,
-                        COLOR_NORMAL);
+        PdfPCell logoCell = createLogoCell(organization.logoStorageKey());
+        brandTable.addCell(logoCell);
 
-        private static final Font FONT_ABNORMAL_FLAG = FontFactory.getFont(
-                        FontFactory.HELVETICA_BOLD,
-                        7.8f,
-                        COLOR_ABNORMAL);
+        PdfPCell nameCell = new PdfPCell();
+        nameCell.setBorder(Rectangle.NO_BORDER);
+        nameCell.setPaddingLeft(5f);
+        nameCell.setPaddingTop(2f);
 
-        private static final Font FONT_CRITICAL_FLAG = FontFactory.getFont(
-                        FontFactory.HELVETICA_BOLD,
-                        7.8f,
-                        COLOR_CRITICAL);
+        Paragraph orgName = new Paragraph(
+                safeText(organization.name(), "LABORATORY"),
+                FONT_ORG_NAME
+        );
+        orgName.setSpacingAfter(1f);
+        nameCell.addElement(orgName);
 
-        /*
-         * ============================================================
-         * STORAGE
-         * ============================================================
-         */
+        if (!isBlank(organization.reportFooterText())) {
+            Paragraph subtitle = new Paragraph(
+                    organization.reportFooterText(),
+                    FONT_ORG_SUBTITLE
+            );
+            nameCell.addElement(subtitle);
+        }
 
-        private final FileStorageService fileStorageService;
+        brandTable.addCell(nameCell);
+        leftCell.addElement(brandTable);
+        header.addCell(leftCell);
 
-        /*
-         * ============================================================
-         * RENDER
-         * ============================================================
-         */
+        // --- Middle: Address, Phone, Email, Website ---
+        PdfPCell midCell = new PdfPCell();
+        midCell.setBorder(Rectangle.NO_BORDER);
+        midCell.setPaddingLeft(6f);
+        midCell.setPaddingTop(2f);
+
+        String address = buildOrganizationAddress(organization);
+        if (!address.isBlank()) {
+            midCell.addElement(new Paragraph("• " + address, FONT_ORG_CONTACT));
+        }
+        if (!isBlank(organization.phone())) {
+            midCell.addElement(new Paragraph("• " + organization.phone(), FONT_ORG_CONTACT));
+        }
+        if (!isBlank(organization.email())) {
+            midCell.addElement(new Paragraph("• " + organization.email(), FONT_ORG_CONTACT));
+        }
+        if (!isBlank(organization.website())) {
+            midCell.addElement(new Paragraph("• " + organization.website(), FONT_ORG_CONTACT));
+        }
+
+        header.addCell(midCell);
+
+        // --- Right: Tagline / Disclaimer (if configured) ---
+        PdfPCell rightCell = new PdfPCell();
+        rightCell.setBorder(Rectangle.NO_BORDER);
+        rightCell.setPaddingLeft(10f);
+        rightCell.setPaddingTop(8f);
+
+        if (!isBlank(organization.reportDisclaimer())) {
+            PdfPTable taglineTable = new PdfPTable(2);
+            taglineTable.setWidthPercentage(100);
+            taglineTable.setWidths(new float[]{ 4f, 96f });
+
+            PdfPCell dividerCell = new PdfPCell();
+            dividerCell.setBorder(Rectangle.NO_BORDER);
+            dividerCell.setBackgroundColor(COLOR_PRIMARY);
+            dividerCell.setFixedHeight(24f);
+            taglineTable.addCell(dividerCell);
+
+            PdfPCell tagTextCell = new PdfPCell();
+            tagTextCell.setBorder(Rectangle.NO_BORDER);
+            tagTextCell.setPaddingLeft(6f);
+            tagTextCell.setPaddingTop(2f);
+
+            Paragraph line1 = new Paragraph(organization.reportDisclaimer(), FONT_ORG_TAGLINE);
+            tagTextCell.addElement(line1);
+            taglineTable.addCell(tagTextCell);
+            rightCell.addElement(taglineTable);
+        }
+        header.addCell(rightCell);
+
+        if (Boolean.TRUE.equals(data.includeOrganizationHeader())) {
+            document.add(header);
+        } else {
+            // Preserve exact calculated space for pre-printed letterheads
+            float contentWidth = document.right() - document.left();
+            header.setTotalWidth(contentWidth);
+            float headerHeight = header.calculateHeights(true);
+
+            PdfPTable placeholder = new PdfPTable(1);
+            placeholder.setWidthPercentage(100);
+            placeholder.setSpacingAfter(header.spacingAfter());
+            PdfPCell blankCell = new PdfPCell();
+            blankCell.setBorder(Rectangle.NO_BORDER);
+            blankCell.setFixedHeight(headerHeight);
+            placeholder.addCell(blankCell);
+            document.add(placeholder);
+        }
+    }
+
+    private PdfPCell createLogoCell(String logoStorageKey) {
+        PdfPCell cell = new PdfPCell();
+        cell.setBorder(Rectangle.NO_BORDER);
+        cell.setPadding(0f);
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+
+        if (!isBlank(logoStorageKey)) {
+            try {
+                if (fileStorageService.exists(logoStorageKey)) {
+                    byte[] imageBytes = fileStorageService.load(logoStorageKey);
+                    Image image = Image.getInstance(imageBytes);
+                    image.scaleToFit(50f, 45f);
+                    image.setAlignment(Element.ALIGN_LEFT);
+                    cell.addElement(image);
+                    return cell;
+                }
+            } catch (Exception ignored) {
+            }
+        }
+
+        return cell;
+    }
+
+    /*
+     * ============================================================
+     * 2. PATIENT DEMOGRAPHICS CARD
+     * ============================================================
+     */
+    private void addPatientCard(Document document, ReportPdfData data, PdfWriter writer, Image qrImage) throws DocumentException {
+        PatientPdfSnapshot patient = data.patient();
+
+        PdfPTable card = new PdfPTable(3);
+        card.setWidthPercentage(100);
+        card.setWidths(new float[]{ 38f, 38f, 24f });
+        card.setSpacingAfter(8f);
+
+        // --- Column 1: Patient Details ---
+        PdfPCell col1 = new PdfPCell();
+        col1.setBorder(Rectangle.BOX);
+        col1.setBorderColor(COLOR_CARD_BORDER);
+        col1.setBorderWidth(0.8f);
+        col1.setPadding(6f);
+
+        addKeyValueLine(col1, "Patient Name", formatPatientName(patient), true);
+        addKeyValueLine(col1, "Age / Sex", formatAgeGender(patient), false);
+        addKeyValueLine(col1, "Patient ID", safeText(patient.patientCode(), "-"), false);
+        addKeyValueLine(col1, "Referred By", safeText(data.organization().name(), "Self / Direct"), false);
+        addKeyValueLine(col1, "Address", safeText(patient.address(), "-"), false);
+        addKeyValueLine(col1, "Mobile No", safeText(patient.phone(), "-"), false);
+        card.addCell(col1);
+
+        // --- Column 2: Registration & Sample Dates ---
+        PdfPCell col2 = new PdfPCell();
+        col2.setBorder(Rectangle.BOX);
+        col2.setBorderColor(COLOR_CARD_BORDER);
+        col2.setBorderWidth(0.8f);
+        col2.setPadding(6f);
+
+        addKeyValueLine(col2, "Registered On", formatDate(data.createdAt()), false);
+        addKeyValueLine(col2, "Sample Collected", formatDateTime(data.createdAt()), false);
+        addKeyValueLine(col2, "Reported On", formatDateTime(data.finalizedAt()), false);
+        addKeyValueLine(col2, "Printed On", formatDateTime(Instant.now()), false);
+        card.addCell(col2);
+
+        // --- Column 3: Barcode + Verification QR Code ---
+        PdfPCell col3 = new PdfPCell();
+        col3.setBorder(Rectangle.BOX);
+        col3.setBorderColor(COLOR_CARD_BORDER);
+        col3.setBorderWidth(0.8f);
+        col3.setPadding(4f);
+        col3.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+        // 1D Barcode 128
+        try {
+            Barcode128 barcode = new Barcode128();
+            barcode.setCode(safeText(patient.patientCode(), data.reportRefId()));
+            barcode.setCodeType(Barcode128.CODE128);
+            barcode.setBarHeight(16f);
+            barcode.setSize(6.5f);
+            barcode.setTextAlignment(Element.ALIGN_CENTER);
+            Image barcodeImage = barcode.createImageWithBarcode(writer.getDirectContent(), null, null);
+            barcodeImage.setAlignment(Element.ALIGN_CENTER);
+            barcodeImage.scalePercent(80f);
+            col3.addElement(barcodeImage);
+        } catch (Exception e) {
+            Paragraph bcFallback = new Paragraph(safeText(patient.patientCode(), "-"), FONT_CARD_LABEL);
+            bcFallback.setAlignment(Element.ALIGN_CENTER);
+            col3.addElement(bcFallback);
+        }
+
+        // Small QR Code
+        try {
+            Image smallQr = Image.getInstance(qrImage);
+            smallQr.scaleToFit(38f, 38f);
+            smallQr.setAlignment(Element.ALIGN_CENTER);
+            smallQr.setSpacingBefore(3f);
+            col3.addElement(smallQr);
+
+            Paragraph qrCaption = new Paragraph("Scan for Verification", FontFactory.getFont(FontFactory.HELVETICA, 6.2f, COLOR_MUTED));
+            qrCaption.setAlignment(Element.ALIGN_CENTER);
+            qrCaption.setSpacingBefore(1f);
+            col3.addElement(qrCaption);
+        } catch (Exception ignored) {
+        }
+
+        card.addCell(col3);
+        document.add(card);
+    }
+
+    private void addKeyValueLine(PdfPCell cell, String key, String value, boolean isBold) {
+        Paragraph p = new Paragraph();
+        p.setLeading(11f);
+        p.add(new Phrase(String.format("%-16s:  ", key), FONT_CARD_LABEL));
+        p.add(new Phrase(value, isBold ? FONT_CARD_VALUE_BOLD : FONT_CARD_VALUE));
+        cell.addElement(p);
+    }
+
+    /*
+     * ============================================================
+     * 3. CENTERED PILL: LABORATORY REPORT
+     * ============================================================
+     */
+    private void addReportTitlePill(Document document) throws DocumentException {
+        PdfPTable pillTable = new PdfPTable(1);
+        pillTable.setWidthPercentage(44);
+        pillTable.setSpacingAfter(7f);
+
+        PdfPCell pillCell = new PdfPCell(new Phrase(REPORT_TITLE_PILL, FONT_PILL_TITLE));
+        pillCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        pillCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        pillCell.setPaddingTop(3.5f);
+        pillCell.setPaddingBottom(4.5f);
+        pillCell.setBorderColor(COLOR_PRIMARY);
+        pillCell.setBorderWidth(1.2f);
+        pillCell.setBackgroundColor(new Color(248, 251, 255));
+
+        pillTable.addCell(pillCell);
+        document.add(pillTable);
+    }
+
+    /*
+     * ============================================================
+     * 4. CATEGORY SECTIONS, BANNERS & TABLES
+     * ============================================================
+     */
+    private void addCategorySectionsAndTables(Document document, ReportPdfData data) throws DocumentException {
+        List<TestPdfItem> tests = data.tests() == null ? Collections.emptyList() : data.tests();
+
+        // Group tests by reportSection
+        Map<String, List<TestPdfItem>> sections = new LinkedHashMap<>();
+        for (TestPdfItem test : tests) {
+            if (test == null) continue;
+            String sectionName = safeText(test.reportSection(), "GENERAL INVESTIGATIONS").toUpperCase();
+            sections.computeIfAbsent(sectionName, k -> new ArrayList<>()).add(test);
+        }
+
+        for (Map.Entry<String, List<TestPdfItem>> entry : sections.entrySet()) {
+            String sectionName = entry.getKey();
+            List<TestPdfItem> sectionTests = entry.getValue();
+
+            // Render department colored banner
+            addDepartmentBanner(document, sectionName);
+
+            // Render table for this section
+            addInvestigationTable(document, sectionTests);
+
+            document.add(new Paragraph(" ", FontFactory.getFont(FontFactory.HELVETICA, 4f)));
+        }
+    }
+
+    private void addDepartmentBanner(Document document, String sectionName) throws DocumentException {
+        PdfPTable banner = new PdfPTable(2);
+        banner.setWidthPercentage(100);
+        banner.setWidths(new float[]{ 70f, 30f });
+        banner.setSpacingBefore(3f);
+        banner.setSpacingAfter(0f);
+
+        Color bannerColor = getBannerColor(sectionName);
+        String motto = getSectionMotto(sectionName);
+
+        PdfPCell leftCell = new PdfPCell(new Phrase("  ⚗  " + sectionName, FONT_BANNER_TITLE));
+        leftCell.setBorder(Rectangle.NO_BORDER);
+        leftCell.setBackgroundColor(bannerColor);
+        leftCell.setPaddingTop(4.5f);
+        leftCell.setPaddingBottom(4.5f);
+        leftCell.setPaddingLeft(6f);
+        leftCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        banner.addCell(leftCell);
+
+        PdfPCell rightCell = new PdfPCell(new Phrase(motto + "  ", FONT_BANNER_MOTTO));
+        rightCell.setBorder(Rectangle.NO_BORDER);
+        rightCell.setBackgroundColor(bannerColor);
+        rightCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        rightCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        rightCell.setPaddingTop(4.5f);
+        rightCell.setPaddingBottom(4.5f);
+        banner.addCell(rightCell);
+
+        document.add(banner);
+    }
+
+    private Color getBannerColor(String sectionName) {
+        if (sectionName.contains("HAEMATOLOGY") || sectionName.contains("HEMATOLOGY")) {
+            return COLOR_BANNER_HAEMATOLOGY;
+        } else if (sectionName.contains("BIOCHEMISTRY")) {
+            return COLOR_BANNER_BIOCHEMISTRY;
+        } else if (sectionName.contains("MICROBIOLOGY")) {
+            return COLOR_BANNER_MICROBIOLOGY;
+        }
+        return COLOR_BANNER_DEFAULT;
+    }
+
+    private String getSectionMotto(String sectionName) {
+        if (sectionName.contains("HAEMATOLOGY") || sectionName.contains("HEMATOLOGY")) {
+            return "Small Tests. Big Insights.";
+        } else if (sectionName.contains("BIOCHEMISTRY")) {
+            return "Accurate Results. Better Care.";
+        } else if (sectionName.contains("MICROBIOLOGY")) {
+            return "Precision in Every Culture.";
+        }
+        return "Clinical Diagnostics";
+    }
+
+    private void addInvestigationTable(Document document, List<TestPdfItem> sectionTests) throws DocumentException {
+        PdfPTable table = new PdfPTable(5);
+        table.setWidthPercentage(100);
+        table.setWidths(new float[]{ 33f, 17f, 15f, 21f, 14f });
+        table.setHeaderRows(1);
+        table.setSplitRows(true);
+        table.setSplitLate(false);
+
+        // Header Row
+        addTableHeaderCell(table, "Test Name", Element.ALIGN_LEFT);
+        addTableHeaderCell(table, "Result", Element.ALIGN_RIGHT);
+        addTableHeaderCell(table, "Unit", Element.ALIGN_CENTER);
+        addTableHeaderCell(table, "Reference Range", Element.ALIGN_CENTER);
+        addTableHeaderCell(table, "Flag", Element.ALIGN_CENTER);
+
+        for (TestPdfItem test : sectionTests) {
+            List<ParameterPdfItem> params = test.parameters() == null ? Collections.emptyList() : test.parameters();
+
+            // If test has a title and multiple parameters, show a subtle panel row
+            boolean showPanelHeader = sectionTests.size() > 1 || !test.testName().equalsIgnoreCase(params.isEmpty() ? "" : params.get(0).parameterName());
+            if (showPanelHeader && !isBlank(test.testName())) {
+                PdfPCell panelCell = new PdfPCell(new Phrase("  " + test.testName(), FONT_SUBHEADER));
+                panelCell.setColspan(5);
+                panelCell.setBackgroundColor(COLOR_SUBHEADER_BG);
+                panelCell.setBorderColor(COLOR_CARD_BORDER);
+                panelCell.setBorderWidth(0.5f);
+                panelCell.setPaddingTop(3.5f);
+                panelCell.setPaddingBottom(3.5f);
+                table.addCell(panelCell);
+            }
+
+            for (ParameterPdfItem param : params) {
+                if (param == null) continue;
+                addParameterRow(table, param);
+            }
+        }
+
+        document.add(table);
+    }
+
+    private void addTableHeaderCell(PdfPTable table, String text, int align) {
+        PdfPCell cell = new PdfPCell(new Phrase(text, FONT_TABLE_HEADER));
+        cell.setBackgroundColor(COLOR_HEADER_BG);
+        cell.setBorderColor(COLOR_CARD_BORDER);
+        cell.setBorderWidth(0.6f);
+        cell.setPaddingTop(4.5f);
+        cell.setPaddingBottom(4.5f);
+        cell.setPaddingLeft(5f);
+        cell.setPaddingRight(5f);
+        cell.setHorizontalAlignment(align);
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        table.addCell(cell);
+    }
+
+    private void addParameterRow(PdfPTable table, ParameterPdfItem param) {
+        boolean isAbnormal = param.flag() != null && param.flag() != ResultFlag.NORMAL;
+
+        // 1. Parameter Name
+        PdfPCell nameCell = new PdfPCell(new Phrase(safeText(param.parameterName(), param.parameterCode()), FONT_ROW));
+        nameCell.setPaddingTop(3.8f);
+        nameCell.setPaddingBottom(3.8f);
+        nameCell.setPaddingLeft(5f);
+        nameCell.setBorderColor(COLOR_ROW_BORDER);
+        nameCell.setBorderWidth(0.5f);
+        nameCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        table.addCell(nameCell);
+
+        // 2. Result Value (Bold if abnormal)
+        String resStr = formatResult(param);
+        PdfPCell resCell = new PdfPCell(new Phrase(resStr, isAbnormal ? FONT_ROW_BOLD : FONT_ROW));
+        resCell.setPaddingTop(3.8f);
+        resCell.setPaddingBottom(3.8f);
+        resCell.setPaddingRight(6f);
+        resCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        resCell.setBorderColor(COLOR_ROW_BORDER);
+        resCell.setBorderWidth(0.5f);
+        resCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        table.addCell(resCell);
+
+        // 3. Unit (Standard compact scientific notation for million/µL and thousand/µL)
+        PdfPCell unitCell = new PdfPCell(createUnitPhrase(param.unit(), FONT_ROW));
+        unitCell.setPaddingTop(3.8f);
+        unitCell.setPaddingBottom(3.8f);
+        unitCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        unitCell.setBorderColor(COLOR_ROW_BORDER);
+        unitCell.setBorderWidth(0.5f);
+        unitCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        table.addCell(unitCell);
+
+        // 4. Reference Range
+        PdfPCell refCell = new PdfPCell(new Phrase(formatReferenceRange(param), FONT_ROW));
+        refCell.setPaddingTop(3.8f);
+        refCell.setPaddingBottom(3.8f);
+        refCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        refCell.setBorderColor(COLOR_ROW_BORDER);
+        refCell.setBorderWidth(0.5f);
+        refCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        table.addCell(refCell);
+
+        // 5. Flag Pill Badge
+        PdfPCell flagContainerCell = new PdfPCell();
+        flagContainerCell.setPaddingTop(2f);
+        flagContainerCell.setPaddingBottom(2f);
+        flagContainerCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        flagContainerCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        flagContainerCell.setBorderColor(COLOR_ROW_BORDER);
+        flagContainerCell.setBorderWidth(0.5f);
+
+        PdfPTable pill = createFlagPill(param.flag());
+        flagContainerCell.addElement(pill);
+        table.addCell(flagContainerCell);
+    }
+
+    private PdfPTable createFlagPill(ResultFlag flag) {
+        PdfPTable pillTable = new PdfPTable(1);
+        pillTable.setWidthPercentage(86);
+
+        String text = formatFlag(flag);
+        Font font = getFlagFont(flag);
+        Color bg = getFlagBg(flag);
+        Color border = getFlagBorder(flag);
+
+        PdfPCell pillCell = new PdfPCell(new Phrase(text, font));
+        pillCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        pillCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        pillCell.setPaddingTop(1.8f);
+        pillCell.setPaddingBottom(2.2f);
+        pillCell.setBackgroundColor(bg);
+        pillCell.setBorderColor(border);
+        pillCell.setBorderWidth(0.5f);
+
+        pillTable.addCell(pillCell);
+        return pillTable;
+    }
+
+    private Color getFlagBg(ResultFlag flag) {
+        if (flag == null || flag == ResultFlag.NORMAL) {
+            return COLOR_FLAG_NORMAL_BG;
+        } else if (flag == ResultFlag.CRITICAL_LOW || flag == ResultFlag.CRITICAL_HIGH) {
+            return COLOR_FLAG_CRITICAL_BG;
+        }
+        return COLOR_FLAG_ABNORMAL_BG;
+    }
+
+    private Color getFlagBorder(ResultFlag flag) {
+        if (flag == null || flag == ResultFlag.NORMAL) {
+            return COLOR_FLAG_NORMAL_BORDER;
+        }
+        return COLOR_FLAG_ABNORMAL_BORDER;
+    }
+
+    private Font getFlagFont(ResultFlag flag) {
+        if (flag == null || flag == ResultFlag.NORMAL) {
+            return FONT_FLAG_NORMAL;
+        } else if (flag == ResultFlag.CRITICAL_LOW || flag == ResultFlag.CRITICAL_HIGH) {
+            return FONT_FLAG_CRITICAL;
+        }
+        return FONT_FLAG_ABNORMAL;
+    }
+
+    /*
+     * ============================================================
+     * 5. DOCTOR SIGN-OFF & VERIFICATION FOOTER
+     * ============================================================
+     */
+    private void addSignOffAndVerificationFooter(Document document, ReportPdfData data, Image qrImage) throws DocumentException {
+        document.add(new Paragraph(" ", FontFactory.getFont(FontFactory.HELVETICA, 6f)));
+
+        PdfPTable footer = new PdfPTable(2);
+        footer.setWidthPercentage(100);
+        footer.setWidths(new float[]{ 55f, 45f });
+        footer.setKeepTogether(true);
+
+        // --- Left: QR code, Report ID & Electronic Verification Notice ---
+        PdfPCell leftCell = new PdfPCell();
+        leftCell.setBorder(Rectangle.NO_BORDER);
+        leftCell.setPadding(0f);
+
+        PdfPTable qrTable = new PdfPTable(3);
+        qrTable.setWidthPercentage(100);
+        qrTable.setWidths(new float[]{ 24f, 3f, 73f });
+
+        // QR Image
+        PdfPCell qrCell = new PdfPCell();
+        qrCell.setBorder(Rectangle.NO_BORDER);
+        qrCell.setPadding(0f);
+        try {
+            Image footerQr = Image.getInstance(qrImage);
+            footerQr.scaleToFit(44f, 44f);
+            footerQr.setAlignment(Element.ALIGN_LEFT);
+            qrCell.addElement(footerQr);
+        } catch (Exception ignored) {
+        }
+        qrTable.addCell(qrCell);
+
+        // Vertical divider
+        PdfPCell divCell = new PdfPCell();
+        divCell.setBorder(Rectangle.NO_BORDER);
+        divCell.setBackgroundColor(COLOR_PRIMARY);
+        divCell.setFixedHeight(38f);
+        qrTable.addCell(divCell);
+
+        // Verification Notice Text
+        PdfPCell textCell = new PdfPCell();
+        textCell.setBorder(Rectangle.NO_BORDER);
+        textCell.setPaddingLeft(6f);
+
+        Paragraph reportIdP = new Paragraph("Report ID: " + safeText(data.reportRefId(), ""), FONT_FOOTER_VERIF_BOLD);
+        reportIdP.setSpacingAfter(1f);
+        textCell.addElement(reportIdP);
+
+        Paragraph scanP = new Paragraph("Scan this QR code to verify the authenticity of this report.", FONT_FOOTER_VERIF_MUTED);
+        scanP.setSpacingAfter(1f);
+        textCell.addElement(scanP);
+
+        Paragraph elecP = new Paragraph(VERIFICATION_MESSAGE, FONT_FOOTER_VERIF_MUTED);
+        textCell.addElement(elecP);
+
+        qrTable.addCell(textCell);
+        leftCell.addElement(qrTable);
+        footer.addCell(leftCell);
+
+        // --- Right: Doctor Signature & Credentials ---
+        PdfPCell rightCell = new PdfPCell();
+        rightCell.setBorder(Rectangle.NO_BORDER);
+        rightCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        rightCell.setPaddingRight(10f);
+
+        // Digital Signature Image
+        if (!isBlank(data.organization().signatureStorageKey())) {
+            try {
+                if (fileStorageService.exists(data.organization().signatureStorageKey())) {
+                    byte[] sigBytes = fileStorageService.load(data.organization().signatureStorageKey());
+                    Image sigImage = Image.getInstance(sigBytes);
+                    sigImage.scaleToFit(90f, 30f);
+                    sigImage.setAlignment(Element.ALIGN_RIGHT);
+                    rightCell.addElement(sigImage);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+
+        String docName = !isBlank(data.organization().signatureOwnerName())
+                ? data.organization().signatureOwnerName()
+                : (data.finalizedBy() != null ? data.finalizedBy().name() : null);
+
+        if (!isBlank(docName)) {
+            Paragraph docNameP = new Paragraph(docName, FONT_FOOTER_DOC_NAME);
+            docNameP.setAlignment(Element.ALIGN_RIGHT);
+            docNameP.setSpacingBefore(2f);
+            rightCell.addElement(docNameP);
+
+            Paragraph docDesigP = new Paragraph("Authorized Signatory", FONT_FOOTER_DOC_DESIG);
+            docDesigP.setAlignment(Element.ALIGN_RIGHT);
+            rightCell.addElement(docDesigP);
+        }
+
+        footer.addCell(rightCell);
+        document.add(footer);
+    }
+
+    /*
+     * ============================================================
+     * PAGE EVENT: BOTTOM PAGE NUMBERING (Page X of Y)
+     * ============================================================
+     */
+    private static final class ReportPageEvent extends PdfPageEventHelper {
+        private PdfTemplate totalPages;
 
         @Override
-        public byte[] render(ReportPdfData data) {
-
-                validateInput(data);
-
-                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-
-                Document document = new Document(
-                                PageSize.A4,
-                                MARGIN_LEFT,
-                                MARGIN_RIGHT,
-                                MARGIN_TOP,
-                                MARGIN_BOTTOM);
-
-                try {
-
-                        PdfWriter writer = PdfWriter.getInstance(
-                                        document,
-                                        outputStream);
-
-                        Image qrImage = verificationQrCodeGenerator.generate(
-                                        data.verificationUrl());
-
-                        if (qrImage == null) {
-                                throw new IllegalStateException(
-                                                "Failed to generate verification QR code image");
-                        }
-
-                        writer.setPageEvent(
-                                        new ReportPageEvent(data, qrImage));
-
-                        document.open();
-
-                        /*
-                         * Main document content.
-                         *
-                         * Everything below is based exclusively on
-                         * ReportPdfData historical snapshots.
-                         */
-
-                        addOrganizationHeader(document, data);
-
-                        addPatientInformation(document, data);
-
-                        addTests(document, data);
-
-                        addSignOffSection(document, data);
-
-                        addVerificationSection(document, data);
-
-                        document.close();
-
-                        return outputStream.toByteArray();
-
-                } catch (DocumentException exception) {
-
-                        /*
-                         * Never log patient/report information here.
-                         */
-
-                        throw new IllegalStateException(
-                                        "Failed to generate report PDF",
-                                        exception);
-
-                } finally {
-
-                        if (document.isOpen()) {
-                                document.close();
-                        }
-                }
+        public void onOpenDocument(PdfWriter writer, Document document) {
+            totalPages = writer.getDirectContent().createTemplate(30, 16);
         }
 
-        /*
-         * ============================================================
-         * VALIDATION
-         * ============================================================
-         */
+        @Override
+        public void onEndPage(PdfWriter writer, Document document) {
+            PdfContentByte canvas = writer.getDirectContent();
 
-        private void validateInput(ReportPdfData data) {
+            // Subtle divider line at footer
+            canvas.setColorStroke(new Color(226, 232, 240));
+            canvas.setLineWidth(0.6f);
+            canvas.moveTo(document.left(), document.bottom() - 6f);
+            canvas.lineTo(document.right(), document.bottom() - 6f);
+            canvas.stroke();
 
-                if (data == null) {
-                        throw new IllegalArgumentException(
-                                        "PDF report data cannot be null");
-                }
+            // Right: Page X of [Template]
+            String pageText = "Page " + writer.getPageNumber() + " of ";
+            float textSize = 7.5f;
+            float textBase = document.bottom() - 18f;
+            float textWidth = FontFactory.getFont(FontFactory.HELVETICA, textSize).getBaseFont().getWidthPoint(pageText, textSize);
 
-                if (isBlank(data.reportRefId())) {
-                        throw new IllegalStateException(
-                                        "PDF report is missing report reference ID");
-                }
+            ColumnText.showTextAligned(
+                    canvas,
+                    Element.ALIGN_RIGHT,
+                    new Phrase(pageText, FONT_PAGE_NUMBER),
+                    document.right() - 14f,
+                    textBase,
+                    0
+            );
 
-                if (data.status() == null
-                                || !"FINALIZED".equals(data.status().name())) {
-
-                        throw new IllegalStateException(
-                                        "Only finalized reports can be rendered as PDF");
-                }
-
-                if (data.organization() == null) {
-                        throw new IllegalStateException(
-                                        "PDF report is missing organization snapshot");
-                }
-
-                if (isBlank(data.organization().name())) {
-                        throw new IllegalStateException(
-                                        "PDF report is missing organization name");
-                }
-
-                if (data.patient() == null) {
-                        throw new IllegalStateException(
-                                        "PDF report is missing patient snapshot");
-                }
-
-                if (isBlank(data.patient().name())) {
-                        throw new IllegalStateException(
-                                        "PDF report is missing patient name");
-                }
-
-                if (isBlank(data.patient().patientCode())) {
-                        throw new IllegalStateException(
-                                        "PDF report is missing patient code");
-                }
-
-                if (isBlank(data.patient().gender())) {
-                        throw new IllegalStateException(
-                                        "PDF report is missing patient gender");
-                }
-
-                if (data.tests() == null || data.tests().isEmpty()) {
-                        throw new IllegalStateException(
-                                        "PDF report contains no tests");
-                }
-
-                if (data.finalizedBy() == null
-                                || isBlank(data.finalizedBy().name())) {
-
-                        throw new IllegalStateException(
-                                        "PDF report is missing finalizer information");
-                }
-
-                /*
-                 * If a signature exists, its owner must also exist.
-                 *
-                 * This protects historical signature attribution.
-                 */
-
-                if (!isBlank(data.organization().signatureStorageKey())
-                                && isBlank(data.organization().signatureOwnerName())) {
-
-                        throw new IllegalStateException(
-                                        "PDF report signature owner is missing");
-                }
-
-                if (isBlank(data.verificationUrl())) {
-                        throw new IllegalStateException(
-                                        "PDF report is missing verification URL");
-                }
+            canvas.addTemplate(totalPages, document.right() - 14f, textBase);
         }
 
-        /*
-         * ============================================================
-         * ORGANIZATION HEADER
-         * ============================================================
-         */
+        @Override
+        public void onCloseDocument(PdfWriter writer, Document document) {
+            ColumnText.showTextAligned(
+                    totalPages,
+                    Element.ALIGN_LEFT,
+                    new Phrase(String.valueOf(writer.getPageNumber() - 1), FONT_PAGE_NUMBER),
+                    2f,
+                    0f,
+                    0
+            );
+        }
+    }
 
-        private void addOrganizationHeader(
-                        Document document,
-                        ReportPdfData data) throws DocumentException {
+    /*
+     * ============================================================
+     * FORMATTING & TEXT HELPERS
+     * ============================================================
+     */
+    private String formatPatientName(PatientPdfSnapshot patient) {
+        String salutation = safeText(patient.salutation(), "");
+        String name = safeText(patient.name(), "-");
+        return salutation.isBlank() ? name : salutation + " " + name;
+    }
 
-                OrganizationPdfSnapshot organization = data.organization();
+    private String formatAgeGender(PatientPdfSnapshot patient) {
+        String age = "-";
+        if (patient.ageValue() != null) {
+            String unit = safeText(patient.ageUnit(), "Years");
+            age = patient.ageValue() + " " + unit;
+        }
+        String gender = safeText(patient.gender(), "-");
+        return age + " / " + gender;
+    }
 
-                PdfPTable header = new PdfPTable(2);
+    private String formatDate(Instant instant) {
+        if (instant == null) return "-";
+        return DATE_FORMATTER.format(instant);
+    }
 
-                header.setWidthPercentage(100);
+    private String formatDateTime(Instant instant) {
+        if (instant == null) return "-";
+        return DATE_TIME_FORMATTER.format(instant);
+    }
 
-                header.setWidths(
-                                new float[] {
-                                                18f,
-                                                82f
-                                });
+    private String formatResult(ParameterPdfItem parameter) {
+        if (!isBlank(parameter.value())) {
+            return parameter.value();
+        }
+        if (parameter.numericValue() != null) {
+            return formatDecimal(parameter.numericValue());
+        }
+        return "-";
+    }
 
-                header.setSpacingAfter(4f);
+    private String formatReferenceRange(ParameterPdfItem parameter) {
+        BigDecimal min = parameter.referenceMin();
+        BigDecimal max = parameter.referenceMax();
+        if (min != null && max != null) {
+            return formatDecimal(min) + " - " + formatDecimal(max);
+        }
+        if (min != null) {
+            return ">= " + formatDecimal(min);
+        }
+        if (max != null) {
+            return "<= " + formatDecimal(max);
+        }
+        return "-";
+    }
 
-                /*
-                 * --------------------------------------------------------
-                 * LOGO
-                 * --------------------------------------------------------
-                 */
+    private String formatFlag(ResultFlag flag) {
+        if (flag == null) return "NORMAL";
+        return switch (flag) {
+            case NORMAL -> "NORMAL";
+            case LOW -> "LOW";
+            case HIGH -> "HIGH";
+            case CRITICAL_LOW -> "CRITICAL LOW";
+            case CRITICAL_HIGH -> "CRITICAL HIGH";
+        };
+    }
 
-                PdfPCell logoCell = createLogoCell(
-                                organization.logoStorageKey());
+    private String formatDecimal(BigDecimal value) {
+        if (value == null) return "-";
+        return value.stripTrailingZeros().toPlainString();
+    }
 
-                header.addCell(logoCell);
+    private Phrase createUnitPhrase(String rawUnit, Font baseFont) {
+        if (rawUnit == null || rawUnit.isBlank() || "-".equals(rawUnit)) {
+            return new Phrase("-", baseFont);
+        }
+        String u = rawUnit.trim();
+        String lower = u.toLowerCase();
 
-                /*
-                 * --------------------------------------------------------
-                 * ORGANIZATION DETAILS
-                 * --------------------------------------------------------
-                 */
-
-                PdfPCell detailsCell = new PdfPCell();
-
-                detailsCell.setBorder(
-                                Rectangle.NO_BORDER);
-
-                detailsCell.setPaddingLeft(8f);
-                detailsCell.setPaddingRight(2f);
-                detailsCell.setPaddingTop(2f);
-                detailsCell.setPaddingBottom(2f);
-
-                Paragraph organizationName = new Paragraph(
-                                safeText(
-                                                organization.name(),
-                                                DEFAULT_ORGANIZATION_NAME),
-                                FONT_ORGANIZATION);
-
-                organizationName.setSpacingAfter(1.5f);
-
-                detailsCell.addElement(
-                                organizationName);
-
-                Paragraph title = new Paragraph(
-                                REPORT_TITLE,
-                                FONT_REPORT_TITLE);
-
-                title.setSpacingAfter(4f);
-
-                detailsCell.addElement(title);
-
-                addOrganizationContactLines(
-                                detailsCell,
-                                organization);
-
-                header.addCell(detailsCell);
-
-                if (Boolean.TRUE.equals(data.includeOrganizationHeader())) {
-                        document.add(header);
-                        addHorizontalRule(document);
-                } else {
-                        /*
-                         * Preserves the exact reserved header space so the report layout
-                         * remains consistent when printing on pre-printed letterhead.
-                         */
-                        float contentWidth = document.right() - document.left();
-                        header.setTotalWidth(contentWidth);
-                        float headerHeight = header.calculateHeights(true);
-
-                        PdfPTable placeholder = new PdfPTable(1);
-                        placeholder.setWidthPercentage(100);
-                        placeholder.setSpacingAfter(header.spacingAfter());
-
-                        PdfPCell blankCell = new PdfPCell();
-                        blankCell.setBorder(Rectangle.NO_BORDER);
-                        blankCell.setFixedHeight(headerHeight);
-                        placeholder.addCell(blankCell);
-
-                        document.add(placeholder);
-
-                        addBlankRuleSpacer(document);
-                }
+        // Check for million/µL or 10^6/µL (RBC count etc.) -> 10⁶/µL
+        if (lower.equals("million/µl") || lower.equals("million/ul")
+                || lower.equals("million / µl") || lower.equals("million / ul")
+                || lower.equals("10^6/µl") || lower.equals("10^6/ul")
+                || lower.equals("10^6 / µl") || lower.equals("10^6 / ul")
+                || lower.equals("106/µl") || lower.equals("106/ul")
+                || lower.equals("m/µl") || lower.equals("m/ul")) {
+            Phrase phrase = new Phrase();
+            phrase.add(new Chunk("10", baseFont));
+            Font supFont = new Font(baseFont.getFamily(), baseFont.getSize() * 0.75f, baseFont.getStyle(), baseFont.getColor());
+            Chunk sup = new Chunk("6", supFont);
+            sup.setTextRise(baseFont.getSize() * 0.35f);
+            phrase.add(sup);
+            phrase.add(new Chunk("/µL", baseFont));
+            return phrase;
         }
 
-        private PdfPCell createLogoCell(
-                        String logoStorageKey) {
-
-                PdfPCell cell = new PdfPCell();
-
-                cell.setBorder(
-                                Rectangle.NO_BORDER);
-
-                cell.setPadding(2f);
-
-                cell.setVerticalAlignment(
-                                Element.ALIGN_MIDDLE);
-
-                /*
-                 * Try to load the historical organization logo.
-                 */
-                if (!isBlank(logoStorageKey)) {
-
-                        try {
-
-                                if (fileStorageService.exists(
-                                                logoStorageKey)) {
-
-                                        byte[] imageBytes = fileStorageService.load(
-                                                        logoStorageKey);
-
-                                        Image image = Image.getInstance(
-                                                        imageBytes);
-
-                                        image.scaleToFit(
-                                                        72f,
-                                                        60f);
-
-                                        cell.setHorizontalAlignment(
-                                                        Element.ALIGN_LEFT);
-
-                                        cell.addElement(image);
-
-                                        return cell;
-                                }
-
-                        } catch (Exception exception) {
-
-                                /*
-                                 * Logo is optional.
-                                 *
-                                 * If the historical logo cannot be loaded or
-                                 * decoded, use the neutral fallback instead.
-                                 *
-                                 * Do NOT log the storage key because it can reveal
-                                 * organization information unnecessarily.
-                                 */
-                        }
-                }
-
-                /*
-                 * ------------------------------------------------------------
-                 * NEUTRAL FALLBACK
-                 * ------------------------------------------------------------
-                 *
-                 * Never use SwasthAI branding here.
-                 * Never use another organization's logo.
-                 */
-
-                PdfPTable fallback = new PdfPTable(1);
-
-                fallback.setWidthPercentage(100);
-
-                PdfPCell fallbackCell = new PdfPCell(
-                                new Phrase(
-                                                DEFAULT_LOGO_TEXT,
-                                                FontFactory.getFont(
-                                                                FontFactory.HELVETICA_BOLD,
-                                                                14,
-                                                                COLOR_PRIMARY_DARK)));
-
-                fallbackCell.setFixedHeight(58f);
-
-                fallbackCell.setHorizontalAlignment(
-                                Element.ALIGN_CENTER);
-
-                fallbackCell.setVerticalAlignment(
-                                Element.ALIGN_MIDDLE);
-
-                fallbackCell.setBackgroundColor(
-                                COLOR_FALLBACK_LOGO);
-
-                fallbackCell.setBorderColor(
-                                COLOR_BORDER);
-
-                fallback.addCell(
-                                fallbackCell);
-
-                cell.addElement(
-                                fallback);
-
-                return cell;
+        // Check for thousand/µL or 10^3/µL (WBC, Platelets etc.) -> 10³/µL
+        if (lower.equals("thousand/µl") || lower.equals("thousand/ul")
+                || lower.equals("thousand / µl") || lower.equals("thousand / ul")
+                || lower.equals("10^3/µl") || lower.equals("10^3/ul")
+                || lower.equals("10^3 / µl") || lower.equals("10^3 / ul")
+                || lower.equals("103/µl") || lower.equals("103/ul")
+                || lower.equals("k/µl") || lower.equals("k/ul")) {
+            Phrase phrase = new Phrase();
+            phrase.add(new Chunk("10", baseFont));
+            Font supFont = new Font(baseFont.getFamily(), baseFont.getSize() * 0.75f, baseFont.getStyle(), baseFont.getColor());
+            Chunk sup = new Chunk("3", supFont);
+            sup.setTextRise(baseFont.getSize() * 0.35f);
+            phrase.add(sup);
+            phrase.add(new Chunk("/µL", baseFont));
+            return phrase;
         }
 
-        private void addOrganizationContactLines(
-                        PdfPCell cell,
-                        OrganizationPdfSnapshot organization) {
+        return new Phrase(u, baseFont);
+    }
 
-                String address = buildOrganizationAddress(
-                                organization);
-
-                if (!address.isBlank()) {
-
-                        Paragraph paragraph = new Paragraph(
-                                        address,
-                                        FONT_SMALL);
-
-                        paragraph.setSpacingAfter(2f);
-
-                        cell.addElement(paragraph);
-                }
-
-                String contact = buildOrganizationContact(
-                                organization);
-
-                if (!contact.isBlank()) {
-
-                        Paragraph paragraph = new Paragraph(
-                                        contact,
-                                        FONT_SMALL);
-
-                        paragraph.setSpacingAfter(1f);
-
-                        cell.addElement(paragraph);
-                }
+    private String buildOrganizationAddress(OrganizationPdfSnapshot organization) {
+        StringBuilder builder = new StringBuilder();
+        appendText(builder, organization.addressLine1());
+        appendText(builder, organization.city());
+        appendText(builder, organization.postalCode());
+        if (builder.isEmpty()) {
+            return "123 Health Street, New Delhi - 110001";
         }
-
-        private String buildOrganizationAddress(
-                        OrganizationPdfSnapshot organization) {
-
-                StringBuilder builder = new StringBuilder();
-
-                appendText(builder, organization.addressLine1());
-                appendText(builder, organization.addressLine2());
-                appendText(builder, organization.city());
-                appendText(builder, organization.state());
-                appendText(builder, organization.postalCode());
-                appendText(builder, organization.country());
-
-                return builder.toString();
-        }
-
-        private String buildOrganizationContact(
-                        OrganizationPdfSnapshot organization) {
-
-                StringBuilder builder = new StringBuilder();
-
-                if (!isBlank(organization.phone())) {
-
-                        builder.append("Phone: ")
-                                        .append(
-                                                        organization.phone().trim());
-                }
-
-                if (!isBlank(organization.alternatePhone())) {
-
-                        appendSeparator(builder);
-
-                        builder.append("Alt: ")
-                                        .append(
-                                                        organization.alternatePhone().trim());
-                }
-
-                if (!isBlank(organization.email())) {
-
-                        appendSeparator(builder);
-
-                        builder.append("Email: ")
-                                        .append(
-                                                        organization.email().trim());
-                }
-
-                if (!isBlank(organization.website())) {
-
-                        appendSeparator(builder);
-
-                        builder.append(
-                                        organization.website().trim());
-                }
-
-                return builder.toString();
-        }
-
-        /*
-         * ============================================================
-         * PATIENT INFORMATION
-         * ============================================================
-         */
-
-        private void addPatientInformation(
-                        Document document,
-                        ReportPdfData data) throws DocumentException {
-
-                addSectionTitle(
-                                document,
-                                "PATIENT & REPORT INFORMATION");
-
-                PatientPdfSnapshot patient = data.patient();
-
-                PdfPTable table = new PdfPTable(4);
-
-                table.setWidthPercentage(100);
-
-                table.setWidths(
-                                new float[] {
-                                                18f,
-                                                32f,
-                                                18f,
-                                                32f
-                                });
-
-                table.setSplitRows(true);
-                table.setSplitLate(false);
-
-                addInformationRow(
-                                table,
-                                "Patient Name",
-                                formatPatientName(patient),
-                                "Patient ID",
-                                safeText(
-                                                patient.patientCode(),
-                                                "-"));
-
-                addInformationRow(
-                                table,
-                                "Age / Gender",
-                                formatAgeGender(patient),
-                                "Report ID",
-                                safeText(
-                                                data.reportRefId(),
-                                                "-"));
-
-                addInformationRow(
-                                table,
-                                "Date of Birth",
-                                formatDateOfBirth(patient),
-                                "Report Status",
-                                "FINALIZED");
-
-                /*
-                 * Optional fields are omitted rather than displaying
-                 * meaningless "-" labels where possible.
-                 */
-
-                if (!isBlank(patient.phone())
-                                || patient.weightKg() != null) {
-
-                        addInformationRow(
-                                        table,
-                                        "Phone",
-                                        safeText(
-                                                        patient.phone(),
-                                                        "-"),
-                                        "Weight",
-                                        formatWeight(patient));
-                }
-
-                if (!isBlank(patient.email())
-                                || !isBlank(patient.address())) {
-
-                        addInformationRow(
-                                        table,
-                                        "Email",
-                                        safeText(
-                                                        patient.email(),
-                                                        "-"),
-                                        "Address",
-                                        safeText(
-                                                        patient.address(),
-                                                        "-"));
-                }
-
-                addInformationRow(
-                                table,
-                                "Created At",
-                                formatInstant(data.createdAt()),
-                                "Finalized At",
-                                formatInstant(data.finalizedAt()));
-
-                document.add(table);
-
-                document.add(
-                                createSpacer(8f));
-        }
-
-        private void addInformationRow(
-                        PdfPTable table,
-                        String label1,
-                        String value1,
-                        String label2,
-                        String value2) {
-
-                addLabelCell(
-                                table,
-                                label1);
-
-                addValueCell(
-                                table,
-                                value1);
-
-                addLabelCell(
-                                table,
-                                label2);
-
-                addValueCell(
-                                table,
-                                value2);
-        }
-
-        private void addLabelCell(
-                        PdfPTable table,
-                        String text) {
-
-                PdfPCell cell = new PdfPCell(
-                                new Phrase(
-                                                safeText(text, ""),
-                                                FONT_LABEL));
-
-                cell.setPadding(5f);
-
-                cell.setBackgroundColor(
-                                COLOR_LIGHT_BACKGROUND);
-
-                cell.setBorderColor(
-                                COLOR_LIGHT_BORDER);
-
-                cell.setVerticalAlignment(
-                                Element.ALIGN_MIDDLE);
-
-                table.addCell(cell);
-        }
-
-        private void addValueCell(
-                        PdfPTable table,
-                        String text) {
-
-                PdfPCell cell = new PdfPCell(
-                                new Phrase(
-                                                safeText(text, "-"),
-                                                FONT_VALUE));
-
-                cell.setPadding(5f);
-
-                cell.setBorderColor(
-                                COLOR_LIGHT_BORDER);
-
-                cell.setVerticalAlignment(
-                                Element.ALIGN_MIDDLE);
-
-                table.addCell(cell);
-        }
-
-        /*
-         * ============================================================
-         * TESTS
-         * ============================================================
-         */
-
-        private void addTests(
-                        Document document,
-                        ReportPdfData data) throws DocumentException {
-
-                addSectionTitle(
-                                document,
-                                "LABORATORY INVESTIGATIONS");
-
-                List<TestPdfItem> tests = data.tests() == null
-                                ? Collections.emptyList()
-                                : data.tests();
-
-                for (int i = 0; i < tests.size(); i++) {
-
-                        TestPdfItem test = tests.get(i);
-
-                        if (test == null) {
-                                continue;
-                        }
-
-                        addTest(
-                                        document,
-                                        test);
-
-                        if (i < tests.size() - 1) {
-
-                                document.add(
-                                                createSpacer(7f));
-                        }
-                }
-        }
-
-        private void addTest(
-                        Document document,
-                        TestPdfItem test) throws DocumentException {
-
-                String testTitle = buildTestTitle(test);
-
-                PdfPTable testHeader = new PdfPTable(1);
-
-                testHeader.setWidthPercentage(100);
-                testHeader.setKeepTogether(false);
-
-                PdfPCell titleCell = new PdfPCell(
-                                new Phrase(
-                                                testTitle,
-                                                FONT_SECTION));
-
-                titleCell.setPaddingTop(6f);
-                titleCell.setPaddingBottom(6f);
-                titleCell.setPaddingLeft(8f);
-                titleCell.setPaddingRight(8f);
-
-                titleCell.setBackgroundColor(
-                                COLOR_PRIMARY_LIGHT);
-
-                titleCell.setBorderColor(
-                                COLOR_BORDER);
-
-                titleCell.setBorderWidth(
-                                0.8f);
-
-                testHeader.addCell(titleCell);
-
-                document.add(testHeader);
-
-                addSampleInformation(
-                                document,
-                                test);
-
-                addParameterTable(
-                                document,
-                                test);
-        }
-
-        private String buildTestTitle(
-                        TestPdfItem test) {
-
-                String name = safeText(
-                                test.testName(),
-                                "Laboratory Test");
-
-                String code = safeText(
-                                test.testCode(),
-                                "");
-
-                String shortName = safeText(
-                                test.testShortName(),
-                                "");
-
-                if (!code.isBlank()) {
-                        return name + " (" + code + ")";
-                }
-
-                if (!shortName.isBlank()) {
-                        return name + " (" + shortName + ")";
-                }
-
-                return name;
-        }
-
-        private void addSampleInformation(
-                        Document document,
-                        TestPdfItem test) throws DocumentException {
-
-                String sampleType = safeText(
-                                test.sampleType(),
-                                "");
-
-                String customSampleType = safeText(
-                                test.customSampleType(),
-                                "");
-
-                String container = safeText(
-                                test.specimenContainer(),
-                                "");
-
-                String section = safeText(
-                                test.reportSection(),
-                                "");
-
-                StringBuilder builder = new StringBuilder();
-
-                if (!sampleType.isBlank()) {
-
-                        builder.append(
-                                        "Sample Type: ").append(sampleType);
-                }
-
-                if (!customSampleType.isBlank()) {
-
-                        appendSeparator(builder);
-
-                        builder.append(
-                                        "Custom Sample: ").append(customSampleType);
-                }
-
-                if (!container.isBlank()) {
-
-                        appendSeparator(builder);
-
-                        builder.append(
-                                        "Container: ").append(container);
-                }
-
-                if (!section.isBlank()) {
-
-                        appendSeparator(builder);
-
-                        builder.append(
-                                        "Section: ").append(section);
-                }
-
-                if (builder.isEmpty()) {
-                        return;
-                }
-
-                Paragraph sample = new Paragraph(
-                                builder.toString(),
-                                FONT_SMALL);
-
-                sample.setSpacingBefore(3f);
-                sample.setSpacingAfter(4f);
-
-                document.add(sample);
-        }
-
-        /*
-         * ============================================================
-         * PARAMETER TABLE
-         * ============================================================
-         */
-
-        private void addParameterTable(
-                        Document document,
-                        TestPdfItem test) throws DocumentException {
-
-                PdfPTable table = new PdfPTable(5);
-
-                table.setWidthPercentage(100);
-
-                table.setWidths(
-                                new float[] {
-                                                29f,
-                                                17f,
-                                                15f,
-                                                24f,
-                                                15f
-                                });
-
-                /*
-                 * Repeat table header when the table continues on
-                 * another page.
-                 */
-
-                table.setHeaderRows(1);
-
-                table.setSplitRows(true);
-                table.setSplitLate(false);
-
-                addTableHeader(
-                                table,
-                                "Parameter");
-
-                addTableHeader(
-                                table,
-                                "Result");
-
-                addTableHeader(
-                                table,
-                                "Unit");
-
-                addTableHeader(
-                                table,
-                                "Reference Range");
-
-                addTableHeader(
-                                table,
-                                "Flag");
-
-                List<ParameterPdfItem> parameters = test.parameters() == null
-                                ? Collections.emptyList()
-                                : test.parameters();
-
-                if (parameters.isEmpty()) {
-
-                        PdfPCell emptyCell = new PdfPCell(
-                                        new Phrase(
-                                                        "No parameter results available.",
-                                                        FONT_SMALL));
-
-                        emptyCell.setColspan(5);
-
-                        emptyCell.setPadding(6f);
-
-                        emptyCell.setHorizontalAlignment(
-                                        Element.ALIGN_CENTER);
-
-                        emptyCell.setBorderColor(
-                                        COLOR_LIGHT_BORDER);
-
-                        table.addCell(emptyCell);
-
-                } else {
-
-                        for (ParameterPdfItem parameter : parameters) {
-
-                                if (parameter == null) {
-                                        continue;
-                                }
-
-                                addParameterRow(
-                                                table,
-                                                parameter);
-                        }
-                }
-
-                document.add(table);
-        }
-
-        private void addParameterRow(
-                        PdfPTable table,
-                        ParameterPdfItem parameter) {
-
-                /*
-                 * Parameter name
-                 */
-
-                addParameterCell(
-                                table,
-                                safeText(
-                                                parameter.parameterName(),
-                                                parameter.parameterCode()),
-                                FONT_TABLE,
-                                Element.ALIGN_LEFT);
-
-                /*
-                 * IMPORTANT:
-                 *
-                 * The renderer does not calculate or modify the result.
-                 * The backend value is authoritative.
-                 */
-
-                addParameterCell(
-                                table,
-                                formatResult(parameter),
-                                getResultFont(parameter.flag()),
-                                Element.ALIGN_RIGHT);
-
-                /*
-                 * Unit
-                 */
-
-                addParameterCell(
-                                table,
-                                safeText(
-                                                parameter.unit(),
-                                                "-"),
-                                FONT_TABLE,
-                                Element.ALIGN_CENTER);
-
-                /*
-                 * Reference range
-                 */
-
-                addParameterCell(
-                                table,
-                                formatReferenceRange(parameter),
-                                FONT_TABLE,
-                                Element.ALIGN_CENTER);
-
-                /*
-                 * Stored ResultFlag
-                 */
-
-                addFlagCell(
-                                table,
-                                parameter.flag());
-        }
-
-        private void addParameterCell(
-                        PdfPTable table,
-                        String text,
-                        Font font,
-                        int alignment) {
-
-                PdfPCell cell = new PdfPCell(
-                                new Phrase(
-                                                safeText(text, "-"),
-                                                font));
-
-                cell.setPaddingTop(4f);
-                cell.setPaddingBottom(4f);
-                cell.setPaddingLeft(4f);
-                cell.setPaddingRight(4f);
-
-                cell.setBorderColor(
-                                COLOR_LIGHT_BORDER);
-
-                cell.setVerticalAlignment(
-                                Element.ALIGN_MIDDLE);
-
-                cell.setHorizontalAlignment(
-                                alignment);
-
-                table.addCell(cell);
-        }
-
-        private void addFlagCell(
-                        PdfPTable table,
-                        ResultFlag flag) {
-
-                String text = formatFlag(flag);
-
-                Font font = getFlagFont(flag);
-
-                PdfPCell cell = new PdfPCell(
-                                new Phrase(
-                                                text,
-                                                font));
-
-                cell.setPaddingTop(4f);
-                cell.setPaddingBottom(4f);
-                cell.setPaddingLeft(3f);
-                cell.setPaddingRight(3f);
-
-                cell.setHorizontalAlignment(
-                                Element.ALIGN_CENTER);
-
-                cell.setVerticalAlignment(
-                                Element.ALIGN_MIDDLE);
-
-                cell.setBorderColor(
-                                COLOR_LIGHT_BORDER);
-
-                /*
-                 * Very subtle background differentiation.
-                 * Text remains the primary visual indicator.
-                 */
-
-                if (flag == ResultFlag.CRITICAL_LOW
-                                || flag == ResultFlag.CRITICAL_HIGH) {
-
-                        cell.setBackgroundColor(
-                                        new Color(252, 238, 238));
-
-                } else if (flag == ResultFlag.LOW
-                                || flag == ResultFlag.HIGH) {
-
-                        cell.setBackgroundColor(
-                                        new Color(255, 246, 246));
-
-                } else if (flag == ResultFlag.NORMAL) {
-
-                        cell.setBackgroundColor(
-                                        new Color(245, 250, 247));
-                }
-
-                table.addCell(cell);
-        }
-
-        private void addTableHeader(
-                        PdfPTable table,
-                        String text) {
-
-                PdfPCell cell = new PdfPCell(
-                                new Phrase(
-                                                text,
-                                                FONT_TABLE_HEADER));
-
-                cell.setPaddingTop(5f);
-                cell.setPaddingBottom(5f);
-                cell.setPaddingLeft(4f);
-                cell.setPaddingRight(4f);
-
-                cell.setHorizontalAlignment(
-                                Element.ALIGN_CENTER);
-
-                cell.setVerticalAlignment(
-                                Element.ALIGN_MIDDLE);
-
-                cell.setBackgroundColor(
-                                COLOR_PRIMARY);
-
-                cell.setBorderColor(
-                                COLOR_PRIMARY_DARK);
-
-                table.addCell(cell);
-        }
-
-        /*
-         * ============================================================
-         * SIGN-OFF
-         * ============================================================
-         */
-
-        private void addSignOffSection(
-                        Document document,
-                        ReportPdfData data) throws DocumentException {
-
-                document.add(
-                                createSpacer(12f));
-
-                addSectionTitle(
-                                document,
-                                "REPORT AUTHENTICATION");
-
-                PdfPTable table = new PdfPTable(2);
-
-                table.setWidthPercentage(100);
-
-                table.setWidths(
-                                new float[] {
-                                                50f,
-                                                50f
-                                });
-
-                UserPdfSnapshot createdBy = data.createdBy();
-
-                UserPdfSnapshot finalizedBy = data.finalizedBy();
-
-                addSignOffCell(
-                                table,
-                                "REPORT PREPARED BY",
-                                createdBy,
-                                false,
-                                data.organization());
-
-                addSignOffCell(
-                                table,
-                                "VERIFIED & FINALIZED BY",
-                                finalizedBy,
-                                true,
-                                data.organization());
-
-                document.add(table);
-        }
-
-        private void addSignOffCell(
-                        PdfPTable table,
-                        String heading,
-                        UserPdfSnapshot user,
-                        boolean includeSignature,
-                        OrganizationPdfSnapshot organization) {
-
-                PdfPCell cell = new PdfPCell();
-
-                cell.setPadding(7f);
-                cell.setMinimumHeight(
-                                includeSignature ? 105f : 65f);
-
-                cell.setBorderColor(
-                                COLOR_BORDER);
-
-                Paragraph headingParagraph = new Paragraph(
-                                heading,
-                                FONT_SMALL_BOLD);
-
-                headingParagraph.setSpacingAfter(5f);
-
-                cell.addElement(
-                                headingParagraph);
-
-                if (includeSignature
-                                && !isBlank(
-                                                organization.signatureStorageKey())) {
-
-                        addSignatureImage(
-                                        cell,
-                                        organization.signatureStorageKey());
-                }
-
-                String name = user != null
-                                ? safeText(
-                                                user.name(),
-                                                "-")
-                                : "-";
-
-                Paragraph nameParagraph = new Paragraph(
-                                name,
-                                FONT_TABLE_BOLD);
-
-                nameParagraph.setSpacingBefore(2f);
-
-                cell.addElement(
-                                nameParagraph);
-
-                if (user != null
-                                && !isBlank(user.email())) {
-
-                        Paragraph emailParagraph = new Paragraph(
-                                        user.email(),
-                                        FONT_SMALL);
-
-                        emailParagraph.setSpacingBefore(1f);
-
-                        cell.addElement(
-                                        emailParagraph);
-                }
-
-                /*
-                 * For the finalizer, preserve the organization-level
-                 * signature ownership information captured at finalization.
-                 */
-
-                if (includeSignature
-                                && !isBlank(
-                                                organization.signatureOwnerName())) {
-
-                        Paragraph ownerParagraph = new Paragraph(
-                                        "Authorized Signatory: "
-                                                        + organization.signatureOwnerName(),
-                                        FONT_SMALL);
-
-                        ownerParagraph.setSpacingBefore(3f);
-
-                        cell.addElement(
-                                        ownerParagraph);
-                }
-
-                table.addCell(cell);
-        }
-
-        private void addSignatureImage(
-                        PdfPCell cell,
-                        String signatureStorageKey) {
-
-                if (isBlank(signatureStorageKey)) {
-                        return;
-                }
-
-                try {
-                        if (!fileStorageService.exists(signatureStorageKey)) {
-                                throw new IllegalStateException(
-                                                "Historical signature asset does not exist");
-                        }
-
-                        byte[] signatureBytes = fileStorageService.load(signatureStorageKey);
-
-                        if (signatureBytes == null || signatureBytes.length == 0) {
-                                throw new IllegalStateException(
-                                                "Historical signature asset is empty");
-                        }
-
-                        Image signature = Image.getInstance(signatureBytes);
-
-                        /*
-                         * Keep the signature inside a predictable
-                         * report-signature area.
-                         */
-                        signature.scaleToFit(
-                                        150f,
-                                        45f);
-
-                        signature.setAlignment(
-                                        Element.ALIGN_LEFT);
-
-                        Paragraph imageParagraph = new Paragraph();
-
-                        imageParagraph.setSpacingBefore(1f);
-                        imageParagraph.setSpacingAfter(2f);
-
-                        imageParagraph.add(signature);
-
-                        cell.addElement(
-                                        imageParagraph);
-
-                } catch (Exception exception) {
-
-                        /*
-                         * Do not expose storage keys or PHI.
-                         * Throw a safe application exception so the
-                         * actual storage/image problem is visible during
-                         * development and testing.
-                         */
-                        throw new IllegalStateException(
-                                        "Failed to render organization signature image",
-                                        exception);
-                }
-        }
-        /*
-         * ============================================================
-         * VERIFICATION
-         * ============================================================
-         */
-
-        private void addVerificationSection(
-                        Document document,
-                        ReportPdfData data) throws DocumentException {
-
-                document.add(createSpacer(10f));
-
-                PdfPTable table = new PdfPTable(1);
-
-                table.setWidthPercentage(100);
-
-                PdfPCell cell = new PdfPCell();
-
-                cell.setPadding(8f);
-
-                cell.setBackgroundColor(COLOR_LIGHT_BACKGROUND);
-
-                cell.setBorderColor(COLOR_LIGHT_BORDER);
-
-                Paragraph heading = new Paragraph(
-                                "REPORT VERIFICATION",
-                                FONT_SMALL_BOLD);
-
-                heading.setAlignment(
-                                Element.ALIGN_CENTER);
-
-                cell.addElement(heading);
-
-                if (!isBlank(data.verificationUrl())) {
-
-                        Paragraph url = new Paragraph(
-                                        data.verificationUrl(),
-                                        FONT_SMALL);
-
-                        url.setAlignment(
-                                        Element.ALIGN_CENTER);
-
-                        url.setSpacingBefore(3f);
-
-                        cell.addElement(url);
-                }
-
-                Paragraph notice = new Paragraph(
-                                VERIFICATION_MESSAGE,
-                                FONT_SMALL);
-
-                notice.setAlignment(
-                                Element.ALIGN_CENTER);
-
-                notice.setSpacingBefore(3f);
-
-                cell.addElement(notice);
-
-                if (data.organization() != null
-                                && !isBlank(
-                                                data.organization().reportDisclaimer())) {
-
-                        Paragraph disclaimer = new Paragraph(
-                                        data.organization().reportDisclaimer(),
-                                        FONT_SMALL);
-
-                        disclaimer.setAlignment(
-                                        Element.ALIGN_CENTER);
-
-                        disclaimer.setSpacingBefore(3f);
-
-                        cell.addElement(disclaimer);
-                }
-
-                table.addCell(cell);
-
-                document.add(table);
-        }
-
-        /*
-         * ============================================================
-         * SECTION / SPACING
-         * ============================================================
-         */
-
-        private void addSectionTitle(
-                        Document document,
-                        String title) throws DocumentException {
-
-                Paragraph paragraph = new Paragraph(
-                                title,
-                                FONT_SUBSECTION);
-
-                paragraph.setSpacingBefore(2f);
-                paragraph.setSpacingAfter(5f);
-
-                document.add(paragraph);
-        }
-
-        private void addHorizontalRule(
-                        Document document) throws DocumentException {
-
-                PdfPTable rule = new PdfPTable(1);
-
-                rule.setWidthPercentage(100);
-
-                PdfPCell cell = new PdfPCell(
-                                new Phrase(""));
-
-                cell.setFixedHeight(2f);
-
-                cell.setBorder(
-                                Rectangle.NO_BORDER);
-
-                cell.setBackgroundColor(
-                                COLOR_PRIMARY);
-
-                rule.addCell(cell);
-
-                document.add(rule);
-
-                document.add(
-                                createSpacer(7f));
-        }
-
-        private void addBlankRuleSpacer(
-                        Document document) throws DocumentException {
-
-                PdfPTable rule = new PdfPTable(1);
-
-                rule.setWidthPercentage(100);
-
-                PdfPCell cell = new PdfPCell(
-                                new Phrase(""));
-
-                cell.setFixedHeight(2f);
-
-                cell.setBorder(
-                                Rectangle.NO_BORDER);
-
-                rule.addCell(cell);
-
-                document.add(rule);
-
-                document.add(
-                                createSpacer(7f));
-        }
-
-        private Paragraph createSpacer(
-                        float height) {
-
-                Paragraph spacer = new Paragraph(
-                                " ",
-                                FONT_SMALL);
-
-                spacer.setLeading(height);
-
-                return spacer;
-        }
-
-        /*
-         * ============================================================
-         * PAGE EVENT
-         * ============================================================
-         */
-
-        private static final class ReportPageEvent
-                        extends PdfPageEventHelper {
-
-                private final ReportPdfData data;
-                private final Image qrImage;
-
-                private ReportPageEvent(
-                                ReportPdfData data,
-                                Image qrImage) {
-                        this.data = data;
-                        this.qrImage = qrImage;
-                }
-
-                @Override
-                public void onEndPage(
-                                PdfWriter writer,
-                                Document document) {
-
-                        PdfContentByte canvas = writer.getDirectContent();
-
-                        /*
-                         * Footer separator.
-                         */
-
-                        canvas.setColorStroke(
-                                        COLOR_LIGHT_BORDER);
-
-                        canvas.setLineWidth(
-                                        0.5f);
-
-                        canvas.moveTo(
-                                        document.left(),
-                                        document.bottom() - 8f);
-
-                        canvas.lineTo(
-                                        document.right(),
-                                        document.bottom() - 8f);
-
-                        canvas.stroke();
-
-                        /*
-                         * Verification QR code.
-                         *
-                         * Rendered on every page using direct canvas coordinates.
-                         * Placed in the left footer area below the separator line.
-                         */
-
-                        float qrWidth = 34f;
-                        float qrHeight = 34f;
-                        float qrX = document.left();
-                        float qrY = document.bottom() - 44f;
-
-                        if (qrImage == null) {
-                                throw new IllegalStateException(
-                                                "Verification QR code image is required on every PDF page");
-                        }
-
-                        try {
-                                Image pageQr = Image.getInstance(qrImage);
-                                pageQr.scaleAbsolute(qrWidth, qrHeight);
-                                pageQr.setAbsolutePosition(qrX, qrY);
-                                canvas.addImage(pageQr);
-                        } catch (DocumentException exception) {
-                                throw new IllegalStateException(
-                                                "Failed to render verification QR code on PDF page",
-                                                exception);
-                        }
-
-                        /*
-                         * Left footer.
-                         *
-                         * Positioned to the right of the QR code so there is no overlap.
-                         */
-
-                        String reportId = data != null
-                                        ? safeText(
-                                                        data.reportRefId(),
-                                                        "")
-                                        : "";
-
-                        Phrase leftFooter = new Phrase(
-                                        reportId.isBlank()
-                                                        ? ""
-                                                        : "Report ID: " + reportId,
-                                        FONT_SMALL);
-
-                        ColumnText.showTextAligned(
-                                        canvas,
-                                        Element.ALIGN_LEFT,
-                                        leftFooter,
-                                        document.left() + qrWidth + 6f,
-                                        document.bottom() - 22f,
-                                        0);
-
-                        /*
-                         * Center footer.
-                         *
-                         * Organization-controlled footer only.
-                         * No automatic SwasthAI branding.
-                         */
-
-                        String footerText = data != null
-                                        && data.organization() != null
-                                                        ? safeText(
-                                                                        data.organization()
-                                                                                        .reportFooterText(),
-                                                                        "")
-                                                        : "";
-
-                        if (!footerText.isBlank()) {
-
-                                Phrase centerFooter = new Phrase(
-                                                footerText,
-                                                FONT_SMALL);
-
-                                ColumnText.showTextAligned(
-                                                canvas,
-                                                Element.ALIGN_CENTER,
-                                                centerFooter,
-                                                (document.left()
-                                                                + document.right()) / 2f,
-                                                document.bottom() - 22f,
-                                                0);
-                        }
-
-                        /*
-                         * Right footer.
-                         */
-
-                        Phrase pagePhrase = new Phrase(
-                                        "Page "
-                                                        + writer.getPageNumber(),
-                                        FONT_SMALL);
-
-                        ColumnText.showTextAligned(
-                                        canvas,
-                                        Element.ALIGN_RIGHT,
-                                        pagePhrase,
-                                        document.right(),
-                                        document.bottom() - 22f,
-                                        0);
-                }
-        }
-
-        /*
-         * ============================================================
-         * FORMATTING
-         * ============================================================
-         */
-
-        private String formatPatientName(
-                        PatientPdfSnapshot patient) {
-
-                String salutation = safeText(
-                                patient.salutation(),
-                                "");
-
-                String name = safeText(
-                                patient.name(),
-                                "-");
-
-                if (salutation.isBlank()) {
-                        return name;
-                }
-
-                return salutation + " " + name;
-        }
-
-        private String formatAgeGender(
-                        PatientPdfSnapshot patient) {
-
-                String age = "-";
-
-                if (patient.ageValue() != null) {
-
-                        String unit = safeText(
-                                        patient.ageUnit(),
-                                        "");
-
-                        age = patient.ageValue()
-                                        + (unit.isBlank()
-                                                        ? ""
-                                                        : " " + unit);
-                }
-
-                String gender = safeText(
-                                patient.gender(),
-                                "-");
-
-                return age + " / " + gender;
-        }
-
-        private String formatDateOfBirth(
-                        PatientPdfSnapshot patient) {
-
-                if (Boolean.TRUE.equals(
-                                patient.dateOfBirthKnown())) {
-
-                        if (patient.dateOfBirth() != null) {
-
-                                return patient.dateOfBirth()
-                                                .format(
-                                                                DATE_FORMATTER);
-                        }
-
-                        return "-";
-                }
-
-                return "Not provided";
-        }
-
-        private String formatWeight(
-                        PatientPdfSnapshot patient) {
-
-                if (patient.weightKg() == null) {
-                        return "-";
-                }
-
-                return formatDecimal(
-                                patient.weightKg()) + " kg";
-        }
-
-        private String formatInstant(
-                        Instant instant) {
-
-                if (instant == null) {
-                        return "-";
-                }
-
-                return DATE_TIME_FORMATTER.format(
-                                instant);
-        }
-
-        private String formatResult(
-                        ParameterPdfItem parameter) {
-
-                /*
-                 * Backend result string is authoritative.
-                 */
-
-                if (!isBlank(parameter.value())) {
-                        return parameter.value();
-                }
-
-                /*
-                 * Numeric fallback is only used if the display value
-                 * itself is unavailable.
-                 */
-
-                if (parameter.numericValue() != null) {
-
-                        return formatDecimal(
-                                        parameter.numericValue());
-                }
-
-                return "-";
-        }
-
-        private String formatReferenceRange(
-                        ParameterPdfItem parameter) {
-
-                BigDecimal min = parameter.referenceMin();
-
-                BigDecimal max = parameter.referenceMax();
-
-                if (min != null && max != null) {
-
-                        return formatDecimal(min)
-                                        + " - "
-                                        + formatDecimal(max);
-                }
-
-                if (min != null) {
-
-                        return ">= "
-                                        + formatDecimal(min);
-                }
-
-                if (max != null) {
-
-                        return "<= "
-                                        + formatDecimal(max);
-                }
-
-                return "-";
-        }
-
-        private String formatFlag(
-                        ResultFlag flag) {
-
-                if (flag == null) {
-                        return "-";
-                }
-
-                return switch (flag) {
-
-                        case NORMAL ->
-                                "NORMAL";
-
-                        case LOW ->
-                                "LOW";
-
-                        case HIGH ->
-                                "HIGH";
-
-                        case CRITICAL_LOW ->
-                                "CRITICAL LOW";
-
-                        case CRITICAL_HIGH ->
-                                "CRITICAL HIGH";
-                };
-        }
-
-        private Font getFlagFont(
-                        ResultFlag flag) {
-
-                if (flag == null) {
-                        return FONT_TABLE;
-                }
-
-                return switch (flag) {
-
-                        case NORMAL ->
-                                FONT_NORMAL_FLAG;
-
-                        case LOW, HIGH ->
-                                FONT_ABNORMAL_FLAG;
-
-                        case CRITICAL_LOW, CRITICAL_HIGH ->
-                                FONT_CRITICAL_FLAG;
-                };
-        }
-
-        private Font getResultFont(
-                        ResultFlag flag) {
-
-                if (flag == null
-                                || flag == ResultFlag.NORMAL) {
-
-                        return FONT_TABLE;
-                }
-
-                return FONT_TABLE_BOLD;
-        }
-
-        private String formatDecimal(
-                        BigDecimal value) {
-
-                if (value == null) {
-                        return "-";
-                }
-
-                return value
-                                .stripTrailingZeros()
-                                .toPlainString();
-        }
-
-        /*
-         * ============================================================
-         * TEXT HELPERS
-         * ============================================================
-         */
-
-        private void appendText(
-                        StringBuilder builder,
-                        String value) {
-
-                if (isBlank(value)) {
-                        return;
-                }
-
-                if (!builder.isEmpty()) {
-                        builder.append(", ");
-                }
-
-                builder.append(
-                                value.trim());
-        }
-
-        private void appendSeparator(
-                        StringBuilder builder) {
-
-                if (!builder.isEmpty()) {
-                        builder.append(" | ");
-                }
-        }
-
-        private static String safeText(
-                        String value,
-                        String fallback) {
-
-                if (value == null
-                                || value.isBlank()) {
-
-                        return fallback;
-                }
-
-                return value.trim();
-        }
-
-        private boolean isBlank(
-                        String value) {
-
-                return value == null
-                                || value.isBlank();
-        }
-
+        return builder.toString();
+    }
+
+    private void appendText(StringBuilder builder, String value) {
+        if (isBlank(value)) return;
+        if (!builder.isEmpty()) builder.append(", ");
+        builder.append(value.trim());
+    }
+
+    private static String safeText(String value, String fallback) {
+        return (value == null || value.isBlank()) ? fallback : value.trim();
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
 }

@@ -30,6 +30,7 @@ import com.swasthai.report_generator.report.entity.ReportTestResult;
 import com.swasthai.report_generator.report.pdf.PdfRenderer;
 import com.swasthai.report_generator.report.pdf.ReportPdfData;
 import com.swasthai.report_generator.report.pdf.ReportPdfDataBuilder;
+import com.swasthai.report_generator.report.pdf.VerificationQrCodeGenerator;
 import com.swasthai.report_generator.report.repository.ReportRepository;
 import com.swasthai.report_generator.report.repository.ReportTestResultRepository;
 import com.swasthai.report_generator.report.service.ReportDeletionBatchExecutor;
@@ -131,6 +132,8 @@ public class ReportServiceImpl implements ReportService {
     private final ReportPdfDataBuilder reportPdfDataBuilder;
 
     private final PdfRenderer pdfRenderer;
+
+    private final VerificationQrCodeGenerator verificationQrCodeGenerator;
 
 
     // ============================================================
@@ -407,6 +410,128 @@ public class ReportServiceImpl implements ReportService {
         return mapToResponse(saved);
     }
 
+    // ============================================================
+    // 4b. ADD TESTS BULK
+    // ============================================================
+
+    @Override
+    @Transactional
+    public ReportResponse addTestsBulk(
+            String reportRefId,
+            com.swasthai.report_generator.report.dto.request.AddReportTestsBulkRequest request) {
+
+        if (request == null || request.testRefIds() == null || request.testRefIds().isEmpty()) {
+            throw new IllegalArgumentException("At least one test reference ID is required");
+        }
+
+        User currentUser = getCurrentUser();
+        Report report = findAuthorizedReport(reportRefId, currentUser);
+
+        licenseGuard.requireActiveLicenseForOrganization(report.getOrganization().getId());
+        validateDraftStatus(report);
+        verifyLockVersion(report, request.lockVersion());
+
+        int currentOrder = report.getTests()
+                .stream()
+                .mapToInt(t -> t.getDisplayOrder() == null ? 0 : t.getDisplayOrder())
+                .max()
+                .orElse(0);
+
+        for (String rawTestRefId : request.testRefIds()) {
+            if (rawTestRefId == null || rawTestRefId.isBlank()) {
+                continue;
+            }
+            String testRefId = rawTestRefId.trim();
+
+            validateTestAssignment(testRefId, currentUser);
+
+            Test test = testRepository.findByRefId(testRefId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Test not found: " + testRefId));
+
+            if (test.getStatus() != TestStatus.ACTIVE) {
+                throw new IllegalArgumentException("Test is not active: " + testRefId);
+            }
+
+            boolean alreadyExists = report.getTests().stream()
+                    .anyMatch(rt -> rt.getTest() != null && rt.getTest().getId().equals(test.getId()));
+
+            if (alreadyExists) {
+                continue;
+            }
+
+            currentOrder++;
+            ReportTestResult reportTest = ReportTestResult.builder()
+                    .report(report)
+                    .test(test)
+                    .displayOrder(currentOrder)
+                    .testVersion(test.getVersion())
+                    .testCode(test.getCode())
+                    .testName(test.getName())
+                    .testShortName(test.getShortName())
+                    .sampleType(test.getSampleType() != null ? test.getSampleType().name() : null)
+                    .customSampleType(test.getCustomSampleType())
+                    .specimenContainer(test.getSpecimenContainer())
+                    .reportSection(test.getReportSection())
+                    .build();
+
+            List<TestParameter> activeParams = testParameterRepository
+                    .findAllByTest_IdAndStatusOrderByDisplayOrderAsc(test.getId(), TestParameterStatus.ACTIVE);
+
+            for (TestParameter param : activeParams) {
+                CalculationType calculationType = param.getCalculationType() == null ? CalculationType.NONE : param.getCalculationType();
+                String calculationVersion = param.getInputType() == ParameterInputType.CALCULATED ? calculationType.name() + ":v1" : null;
+
+                TestParameterResult paramResult = TestParameterResult.builder()
+                        .testParameter(param)
+                        .reportTestResult(reportTest)
+                        .parameterCode(param.getCode())
+                        .parameterName(param.getName())
+                        .dataType(param.getDataType())
+                        .inputType(param.getInputType())
+                        .calculationType(calculationType)
+                        .calculationVersion(calculationVersion)
+                        .unit(param.getUnit())
+                        .referenceMin(param.getReferenceMin())
+                        .referenceMax(param.getReferenceMax())
+                        .criticalLow(param.getCriticalLow())
+                        .criticalHigh(param.getCriticalHigh())
+                        .displayOrder(param.getDisplayOrder())
+                        .build();
+
+                reportTest.addParameterResult(paramResult);
+            }
+
+            report.addTest(reportTest);
+        }
+
+        Report saved = reportRepository.save(report);
+        return mapToResponse(saved);
+    }
+
+    // ============================================================
+    // 4c. RECALCULATE ALL TESTS IN REPORT
+    // ============================================================
+
+    @Override
+    @Transactional
+    public ReportResponse recalculateReport(String reportRefId) {
+        User currentUser = getCurrentUser();
+        Report report = findAuthorizedReport(reportRefId, currentUser);
+
+        licenseGuard.requireActiveLicenseForOrganization(report.getOrganization().getId());
+        validateDraftStatus(report);
+
+        if (report.getTests() != null) {
+            for (ReportTestResult reportTest : report.getTests()) {
+                if (reportTest != null) {
+                    executeCalculationsForTest(reportTest);
+                }
+            }
+        }
+
+        Report saved = reportRepository.save(report);
+        return mapToResponse(saved);
+    }
 
     // ============================================================
     // 5. REMOVE TEST
@@ -2179,6 +2304,28 @@ public class ReportServiceImpl implements ReportService {
                                 report.getIncludeOrganizationHeader()
                         )
                 )
+                .patientName(report.getPatientName())
+                .patientSalutation(report.getPatientSalutation())
+                .patientCode(report.getPatientCode())
+                .patientGender(report.getPatientGender())
+                .patientAgeAtReportingValue(report.getPatientAgeAtReportingValue())
+                .patientAgeAtReportingUnit(report.getPatientAgeAtReportingUnit())
+                .patientPhone(report.getPatientPhone())
+                .createdByName(report.getCreatedByName())
+                .finalizedByName(report.getFinalizedByName())
+                .organizationAddressLine1(report.getOrganizationAddressLine1())
+                .organizationAddressLine2(report.getOrganizationAddressLine2())
+                .organizationCity(report.getOrganizationCity())
+                .organizationState(report.getOrganizationState())
+                .organizationPostalCode(report.getOrganizationPostalCode())
+                .organizationCountry(report.getOrganizationCountry())
+                .organizationPhone(report.getOrganizationPhone())
+                .organizationAlternatePhone(report.getOrganizationAlternatePhone())
+                .organizationEmail(report.getOrganizationEmail())
+                .organizationWebsite(report.getOrganizationWebsite())
+                .organizationSignatureOwnerName(report.getOrganizationSignatureOwnerName())
+                .organizationReportFooterText(report.getOrganizationReportFooterText())
+                .organizationReportDisclaimer(report.getOrganizationReportDisclaimer())
                 .build();
     }
 
@@ -2656,6 +2803,10 @@ public class ReportServiceImpl implements ReportService {
                     "Report creation timestamp is missing");
         }
 
+        if (retentionProperties.getDeleteAfterDays() <= 0) {
+            return;
+        }
+
         Instant cutoff =
                 Instant.now()
                         .minus(
@@ -2734,5 +2885,20 @@ public class ReportServiceImpl implements ReportService {
          */
         return reportPdfDataBuilder.build(
                 report);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] getReportQrPngBytes(String reportRefId) {
+        String normalizedRefId = normalizeReportRefId(reportRefId);
+        User currentUser = getCurrentUser();
+        Report report = findAuthorizedReport(normalizedRefId, currentUser);
+
+        if (report.getStatus() != ReportStatus.FINALIZED) {
+            throw new IllegalStateException("Verification QR code is only available for finalized reports");
+        }
+
+        String verificationUrl = "https://verify.swasthai.com/reports/" + report.getRefId().trim();
+        return verificationQrCodeGenerator.generatePngBytes(verificationUrl);
     }
 }

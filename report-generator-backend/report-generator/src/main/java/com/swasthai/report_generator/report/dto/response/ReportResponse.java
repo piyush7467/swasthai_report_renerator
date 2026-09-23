@@ -25,6 +25,34 @@ public record ReportResponse(
         Instant createdAt,
         Instant updatedAt,
         List<ReportTestItemResponse> tests,
-        Boolean includeOrganizationHeader
+        Boolean includeOrganizationHeader,
+
+        // Patient Snapshot Fields
+        String patientName,
+        String patientSalutation,
+        String patientCode,
+        String patientGender,
+        Integer patientAgeAtReportingValue,
+        String patientAgeAtReportingUnit,
+        String patientPhone,
+
+        // Creator & Finalizer Snapshot
+        String createdByName,
+        String finalizedByName,
+
+        // Organization Snapshot Fields
+        String organizationAddressLine1,
+        String organizationAddressLine2,
+        String organizationCity,
+        String organizationState,
+        String organizationPostalCode,
+        String organizationCountry,
+        String organizationPhone,
+        String organizationAlternatePhone,
+        String organizationEmail,
+        String organizationWebsite,
+        String organizationSignatureOwnerName,
+        String organizationReportFooterText,
+        String organizationReportDisclaimer
 ) {
 }

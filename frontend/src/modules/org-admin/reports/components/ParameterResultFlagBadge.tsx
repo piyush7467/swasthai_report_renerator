@@ -17,45 +17,45 @@ export function ParameterResultFlagBadge({
       return (
         <Badge
           variant="outline"
-          className={`border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px] font-semibold px-1.5 py-0 ${className}`}
+          className={`border-emerald-200 bg-emerald-50/80 text-emerald-700 text-[11px] font-semibold px-2 py-0.5 rounded-md uppercase tracking-wider inline-flex items-center justify-center ${className}`}
         >
-          Normal
+          NORMAL
         </Badge>
       );
     case "LOW":
       return (
         <Badge
           variant="outline"
-          className={`border-amber-300 bg-amber-50 text-amber-800 text-[10px] font-semibold px-1.5 py-0 ${className}`}
+          className={`border-amber-200 bg-amber-50/90 text-amber-700 text-[11px] font-semibold px-2 py-0.5 rounded-md uppercase tracking-wider inline-flex items-center justify-center ${className}`}
         >
-          Low
+          LOW
         </Badge>
       );
     case "HIGH":
       return (
         <Badge
           variant="outline"
-          className={`border-orange-300 bg-orange-50 text-orange-800 text-[10px] font-semibold px-1.5 py-0 ${className}`}
+          className={`border-rose-200 bg-rose-50/90 text-rose-700 text-[11px] font-semibold px-2 py-0.5 rounded-md uppercase tracking-wider inline-flex items-center justify-center ${className}`}
         >
-          High
+          HIGH
         </Badge>
       );
     case "CRITICAL_LOW":
       return (
         <Badge
-          variant="destructive"
-          className={`bg-rose-600 text-white text-[10px] font-bold px-1.5 py-0 uppercase tracking-wide animate-pulse ${className}`}
+          variant="outline"
+          className={`border-red-300 bg-red-100/80 text-red-800 text-[11px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider inline-flex items-center justify-center ${className}`}
         >
-          Crit. Low
+          CRITICAL LOW
         </Badge>
       );
     case "CRITICAL_HIGH":
       return (
         <Badge
-          variant="destructive"
-          className={`bg-rose-600 text-white text-[10px] font-bold px-1.5 py-0 uppercase tracking-wide animate-pulse ${className}`}
+          variant="outline"
+          className={`border-red-300 bg-red-100/80 text-red-800 text-[11px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider inline-flex items-center justify-center ${className}`}
         >
-          Crit. High
+          CRITICAL HIGH
         </Badge>
       );
     default:

@@ -63,6 +63,34 @@ export interface ReportResponse {
   updatedAt: string;
   tests: ReportTestItemResponse[];
   includeOrganizationHeader: boolean;
+
+  // Patient Snapshot
+  patientName?: string | null;
+  patientSalutation?: string | null;
+  patientCode?: string | null;
+  patientGender?: string | null;
+  patientAgeAtReportingValue?: number | null;
+  patientAgeAtReportingUnit?: string | null;
+  patientPhone?: string | null;
+
+  // Creator & Finalizer
+  createdByName?: string | null;
+  finalizedByName?: string | null;
+
+  // Organization Snapshot
+  organizationAddressLine1?: string | null;
+  organizationAddressLine2?: string | null;
+  organizationCity?: string | null;
+  organizationState?: string | null;
+  organizationPostalCode?: string | null;
+  organizationCountry?: string | null;
+  organizationPhone?: string | null;
+  organizationAlternatePhone?: string | null;
+  organizationEmail?: string | null;
+  organizationWebsite?: string | null;
+  organizationSignatureOwnerName?: string | null;
+  organizationReportFooterText?: string | null;
+  organizationReportDisclaimer?: string | null;
 }
 
 export interface CreateReportRequest {
@@ -72,6 +100,11 @@ export interface CreateReportRequest {
 
 export interface AddReportTestRequest {
   testRefId: string;
+  lockVersion?: number;
+}
+
+export interface AddReportTestsBulkRequest {
+  testRefIds: string[];
   lockVersion?: number;
 }
 

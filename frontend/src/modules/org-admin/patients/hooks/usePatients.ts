@@ -1,6 +1,13 @@
-import { useQuery, type UseQueryResult } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseMutationResult,
+  type UseQueryResult,
+} from "@tanstack/react-query";
 import { patientApi } from "../api/patientApi";
 import type {
+  CreatePatientRequest,
   PagedPatientsResponse,
   PatientQueryParams,
   PatientResponse,
@@ -31,3 +38,24 @@ export function usePatientQuery(
     enabled: Boolean(patientRefId),
   });
 }
+
+export function useCreatePatientMutation(): UseMutationResult<
+  PatientResponse,
+  Error,
+  CreatePatientRequest
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (request: CreatePatientRequest) =>
+      patientApi.createPatient(request),
+    onSuccess: (newPatient) => {
+      queryClient.setQueryData(
+        PATIENT_QUERY_KEYS.detail(newPatient.refId),
+        newPatient,
+      );
+      void queryClient.invalidateQueries({ queryKey: PATIENT_QUERY_KEYS.all });
+    },
+  });
+}
+

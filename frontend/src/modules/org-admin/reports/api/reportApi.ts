@@ -3,6 +3,7 @@ import type { ApiResponse } from "@/core/auth/authTypes";
 import type { SpringPage } from "@/modules/super-admin/tests/types/testTypes";
 import type {
   AddReportTestRequest,
+  AddReportTestsBulkRequest,
   CreateReportRequest,
   DeleteReportResponse,
   ReorderReportTestsRequest,
@@ -57,6 +58,24 @@ export const reportApi = {
     const response = await apiClient.post<ApiResponse<ReportResponse>>(
       `/reports/${encodeURIComponent(reportRefId)}/tests`,
       request,
+    );
+    return response.data.data;
+  },
+
+  async addTestsBulk(
+    reportRefId: string,
+    request: AddReportTestsBulkRequest,
+  ): Promise<ReportResponse> {
+    const response = await apiClient.post<ApiResponse<ReportResponse>>(
+      `/reports/${encodeURIComponent(reportRefId)}/tests/bulk`,
+      request,
+    );
+    return response.data.data;
+  },
+
+  async recalculateReport(reportRefId: string): Promise<ReportResponse> {
+    const response = await apiClient.post<ApiResponse<ReportResponse>>(
+      `/reports/${encodeURIComponent(reportRefId)}/recalculate`,
     );
     return response.data.data;
   },
@@ -126,6 +145,16 @@ export const reportApi = {
   async downloadReportPdf(reportRefId: string): Promise<Blob> {
     const response = await apiClient.get<Blob>(
       `/reports/${encodeURIComponent(reportRefId)}/pdf`,
+      {
+        responseType: "blob",
+      },
+    );
+    return response.data;
+  },
+
+  async getReportQrBlob(reportRefId: string): Promise<Blob> {
+    const response = await apiClient.get<Blob>(
+      `/reports/${encodeURIComponent(reportRefId)}/qr`,
       {
         responseType: "blob",
       },

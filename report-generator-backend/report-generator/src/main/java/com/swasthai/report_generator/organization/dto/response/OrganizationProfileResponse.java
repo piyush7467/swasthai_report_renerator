@@ -39,6 +39,10 @@ public class OrganizationProfileResponse {
 
     private String signatureOwnerRefId;
 
+    private String signatureOwnerName;
+
+    private String signatureOwnerEmail;
+
     private String reportFooterText;
 
     private String reportDisclaimer;

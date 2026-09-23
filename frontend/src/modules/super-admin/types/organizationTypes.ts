@@ -65,6 +65,8 @@ export interface OrganizationProfileResponse {
   logoConfigured: boolean;
   signatureConfigured: boolean;
   signatureOwnerRefId?: string | null;
+  signatureOwnerName?: string | null;
+  signatureOwnerEmail?: string | null;
   reportFooterText?: string | null;
   reportDisclaimer?: string | null;
   version?: number | null;

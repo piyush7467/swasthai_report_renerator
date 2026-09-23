@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import {
   Building2,
   FileCheck2,
@@ -102,53 +103,59 @@ export function LabStaffDashboard() {
 
       {/* Laboratory Quick Actions Overview */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card className="border-slate-200 bg-white">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-slate-600">
-                Patient Registration
-              </CardTitle>
-              <UserPlus className="h-4 w-4 text-emerald-600" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-slate-600">
-              Register new patients, search existing records, and update demographics.
-            </p>
-          </CardContent>
-        </Card>
+        <Link to="/lab-staff/reports/new" className="block group">
+          <Card className="border-slate-200 bg-white h-full group-hover:border-blue-400 group-hover:shadow-xs transition-all">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors">
+                  Patient & Report Wizard
+                </CardTitle>
+                <UserPlus className="h-4 w-4 text-emerald-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-slate-600">
+                Register new patients, search existing records, and initialize 5-step report.
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className="border-slate-200 bg-white">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-slate-600">
-                Create Draft Report
-              </CardTitle>
-              <FilePlus className="h-4 w-4 text-emerald-600" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-slate-600">
-              Select patient, add ordered tests, and prepare draft report structure.
-            </p>
-          </CardContent>
-        </Card>
+        <Link to="/lab-staff/reports/new" className="block group">
+          <Card className="border-slate-200 bg-white h-full group-hover:border-blue-400 group-hover:shadow-xs transition-all">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors">
+                  Create Draft Report
+                </CardTitle>
+                <FilePlus className="h-4 w-4 text-emerald-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-slate-600">
+                Select patient, add ordered tests, and prepare draft report structure.
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className="border-slate-200 bg-white">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-slate-600">
-                Report Finalization
-              </CardTitle>
-              <FileCheck2 className="h-4 w-4 text-emerald-600" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-slate-600">
-              Review completed test parameters, finalize results, and generate tamper-evident PDFs.
-            </p>
-          </CardContent>
-        </Card>
+        <Link to="/lab-staff/reports" className="block group">
+          <Card className="border-slate-200 bg-white h-full group-hover:border-blue-400 group-hover:shadow-xs transition-all">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors">
+                  Report Management
+                </CardTitle>
+                <FileCheck2 className="h-4 w-4 text-emerald-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-slate-600">
+                Review completed test parameters, finalize results, and generate tamper-evident PDFs.
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
     </div>
   );

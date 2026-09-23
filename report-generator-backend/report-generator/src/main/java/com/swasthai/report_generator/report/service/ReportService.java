@@ -23,6 +23,10 @@ public interface ReportService {
 
     ReportResponse addTest(String reportRefId, AddReportTestRequest request);
 
+    ReportResponse addTestsBulk(String reportRefId, com.swasthai.report_generator.report.dto.request.AddReportTestsBulkRequest request);
+
+    ReportResponse recalculateReport(String reportRefId);
+
     ReportResponse removeTest(String reportRefId, String reportTestRefId);
 
     ReportResponse updateParameterValues(
@@ -54,4 +58,6 @@ public interface ReportService {
     byte[] generateReportPdf(String reportRefId);
 
     com.swasthai.report_generator.report.pdf.ReportPdfData getReportPdfData(String reportRefId);
+
+    byte[] getReportQrPngBytes(String reportRefId);
 }

@@ -239,6 +239,10 @@ export function AppRouter() {
                 element={<ReportsListPage />}
               />
               <Route
+                path="/org-admin/reports/new"
+                element={<ReportWorkspacePage />}
+              />
+              <Route
                 path="/org-admin/reports/:reportRefId"
                 element={<ReportWorkspacePage />}
               />
@@ -255,6 +259,18 @@ export function AppRouter() {
               <Route
                 path="/lab-staff"
                 element={<LabStaffDashboard />}
+              />
+              <Route
+                path="/lab-staff/reports"
+                element={<ReportsListPage />}
+              />
+              <Route
+                path="/lab-staff/reports/new"
+                element={<ReportWorkspacePage />}
+              />
+              <Route
+                path="/lab-staff/reports/:reportRefId"
+                element={<ReportWorkspacePage />}
               />
             </Route>
 

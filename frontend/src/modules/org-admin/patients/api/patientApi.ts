@@ -1,12 +1,21 @@
 import { apiClient } from "@/core/api/apiClient";
 import type { ApiResponse } from "@/core/auth/authTypes";
 import type {
+  CreatePatientRequest,
   PagedPatientsResponse,
   PatientQueryParams,
   PatientResponse,
 } from "../types/patientTypes";
 
 export const patientApi = {
+  async createPatient(request: CreatePatientRequest): Promise<PatientResponse> {
+    const response = await apiClient.post<ApiResponse<PatientResponse>>(
+      "/patients",
+      request,
+    );
+    return response.data.data;
+  },
+
   async getPatients(
     params: PatientQueryParams = {},
   ): Promise<PagedPatientsResponse> {
