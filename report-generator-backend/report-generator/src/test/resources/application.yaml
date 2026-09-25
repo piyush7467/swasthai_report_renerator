@@ -58,3 +58,11 @@ license:
 storage:
   root-path: ${STORAGE_ROOT_PATH:E:/swasthai-storage/report-generator}
   max-image-size-bytes: 5242880
+
+staff:
+  cleanup:
+    enabled: false
+    cron: "0 0 2 * * *"
+    time-zone: Asia/Kolkata
+    retention-days: 10
+    batch-size: 50

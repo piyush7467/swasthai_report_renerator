@@ -18,4 +18,27 @@ public interface AuditLogService {
             String failureReason,
             String ipAddress
     );
+
+    SecurityAuditLog recordStaffAction(
+            User actor,
+            Organization organization,
+            User targetStaff,
+            String action,
+            String justification,
+            boolean success,
+            String failureReason,
+            String ipAddress
+    );
+
+    SecurityAuditLog recordUpgradeRequestAction(
+            User actor,
+            Organization organization,
+            String upgradeRequestRefId,
+            String action,
+            String justification,
+            boolean success,
+            String failureReason,
+            String ipAddress
+    );
 }
+

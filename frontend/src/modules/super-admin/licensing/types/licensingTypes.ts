@@ -7,6 +7,9 @@ export interface PlanResponse {
   description?: string | null;
   annualPrice: number;
   currency: string;
+  maxLabStaff: number;
+  maxReportsPerMonth: number;
+  maxReportsPerDay: number;
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -18,6 +21,9 @@ export interface CreatePlanRequest {
   description?: string;
   annualPrice: number;
   currency: string;
+  maxLabStaff?: number;
+  maxReportsPerMonth?: number;
+  maxReportsPerDay?: number;
   active?: boolean;
 }
 
@@ -26,6 +32,9 @@ export interface UpdatePlanRequest {
   description?: string;
   annualPrice: number;
   currency: string;
+  maxLabStaff?: number;
+  maxReportsPerMonth?: number;
+  maxReportsPerDay?: number;
   active: boolean;
 }
 
@@ -35,6 +44,9 @@ export interface LicenseResponse {
   planRefId: string;
   planCode: string;
   planName: string;
+  maxLabStaff?: number;
+  maxReportsPerMonth?: number;
+  maxReportsPerDay?: number;
   status: LicenseStatus;
   startedAt: string;
   expiresAt: string;
@@ -113,4 +125,52 @@ export function getLicenseExpiryInfo(
     label,
     percentElapsed,
   };
+}
+
+export type UpgradeRequestStatus =
+  | "PENDING"
+  | "CONTACTED"
+  | "APPROVED"
+  | "REJECTED"
+  | "CANCELLED";
+
+export interface PlanUpgradeRequestResponse {
+  refId: string;
+  organizationRefId: string;
+  organizationName: string;
+  requestedByEmail: string;
+  currentPlanRefId: string;
+  currentPlanName: string;
+  requestedPlanRefId: string;
+  requestedPlanName: string;
+  currentActiveStaffCount: number;
+  requestedStaffCapacity: number;
+  reason?: string | null;
+  contactName: string;
+  contactEmail: string;
+  contactPhone?: string | null;
+  additionalMessage?: string | null;
+  status: UpgradeRequestStatus;
+  reviewedByEmail?: string | null;
+  reviewedByName?: string | null;
+  reviewedAt?: string | null;
+  adminNotes?: string | null;
+  rejectionReason?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateUpgradeRequestStatusRequest {
+  status: "CONTACTED" | "APPROVED" | "REJECTED";
+  adminNotes?: string;
+  rejectionReason?: string;
+}
+
+export interface PaginatedUpgradeRequestsResponse {
+  content: PlanUpgradeRequestResponse[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
 }

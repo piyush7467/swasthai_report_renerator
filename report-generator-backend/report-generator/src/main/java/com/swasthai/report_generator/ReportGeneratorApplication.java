@@ -12,6 +12,7 @@ import com.swasthai.report_generator.security.jwt.JwtProperties;
 
 import com.swasthai.report_generator.report.config.ReportVerificationRateLimitProperties;
 import com.swasthai.report_generator.storage.StorageProperties;
+import com.swasthai.report_generator.user.config.StaffCleanupProperties;
 
 @SpringBootApplication
 @EnableScheduling
@@ -21,7 +22,8 @@ import com.swasthai.report_generator.storage.StorageProperties;
 		LicenseProperties.class,
 		AuthRateLimitProperties.class,
 		StorageProperties.class,
-		ReportVerificationRateLimitProperties.class
+		ReportVerificationRateLimitProperties.class,
+		StaffCleanupProperties.class
 })
 public class ReportGeneratorApplication {
 

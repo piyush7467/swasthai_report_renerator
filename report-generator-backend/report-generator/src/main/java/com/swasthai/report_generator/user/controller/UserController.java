@@ -15,12 +15,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.swasthai.report_generator.user.service.LabStaffService;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
+    private final LabStaffService labStaffService;
 
     // ============================================================
     // CREATE
@@ -148,6 +152,27 @@ public class UserController {
                 ApiResponse.<UserResponse>builder()
                         .success(true)
                         .message("User status updated successfully.")
+                        .data(response)
+                        .build();
+
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    // ============================================================
+    // DEACTIVATE (STAFF)
+    // ============================================================
+
+    @PatchMapping("/{refId}/deactivate")
+    @PreAuthorize("hasRole('ORG_ADMIN')")
+    public ResponseEntity<ApiResponse<UserResponse>> deactivateStaff(
+            @PathVariable String refId
+    ) {
+        UserResponse response = labStaffService.deactivateLabStaff(refId);
+
+        ApiResponse<UserResponse> apiResponse =
+                ApiResponse.<UserResponse>builder()
+                        .success(true)
+                        .message("Staff account deactivated successfully.")
                         .data(response)
                         .build();
 

@@ -26,6 +26,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 
@@ -943,6 +944,11 @@ public class UserServiceImpl implements UserService {
             User user
     ) {
 
+        Instant inactiveAt = user.getInactiveAt();
+        Instant eligibleForCleanupAt = inactiveAt != null ? inactiveAt.plus(10, java.time.temporal.ChronoUnit.DAYS) : null;
+        Boolean cleanupEligible = eligibleForCleanupAt != null && Instant.now().isAfter(eligibleForCleanupAt);
+        String deactivatedByName = user.getDeactivatedBy() != null ? user.getDeactivatedBy().getName() : null;
+
         return UserResponse.builder()
                 .refId(user.getRefId())
                 .name(user.getName())
@@ -955,6 +961,10 @@ public class UserServiceImpl implements UserService {
                                 : null
                 )
                 .lastLoginAt(user.getLastLoginAt())
+                .inactiveAt(inactiveAt)
+                .eligibleForCleanupAt(eligibleForCleanupAt)
+                .cleanupEligible(cleanupEligible)
+                .deactivatedByName(deactivatedByName)
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();

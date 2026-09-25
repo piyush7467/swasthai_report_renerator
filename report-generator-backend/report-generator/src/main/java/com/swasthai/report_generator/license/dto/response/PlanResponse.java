@@ -17,6 +17,12 @@ public record PlanResponse(
 
         String currency,
 
+        Integer maxLabStaff,
+
+        Integer maxReportsPerMonth,
+
+        Integer maxReportsPerDay,
+
         boolean active,
 
         Instant createdAt,

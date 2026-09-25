@@ -157,4 +157,14 @@ public interface ReportRepository
             @Param("purgeCutoff") Instant purgeCutoff,
             Pageable pageable
     );
+
+    long countByCreatedBy_IdAndDeletedAtIsNull(UUID userId);
+
+    long countByFinalizedBy_IdAndDeletedAtIsNull(UUID userId);
+
+    long countByOrganization_IdAndDeletedAtIsNull(UUID organizationId);
+
+    long countByOrganization_IdAndStatusAndDeletedAtIsNull(UUID organizationId, ReportStatus status);
+
+    long countByOrganization_IdAndCreatedAtGreaterThanEqualAndDeletedAtIsNull(UUID organizationId, Instant since);
 }

@@ -25,6 +25,15 @@ public record UpdatePlanRequest(
         )
         String currency,
 
+        @Min(value = 1, message = "maxLabStaff must be at least 1")
+        Integer maxLabStaff,
+
+        @Min(value = 0, message = "maxReportsPerMonth cannot be negative")
+        Integer maxReportsPerMonth,
+
+        @Min(value = 0, message = "maxReportsPerDay cannot be negative")
+        Integer maxReportsPerDay,
+
         @NotNull
         Boolean active
 ) {

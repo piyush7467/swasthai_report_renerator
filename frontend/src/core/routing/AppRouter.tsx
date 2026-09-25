@@ -35,6 +35,7 @@ import PlansPage from "@/modules/super-admin/licensing/pages/PlansPage";
 import CreatePlanPage from "@/modules/super-admin/licensing/pages/CreatePlanPage";
 import EditPlanPage from "@/modules/super-admin/licensing/pages/EditPlanPage";
 import OrganizationLicensesPage from "@/modules/super-admin/licensing/pages/OrganizationLicensesPage";
+import AdminUpgradeRequestsPage from "@/modules/super-admin/licensing/pages/AdminUpgradeRequestsPage";
 import OrganizationLicensePage from "@/modules/super-admin/organizations/OrganizationLicensePage";
 
 import ReportOverviewPage from "@/modules/super-admin/reports/pages/ReportOverviewPage";
@@ -46,6 +47,8 @@ import ReportsListPage from "@/modules/org-admin/reports/pages/ReportsListPage";
 import ReportWorkspacePage from "@/modules/org-admin/reports/pages/ReportWorkspacePage";
 import PatientsListPage from "@/modules/org-admin/patients/pages/PatientsListPage";
 import PatientProfilePage from "@/modules/org-admin/patients/pages/PatientProfilePage";
+import LabStaffPage from "@/modules/org-admin/staff/pages/LabStaffPage";
+import OrgAdminLicensePage from "@/modules/org-admin/licensing/pages/OrganizationLicensePage";
 import SharedReportViewerPage from "@/modules/public/pages/SharedReportViewerPage";
 
 function NotFoundPage() {
@@ -180,6 +183,10 @@ export function AppRouter() {
                 path="/super-admin/licensing/licenses"
                 element={<OrganizationLicensesPage />}
               />
+              <Route
+                path="/super-admin/licensing/upgrade-requests"
+                element={<AdminUpgradeRequestsPage />}
+              />
 
               {/* TEST SYSTEM */}
               <Route
@@ -261,6 +268,18 @@ export function AppRouter() {
               <Route
                 path="/org-admin/reports/:reportRefId"
                 element={<ReportWorkspacePage />}
+              />
+              <Route
+                path="/org-admin/staff"
+                element={<LabStaffPage />}
+              />
+              <Route
+                path="/org-admin/license"
+                element={<OrgAdminLicensePage />}
+              />
+              <Route
+                path="/organization/license"
+                element={<OrgAdminLicensePage />}
               />
             </Route>
 

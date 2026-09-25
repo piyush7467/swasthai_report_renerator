@@ -12,6 +12,7 @@ import com.swasthai.report_generator.license.service.LicenseService;
 import com.swasthai.report_generator.organization.entity.Organization;
 import com.swasthai.report_generator.organization.entity.OrganizationStatus;
 import com.swasthai.report_generator.organization.repository.OrganizationRepository;
+import com.swasthai.report_generator.common.exception.ConflictException;
 import com.swasthai.report_generator.patient.entity.Gender;
 import com.swasthai.report_generator.patient.entity.Patient;
 import com.swasthai.report_generator.patient.entity.Salutation;
@@ -352,5 +353,63 @@ class LicenseSecurityTest {
                 new RenewLicenseRequest(activePlan.getRefId(), "TX-123")
         )).isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining("Only SUPER_ADMIN can manage licenses");
+    }
+
+    @Test
+    @DisplayName("SEC-LIC-002: Monthly report quota blocks creation when exceeded")
+    void testMonthlyReportQuota_BlocksWhenExceeded() {
+        activePlan.setMaxReportsPerMonth(2);
+        activePlan.setMaxReportsPerDay(10);
+        planRepository.saveAndFlush(activePlan);
+
+        auth(licensedStaff);
+
+        // 1st report: success
+        ReportResponse r1 = reportService.createReport(new CreateReportRequest(licensedPatient.getRefId()));
+        assertThat(r1).isNotNull();
+
+        // 2nd report: success
+        ReportResponse r2 = reportService.createReport(new CreateReportRequest(licensedPatient.getRefId()));
+        assertThat(r2).isNotNull();
+
+        // 3rd report: blocked by monthly limit
+        assertThatThrownBy(() -> reportService.createReport(new CreateReportRequest(licensedPatient.getRefId())))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Monthly report generation limit reached for your organization (2 reports max)");
+    }
+
+    @Test
+    @DisplayName("SEC-LIC-003: Daily report quota blocks creation when exceeded")
+    void testDailyReportQuota_BlocksWhenExceeded() {
+        activePlan.setMaxReportsPerMonth(100);
+        activePlan.setMaxReportsPerDay(1);
+        planRepository.saveAndFlush(activePlan);
+
+        auth(licensedStaff);
+
+        // 1st report: success
+        ReportResponse r1 = reportService.createReport(new CreateReportRequest(licensedPatient.getRefId()));
+        assertThat(r1).isNotNull();
+
+        // 2nd report: blocked by daily limit
+        assertThatThrownBy(() -> reportService.createReport(new CreateReportRequest(licensedPatient.getRefId())))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Daily report generation limit reached for your organization (1 reports max)");
+    }
+
+    @Test
+    @DisplayName("SEC-LIC-004: Zero or null quota denotes unlimited report generation")
+    void testUnlimitedReportQuota_AllowsCreation() {
+        activePlan.setMaxReportsPerMonth(0);
+        activePlan.setMaxReportsPerDay(0);
+        planRepository.saveAndFlush(activePlan);
+
+        auth(licensedStaff);
+
+        // Multiple reports allowed when 0 (unlimited)
+        for (int i = 0; i < 5; i++) {
+            ReportResponse r = reportService.createReport(new CreateReportRequest(licensedPatient.getRefId()));
+            assertThat(r).isNotNull();
+        }
     }
 }

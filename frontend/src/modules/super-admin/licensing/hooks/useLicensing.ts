@@ -5,9 +5,13 @@ import type {
   ActivateLicenseRequest,
   CreatePlanRequest,
   LicenseResponse,
+  PaginatedUpgradeRequestsResponse,
   PlanResponse,
+  PlanUpgradeRequestResponse,
   RenewLicenseRequest,
   UpdatePlanRequest,
+  UpdateUpgradeRequestStatusRequest,
+  UpgradeRequestStatus,
 } from "../types/licensingTypes";
 
 export const licensingKeys = {
@@ -15,6 +19,10 @@ export const licensingKeys = {
   planDetail: (refId: string) => ["plans", refId] as const,
   organizationLicense: (orgRefId: string) =>
     ["organizations", orgRefId, "license"] as const,
+  upgradeRequests: (params?: unknown) =>
+    ["admin", "upgrade-requests", params] as const,
+  upgradeRequestDetail: (refId: string) =>
+    ["admin", "upgrade-requests", "detail", refId] as const,
 };
 
 // ============================================================
@@ -170,6 +178,58 @@ export function useReactivateLicenseMutation() {
       });
       void queryClient.invalidateQueries({
         queryKey: ["organizations", organizationRefId],
+      });
+    },
+  });
+}
+
+// ============================================================
+// UPGRADE REQUEST HOOKS (SUPER_ADMIN)
+// ============================================================
+
+export function useAdminUpgradeRequestsQuery(params?: {
+  status?: UpgradeRequestStatus | string;
+  organizationRefId?: string;
+  page?: number;
+  size?: number;
+}) {
+  return useQuery<PaginatedUpgradeRequestsResponse, Error>({
+    queryKey: licensingKeys.upgradeRequests(params),
+    queryFn: () => licensingApi.getUpgradeRequests(params),
+    staleTime: 15 * 1000,
+  });
+}
+
+export function useAdminUpgradeRequestQuery(refId?: string) {
+  return useQuery<PlanUpgradeRequestResponse, Error>({
+    queryKey: licensingKeys.upgradeRequestDetail(refId ?? ""),
+    queryFn: () => licensingApi.getUpgradeRequest(refId!),
+    enabled: Boolean(refId && refId.trim() !== ""),
+    staleTime: 15 * 1000,
+  });
+}
+
+export function useUpdateUpgradeRequestStatusMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    PlanUpgradeRequestResponse,
+    Error,
+    { refId: string; request: UpdateUpgradeRequestStatusRequest }
+  >({
+    mutationFn: ({ refId, request }) =>
+      licensingApi.updateUpgradeRequestStatus(refId, request),
+    onSuccess: (data) => {
+      void queryClient.invalidateQueries({
+        queryKey: ["admin", "upgrade-requests"],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["organizations", data.organizationRefId],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: licensingKeys.organizationLicense(data.organizationRefId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: licensingKeys.allPlans,
       });
     },
   });

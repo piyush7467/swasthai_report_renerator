@@ -81,4 +81,67 @@ public interface UserRepository extends JpaRepository<User, UUID> {
                         Role role,
                         UserStatus status);
 
+        long countByOrganization_IdAndRoleAndStatus(
+                        UUID organizationId,
+                        Role role,
+                        UserStatus status);
+
+        Page<User> findAllByOrganization_IdAndRoleAndStatus(
+                        UUID organizationId,
+                        Role role,
+                        UserStatus status,
+                        Pageable pageable);
+
+        @Query("""
+                        SELECT u
+                        FROM User u
+                        WHERE u.organization.id = :organizationId
+                          AND u.role = :role
+                          AND (
+                               :search IS NULL
+                               OR LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%'))
+                               OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))
+                               OR LOWER(u.refId) LIKE LOWER(CONCAT('%', :search, '%'))
+                          )
+                        """)
+        Page<User> findLabStaffByOrganizationAndSearch(
+                        @Param("organizationId") UUID organizationId,
+                        @Param("role") Role role,
+                        @Param("search") String search,
+                        Pageable pageable);
+
+        @Query("""
+                        SELECT u
+                        FROM User u
+                        WHERE u.organization.id = :organizationId
+                          AND u.role = :role
+                          AND u.status = :status
+                          AND (
+                               :search IS NULL
+                               OR LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%'))
+                               OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))
+                               OR LOWER(u.refId) LIKE LOWER(CONCAT('%', :search, '%'))
+                          )
+                        """)
+        Page<User> findLabStaffByOrganizationAndStatusAndSearch(
+                        @Param("organizationId") UUID organizationId,
+                        @Param("role") Role role,
+                        @Param("status") UserStatus status,
+                        @Param("search") String search,
+                        Pageable pageable);
+
+        @Query("""
+                SELECT u
+                FROM User u
+                WHERE u.role = :role
+                  AND u.status = :status
+                  AND u.inactiveAt IS NOT NULL
+                  AND u.inactiveAt <= :cutoff
+                ORDER BY u.inactiveAt ASC
+                """)
+        org.springframework.data.domain.Slice<User> findEligibleForCleanup(
+                @Param("role") Role role,
+                @Param("status") UserStatus status,
+                @Param("cutoff") java.time.Instant cutoff,
+                Pageable pageable);
 }

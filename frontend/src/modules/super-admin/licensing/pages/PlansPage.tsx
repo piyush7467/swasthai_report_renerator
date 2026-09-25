@@ -5,13 +5,16 @@ import {
   Building2,
   CreditCard,
   Edit,
+  FileText,
   Info,
   MoreVertical,
   Plus,
   RefreshCw,
   Search,
+  Sparkles,
   ToggleLeft,
   ToggleRight,
+  Users,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -122,6 +125,18 @@ export function PlansPage() {
           </Button>
 
           <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="text-slate-700 hover:text-slate-900 gap-1.5"
+          >
+            <Link to="/super-admin/licensing/upgrade-requests">
+              <Sparkles className="h-4 w-4 text-teal-600" />
+              Upgrade Requests
+            </Link>
+          </Button>
+
+          <Button
             asChild
             className="bg-slate-900 hover:bg-slate-800 text-white gap-1.5 shadow-xs"
           >
@@ -227,9 +242,10 @@ export function PlansPage() {
                   <TableRow>
                     <TableHead className="w-[120px]">Code</TableHead>
                     <TableHead>Name & Description</TableHead>
+                    <TableHead className="w-[170px]">Capacity & Limits</TableHead>
                     <TableHead className="text-right">Annual Price</TableHead>
                     <TableHead className="w-[110px]">Status</TableHead>
-                    <TableHead className="w-[140px]">Last Updated</TableHead>
+                    <TableHead className="w-[130px]">Last Updated</TableHead>
                     <TableHead className="w-[80px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -254,6 +270,22 @@ export function PlansPage() {
                               {plan.description}
                             </p>
                           )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1 text-xs text-slate-700">
+                          <div className="flex items-center gap-1.5 font-medium">
+                            <Users className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            <span>{plan.maxLabStaff ?? 3} staff seats</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-slate-500 text-[11px]">
+                            <FileText className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            <span>
+                              {plan.maxReportsPerMonth && plan.maxReportsPerMonth > 0
+                                ? `${plan.maxReportsPerMonth.toLocaleString()}/mo (${plan.maxReportsPerDay ?? 25}/day)`
+                                : "Unlimited reports"}
+                            </span>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="text-right font-medium text-slate-900">

@@ -102,6 +102,27 @@ public class Plan {
      * Existing licenses remain valid.
      */
     @Column(
+            name = "max_lab_staff",
+            nullable = false
+    )
+    @Builder.Default
+    private Integer maxLabStaff = 3;
+
+    @Column(
+            name = "max_reports_per_month",
+            nullable = false
+    )
+    @Builder.Default
+    private Integer maxReportsPerMonth = 100;
+
+    @Column(
+            name = "max_reports_per_day",
+            nullable = false
+    )
+    @Builder.Default
+    private Integer maxReportsPerDay = 25;
+
+    @Column(
             name = "active",
             nullable = false
     )
@@ -129,6 +150,18 @@ public class Plan {
 
         if (currency == null || currency.isBlank()) {
             currency = "INR";
+        }
+
+        if (maxLabStaff == null || maxLabStaff <= 0) {
+            maxLabStaff = 3;
+        }
+
+        if (maxReportsPerMonth == null || maxReportsPerMonth < 0) {
+            maxReportsPerMonth = 100;
+        }
+
+        if (maxReportsPerDay == null || maxReportsPerDay < 0) {
+            maxReportsPerDay = 25;
         }
 
         createdAt = Instant.now();

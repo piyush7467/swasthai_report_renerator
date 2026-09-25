@@ -12,6 +12,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.swasthai.report_generator.license.dto.request.CreateUpgradeRequest;
+import com.swasthai.report_generator.license.dto.request.UpdateUpgradeRequestStatusRequest;
+import com.swasthai.report_generator.license.dto.response.AvailablePlanResponse;
+import com.swasthai.report_generator.license.dto.response.OrganizationLicenseOverviewResponse;
+import com.swasthai.report_generator.license.dto.response.PlanUpgradeRequestResponse;
+import com.swasthai.report_generator.license.entity.UpgradeRequestStatus;
+import com.swasthai.report_generator.license.service.PlanUpgradeRequestService;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,6 +31,7 @@ public class LicenseController {
 
     private final LicenseService licenseService;
     private final PlanService planService;
+    private final PlanUpgradeRequestService planUpgradeRequestService;
 
     // ============================================================
     // PLAN ADMINISTRATION
@@ -152,4 +161,87 @@ public class LicenseController {
 
         return licenseService.getOwnLicense();
     }
-}
+
+    // ============================================================
+    // ORGANIZATION LICENSE OVERVIEW & UPGRADE WORKFLOW (ORG_ADMIN)
+    // ============================================================
+
+    @GetMapping("/license/overview")
+    @PreAuthorize("hasRole('ORG_ADMIN')")
+    public OrganizationLicenseOverviewResponse getOrganizationLicenseOverview() {
+        return planUpgradeRequestService.getOrganizationLicenseOverview();
+    }
+
+    @GetMapping("/license/available-plans")
+    @PreAuthorize("hasRole('ORG_ADMIN')")
+    public List<AvailablePlanResponse> getAvailablePlansForUpgrade() {
+        return planUpgradeRequestService.getAvailablePlansForUpgrade();
+    }
+
+    @PostMapping("/license/upgrade-requests")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('ORG_ADMIN')")
+    public PlanUpgradeRequestResponse createUpgradeRequest(
+            @Valid @RequestBody CreateUpgradeRequest request
+    ) {
+        return planUpgradeRequestService.createUpgradeRequest(request);
+    }
+
+    @GetMapping("/license/upgrade-requests/my")
+    @PreAuthorize("hasRole('ORG_ADMIN')")
+    public Page<PlanUpgradeRequestResponse> getMyUpgradeRequests(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) UpgradeRequestStatus status
+    ) {
+        return planUpgradeRequestService.getMyUpgradeRequests(page, size, status);
+    }
+
+    @GetMapping("/license/upgrade-requests/{refId}")
+    @PreAuthorize("hasRole('ORG_ADMIN')")
+    public PlanUpgradeRequestResponse getMyUpgradeRequestDetails(
+            @PathVariable String refId
+    ) {
+        return planUpgradeRequestService.getMyUpgradeRequestDetails(refId);
+    }
+
+    @PostMapping("/license/upgrade-requests/{refId}/cancel")
+    @PreAuthorize("hasRole('ORG_ADMIN')")
+    public PlanUpgradeRequestResponse cancelMyUpgradeRequest(
+            @PathVariable String refId
+    ) {
+        return planUpgradeRequestService.cancelMyUpgradeRequest(refId);
+    }
+
+    // ============================================================
+    // SUPER ADMIN UPGRADE REQUEST MANAGEMENT
+    // ============================================================
+
+    @GetMapping("/admin/license/upgrade-requests")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public Page<PlanUpgradeRequestResponse> getAllUpgradeRequests(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) UpgradeRequestStatus status,
+            @RequestParam(required = false) String organizationRefId
+    ) {
+        return planUpgradeRequestService.getAllUpgradeRequests(page, size, status, organizationRefId);
+    }
+
+    @GetMapping("/admin/license/upgrade-requests/{refId}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public PlanUpgradeRequestResponse getAdminUpgradeRequestDetails(
+            @PathVariable String refId
+    ) {
+        return planUpgradeRequestService.getUpgradeRequestDetails(refId);
+    }
+
+    @PatchMapping("/admin/license/upgrade-requests/{refId}/status")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public PlanUpgradeRequestResponse updateUpgradeRequestStatus(
+            @PathVariable String refId,
+            @Valid @RequestBody UpdateUpgradeRequestStatusRequest request
+    ) {
+        return planUpgradeRequestService.updateUpgradeRequestStatus(refId, request);
+    }
+}

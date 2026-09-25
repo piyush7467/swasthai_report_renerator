@@ -57,6 +57,21 @@ public class PlanServiceImpl implements PlanService {
                                 .trim()
                                 .toUpperCase(Locale.ROOT)
                 )
+                .maxLabStaff(
+                        request.maxLabStaff() != null && request.maxLabStaff() > 0
+                                ? request.maxLabStaff()
+                                : 3
+                )
+                .maxReportsPerMonth(
+                        request.maxReportsPerMonth() != null && request.maxReportsPerMonth() >= 0
+                                ? request.maxReportsPerMonth()
+                                : 100
+                )
+                .maxReportsPerDay(
+                        request.maxReportsPerDay() != null && request.maxReportsPerDay() >= 0
+                                ? request.maxReportsPerDay()
+                                : 25
+                )
                 .active(
                         request.active() == null
                                 || request.active()
@@ -128,6 +143,18 @@ public class PlanServiceImpl implements PlanService {
         plan.setActive(
                 request.active()
         );
+
+        if (request.maxLabStaff() != null && request.maxLabStaff() > 0) {
+            plan.setMaxLabStaff(request.maxLabStaff());
+        }
+
+        if (request.maxReportsPerMonth() != null && request.maxReportsPerMonth() >= 0) {
+            plan.setMaxReportsPerMonth(request.maxReportsPerMonth());
+        }
+
+        if (request.maxReportsPerDay() != null && request.maxReportsPerDay() >= 0) {
+            plan.setMaxReportsPerDay(request.maxReportsPerDay());
+        }
 
         return mapToResponse(
                 planRepository.save(plan)
@@ -276,6 +303,9 @@ public class PlanServiceImpl implements PlanService {
                 plan.getDescription(),
                 plan.getAnnualPrice(),
                 plan.getCurrency(),
+                plan.getMaxLabStaff(),
+                plan.getMaxReportsPerMonth(),
+                plan.getMaxReportsPerDay(),
                 plan.isActive(),
                 plan.getCreatedAt(),
                 plan.getUpdatedAt()

@@ -8,6 +8,7 @@ import {
   ExternalLink,
   RefreshCw,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -149,6 +150,18 @@ export function OrganizationLicensesPage() {
             <Link to="/super-admin/licensing/plans">
               <CreditCard className="h-4 w-4" />
               Master Plan Catalog
+            </Link>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="text-slate-700 hover:text-slate-900 gap-1.5"
+          >
+            <Link to="/super-admin/licensing/upgrade-requests">
+              <Sparkles className="h-4 w-4 text-teal-600" />
+              Upgrade Requests
             </Link>
           </Button>
         </div>

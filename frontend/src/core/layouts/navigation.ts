@@ -97,6 +97,10 @@ const navigationByRole: Record<
           label: "Organization Licenses",
           href: "/super-admin/licensing/licenses",
         },
+        {
+          label: "Upgrade Requests",
+          href: "/super-admin/licensing/upgrade-requests",
+        },
       ],
     },
     {
@@ -126,6 +130,11 @@ const navigationByRole: Record<
       label: "Lab Staff",
       href: "/org-admin/staff",
       icon: Users,
+    },
+    {
+      label: "License & Plan",
+      href: "/org-admin/license",
+      icon: ShieldCheck,
     },
     {
       label: "Tests",

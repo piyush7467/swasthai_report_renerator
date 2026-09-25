@@ -91,4 +91,6 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
             @Param("search") String search,
             Pageable pageable
     );
-}
+
+    long countByOrganization_IdAndDeletedAtIsNull(UUID organizationId);
+}

@@ -16,6 +16,12 @@ public record LicenseResponse(
 
         String planName,
 
+        Integer maxLabStaff,
+
+        Integer maxReportsPerMonth,
+
+        Integer maxReportsPerDay,
+
         LicenseStatus status,
 
         Instant startedAt,

@@ -144,6 +144,24 @@ public class User {
     private Instant lastLoginAt;
 
     /*
+     * Deactivation timestamp (eligible for permanent cleanup 10 days after this).
+     */
+    @Column(name = "inactive_at")
+    private Instant inactiveAt;
+
+    /*
+     * Administrator who deactivated this account.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "deactivated_by",
+            foreignKey = @ForeignKey(
+                    name = "fk_users_deactivated_by"
+            )
+    )
+    private User deactivatedBy;
+
+    /*
      * Optimistic locking.
      */
     @Version

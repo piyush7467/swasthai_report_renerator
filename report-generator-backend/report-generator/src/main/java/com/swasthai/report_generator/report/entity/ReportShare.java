@@ -51,8 +51,8 @@ public class ReportShare {
     @Column(name = "report_ref_id", nullable = false, length = 30)
     private String reportRefId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "shared_by_user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_report_shares_user"))
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "shared_by_user_id", nullable = true, foreignKey = @ForeignKey(name = "fk_report_shares_user"))
     private User sharedBy;
 
     @Column(name = "share_channel", nullable = false, length = 20)

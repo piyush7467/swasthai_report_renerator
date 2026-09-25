@@ -3,9 +3,13 @@ import type {
   ActivateLicenseRequest,
   CreatePlanRequest,
   LicenseResponse,
+  PaginatedUpgradeRequestsResponse,
   PlanResponse,
+  PlanUpgradeRequestResponse,
   RenewLicenseRequest,
   UpdatePlanRequest,
+  UpdateUpgradeRequestStatusRequest,
+  UpgradeRequestStatus,
 } from "../types/licensingTypes";
 
 export const licensingApi = {
@@ -142,5 +146,90 @@ export const licensingApi = {
       return data.data as LicenseResponse;
     }
     return response.data as LicenseResponse;
+  },
+
+  // ============================================================
+  // UPGRADE REQUEST ENDPOINTS (SUPER_ADMIN)
+  // ============================================================
+
+  async getUpgradeRequests(params?: {
+    status?: UpgradeRequestStatus | string;
+    organizationRefId?: string;
+    page?: number;
+    size?: number;
+  }): Promise<PaginatedUpgradeRequestsResponse> {
+    const query = new URLSearchParams();
+    if (params?.status && params.status !== "ALL") {
+      query.append("status", params.status);
+    }
+    if (params?.organizationRefId) {
+      query.append("organizationRefId", params.organizationRefId);
+    }
+    if (params?.page !== undefined) {
+      query.append("page", params.page.toString());
+    }
+    if (params?.size !== undefined) {
+      query.append("size", params.size.toString());
+    }
+
+    const queryString = query.toString();
+    const endpoint = `/admin/license/upgrade-requests${queryString ? `?${queryString}` : ""}`;
+    const response = await apiClient.get<
+      PaginatedUpgradeRequestsResponse | { data: PaginatedUpgradeRequestsResponse }
+    >(endpoint);
+
+    const data = response.data as unknown as Record<string, unknown>;
+    if (
+      data &&
+      "data" in data &&
+      typeof data.data === "object" &&
+      data.data !== null &&
+      "content" in data.data
+    ) {
+      return data.data as PaginatedUpgradeRequestsResponse;
+    }
+    return response.data as PaginatedUpgradeRequestsResponse;
+  },
+
+  async getUpgradeRequest(refId: string): Promise<PlanUpgradeRequestResponse> {
+    const response = await apiClient.get<
+      PlanUpgradeRequestResponse | { data: PlanUpgradeRequestResponse }
+    >(`/admin/license/upgrade-requests/${encodeURIComponent(refId)}`);
+
+    const data = response.data as unknown as Record<string, unknown>;
+    if (
+      data &&
+      "data" in data &&
+      typeof data.data === "object" &&
+      data.data !== null &&
+      "refId" in data.data
+    ) {
+      return data.data as PlanUpgradeRequestResponse;
+    }
+    return response.data as PlanUpgradeRequestResponse;
+  },
+
+  async updateUpgradeRequestStatus(
+    refId: string,
+    request: UpdateUpgradeRequestStatusRequest
+  ): Promise<PlanUpgradeRequestResponse> {
+    const response = await apiClient.patch<
+      PlanUpgradeRequestResponse | { data: PlanUpgradeRequestResponse }
+    >(
+      `/admin/license/upgrade-requests/${encodeURIComponent(refId)}/status`,
+      request
+    );
+
+    const data = response.data as unknown as Record<string, unknown>;
+    if (
+      data &&
+      "data" in data &&
+      typeof data.data === "object" &&
+      data.data !== null &&
+      "refId" in data.data
+    ) {
+      return data.data as PlanUpgradeRequestResponse;
+    }
+    return response.data as PlanUpgradeRequestResponse;
   },
 };

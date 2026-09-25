@@ -7,8 +7,10 @@ import axios from "axios";
 import {
   ArrowLeft,
   CreditCard,
+  FileText,
   Loader2,
   Save,
+  Users,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -67,6 +69,31 @@ const createPlanSchema = z.object({
     .trim()
     .toUpperCase()
     .regex(/^[A-Z]{3}$/, "Currency must be a 3-letter ISO code (e.g. INR, USD)"),
+  maxLabStaff: z
+    .preprocess(
+      (val) => (val === "" || val == null ? 3 : Number(val)),
+      z
+        .number()
+        .int("Must be an integer")
+        .min(1, "At least 1 staff seat is required")
+        .max(10000, "Limit is too high"),
+    ),
+  maxReportsPerMonth: z
+    .preprocess(
+      (val) => (val === "" || val == null ? 100 : Number(val)),
+      z
+        .number()
+        .int("Must be an integer")
+        .min(0, "Monthly quota cannot be negative"),
+    ),
+  maxReportsPerDay: z
+    .preprocess(
+      (val) => (val === "" || val == null ? 25 : Number(val)),
+      z
+        .number()
+        .int("Must be an integer")
+        .min(0, "Daily quota cannot be negative"),
+    ),
   active: z.boolean().default(true),
 });
 
@@ -92,6 +119,9 @@ export function CreatePlanPage() {
       description: "",
       annualPrice: 0,
       currency: "INR",
+      maxLabStaff: 3,
+      maxReportsPerMonth: 100,
+      maxReportsPerDay: 25,
       active: true,
     },
   });
@@ -105,6 +135,9 @@ export function CreatePlanPage() {
         description: values.description?.trim() || undefined,
         annualPrice: Number(values.annualPrice),
         currency: values.currency.trim().toUpperCase(),
+        maxLabStaff: Number(values.maxLabStaff),
+        maxReportsPerMonth: Number(values.maxReportsPerMonth),
+        maxReportsPerDay: Number(values.maxReportsPerDay),
         active: values.active,
       });
 
@@ -295,6 +328,86 @@ export function CreatePlanPage() {
                     {errors.currency.message}
                   </p>
                 )}
+              </div>
+            </div>
+
+            {/* Resource & Capacity Limits */}
+            <div className="pt-2 border-t border-slate-100">
+              <div className="mb-3">
+                <Label className="text-xs font-semibold text-slate-900">
+                  Capacity & Usage Quotas
+                </Label>
+                <p className="text-[11px] text-slate-500">
+                  Configure maximum active team seats and report generation quotas. Enter 0 for unlimited reports.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                {/* Staff Seats */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="maxLabStaff" className="text-xs font-semibold flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5 text-slate-500" />
+                    Staff License Seats <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="maxLabStaff"
+                    type="number"
+                    min="1"
+                    placeholder="3"
+                    {...register("maxLabStaff")}
+                    className="bg-white font-medium"
+                  />
+                  {errors.maxLabStaff && (
+                    <p className="text-xs text-red-500">{errors.maxLabStaff.message}</p>
+                  )}
+                  <p className="text-[11px] text-slate-400">
+                    Max active staff accounts (min 1).
+                  </p>
+                </div>
+
+                {/* Monthly Reports Quota */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="maxReportsPerMonth" className="text-xs font-semibold flex items-center gap-1.5">
+                    <FileText className="h-3.5 w-3.5 text-slate-500" />
+                    Reports / Month <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="maxReportsPerMonth"
+                    type="number"
+                    min="0"
+                    placeholder="100"
+                    {...register("maxReportsPerMonth")}
+                    className="bg-white font-medium"
+                  />
+                  {errors.maxReportsPerMonth && (
+                    <p className="text-xs text-red-500">{errors.maxReportsPerMonth.message}</p>
+                  )}
+                  <p className="text-[11px] text-slate-400">
+                    0 = unlimited reports.
+                  </p>
+                </div>
+
+                {/* Daily Reports Quota */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="maxReportsPerDay" className="text-xs font-semibold flex items-center gap-1.5">
+                    <FileText className="h-3.5 w-3.5 text-slate-500" />
+                    Reports / Day <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="maxReportsPerDay"
+                    type="number"
+                    min="0"
+                    placeholder="25"
+                    {...register("maxReportsPerDay")}
+                    className="bg-white font-medium"
+                  />
+                  {errors.maxReportsPerDay && (
+                    <p className="text-xs text-red-500">{errors.maxReportsPerDay.message}</p>
+                  )}
+                  <p className="text-[11px] text-slate-400">
+                    0 = unlimited daily reports.
+                  </p>
+                </div>
               </div>
             </div>
 

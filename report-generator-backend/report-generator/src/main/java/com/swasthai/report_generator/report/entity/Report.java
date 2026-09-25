@@ -67,8 +67,8 @@ public class Report {
         @Builder.Default
         private Long lockVersion = 0L;
 
-        @ManyToOne(fetch = FetchType.LAZY, optional = false)
-        @JoinColumn(name = "created_by", nullable = false, foreignKey = @ForeignKey(name = "fk_reports_created_by"))
+        @ManyToOne(fetch = FetchType.LAZY, optional = true)
+        @JoinColumn(name = "created_by", nullable = true, foreignKey = @ForeignKey(name = "fk_reports_created_by"))
         private User createdBy;
 
         @ManyToOne(fetch = FetchType.LAZY)

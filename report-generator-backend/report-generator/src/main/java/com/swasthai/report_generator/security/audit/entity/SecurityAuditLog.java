@@ -34,8 +34,8 @@ public class SecurityAuditLog {
     @Column(name = "ref_id", nullable = false, updatable = false, length = 40)
     private String refId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "actor_user_id", nullable = false, updatable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "actor_user_id", nullable = true, updatable = false)
     private User actor;
 
     @Column(name = "actor_email", nullable = false, updatable = false, length = 255)
