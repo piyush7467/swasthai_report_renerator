@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -234,43 +235,40 @@ export default function LabStaffPage() {
           </Button>
         </Card>
       ) : staffList.length === 0 ? (
-        <Card className="p-12 border-slate-200 bg-white text-center shadow-xs">
-          <div className="w-12 h-12 rounded-full bg-teal-50 text-[#0F766E] border border-teal-100 flex items-center justify-center mx-auto mb-3">
-            <Users className="h-6 w-6" />
-          </div>
-          <h3 className="text-base font-bold text-slate-900">
-            {searchTerm || selectedStatus !== "ALL"
-              ? "No Staff Members Found"
-              : "No Lab Staff Accounts Yet"}
-          </h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-5">
-            {searchTerm || selectedStatus !== "ALL"
-              ? "No staff members matched your current filter or search criteria."
-              : "Add your laboratory technicians and assistants to give them access to register patients and prepare diagnostic reports."}
-          </p>
-          {searchTerm || selectedStatus !== "ALL" ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setSearchTerm("");
-                setSelectedStatus("ALL");
-              }}
-              className="text-xs"
-            >
-              Clear Filters
-            </Button>
-          ) : (
-            <Button
-              onClick={() => setIsAddModalOpen(true)}
-              size="sm"
-              disabled={isLimitReached}
-              className="bg-[#0F766E] hover:bg-[#115E59] text-white text-xs font-semibold"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add First Staff Member
-            </Button>
-          )}
+        <Card className="border-slate-200 bg-white shadow-xs overflow-hidden">
+          <EmptyState
+            title={
+              searchTerm || selectedStatus !== "ALL"
+                ? "No Staff Members Found"
+                : "No Lab Staff Accounts Yet"
+            }
+            description={
+              searchTerm || selectedStatus !== "ALL"
+                ? "No staff members matched your current filter or search criteria."
+                : "Add your laboratory technicians and assistants to give them access to register patients and prepare diagnostic reports."
+            }
+            action={
+              searchTerm || selectedStatus !== "ALL"
+                ? undefined
+                : {
+                    label: "Add First Staff Member",
+                    onClick: () => setIsAddModalOpen(true),
+                    icon: Plus,
+                    disabled: isLimitReached,
+                  }
+            }
+            secondaryAction={
+              searchTerm || selectedStatus !== "ALL"
+                ? {
+                    label: "Clear Filters",
+                    onClick: () => {
+                      setSearchTerm("");
+                      setSelectedStatus("ALL");
+                    },
+                  }
+                : undefined
+            }
+          />
         </Card>
       ) : (
         <>

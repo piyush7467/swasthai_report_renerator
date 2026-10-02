@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { usePatientsQuery } from "../hooks/usePatients";
 import { EditPatientModal } from "../components/EditPatientModal";
 import { RegisterPatientModal } from "../components/RegisterPatientModal";
@@ -158,23 +159,34 @@ export default function PatientsListPage() {
             </Button>
           </div>
         ) : patientsList.length === 0 ? (
-          <div className="p-12 text-center">
-            <Users className="h-10 w-10 text-slate-300 mx-auto mb-2" />
-            <h3 className="text-sm font-bold text-slate-800">No Patients Found</h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-              {searchTerm
-                ? `No patient records matched "${searchTerm}".`
-                : "No patient records have been created in your organization yet."}
-            </p>
-            <Button
-              size="sm"
-              onClick={() => navigate(`${reportsBasePath}/new`)}
-              className="mt-4 text-xs bg-[#0F766E] hover:bg-[#115E59] text-white"
-            >
-              <Plus className="mr-1.5 h-3.5 w-3.5" />
-              Register First Patient
-            </Button>
-          </div>
+          <EmptyState
+            title={
+              searchTerm
+                ? "No Matching Patients Found"
+                : "No Patient Records Yet"
+            }
+            description={
+              searchTerm
+                ? `No patient records matched "${searchTerm}". Verify the patient name or code, or register a new record.`
+                : "No patients have been registered in your organization yet. Register a patient to track diagnostics and issue reports."
+            }
+            action={{
+              label: searchTerm ? "Register New Patient" : "Register First Patient",
+              onClick: () => setIsRegisterModalOpen(true),
+              icon: Plus,
+            }}
+            secondaryAction={
+              searchTerm
+                ? {
+                    label: "Clear Search",
+                    onClick: () => {
+                      setSearchTerm("");
+                      setPage(0);
+                    },
+                  }
+                : undefined
+            }
+          />
         ) : (
           <>
             {/* Desktop Table View */}

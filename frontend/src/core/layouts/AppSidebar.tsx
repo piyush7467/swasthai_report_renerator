@@ -1,8 +1,6 @@
-import { ChevronDown, ChevronRight, LogOut } from "lucide-react";
+import { Activity, ChevronDown, ChevronRight, LogOut, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-
-import { Separator } from "@/components/ui/separator";
 
 import { useAuth } from "../auth/AuthContext";
 import {
@@ -25,16 +23,13 @@ export function AppSidebar({
     Licensing: true,
   });
 
-  // Automatically expand if currently navigating within a parent's route
   useEffect(() => {
     if (location.pathname.startsWith("/super-admin/reports")) {
-      setExpandedItems((prev) => ({ ...prev, Reports: true }));
-    }
-    if (location.pathname.startsWith("/super-admin/tests")) {
-      setExpandedItems((prev) => ({ ...prev, Tests: true }));
-    }
-    if (location.pathname.startsWith("/super-admin/licensing")) {
-      setExpandedItems((prev) => ({ ...prev, Licensing: true }));
+      setExpandedItems((prev) => (prev.Reports ? prev : { ...prev, Reports: true }));
+    } else if (location.pathname.startsWith("/super-admin/tests")) {
+      setExpandedItems((prev) => (prev.Tests ? prev : { ...prev, Tests: true }));
+    } else if (location.pathname.startsWith("/super-admin/licensing")) {
+      setExpandedItems((prev) => (prev.Licensing ? prev : { ...prev, Licensing: true }));
     }
   }, [location.pathname]);
 
@@ -42,8 +37,7 @@ export function AppSidebar({
     return null;
   }
 
-  const navigationItems =
-    getNavigationForRole(user.role);
+  const navigationItems = getNavigationForRole(user.role);
 
   const toggleExpanded = (label: string) => {
     setExpandedItems((prev) => ({
@@ -57,32 +51,32 @@ export function AppSidebar({
   };
 
   return (
-    <aside className="flex h-full w-64 flex-col border-r border-slate-200 bg-white">
-      {/* Brand */}
-      <div className="flex h-16 items-center px-5">
+    <aside className="flex h-full w-60 flex-col border-r border-slate-100 bg-white select-none">
+      {/* Brand Header */}
+      <div className="flex items-center gap-3 px-6 py-5">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shadow-2xs">
+          <Activity className="h-5 w-5 stroke-[2.2]" />
+        </div>
         <div>
-          <div className="text-lg font-bold tracking-tight text-slate-900">
+          <div className="text-base font-bold tracking-tight text-slate-900 leading-none">
             SwasthAI
           </div>
-
-          <div className="text-xs text-slate-500">
+          <div className="text-[11px] text-slate-400 font-medium mt-1">
             Report Generator
           </div>
         </div>
       </div>
 
-      <Separator />
-
-      {/* Navigation */}
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+      {/* Navigation Links */}
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const hasChildren = Boolean(item.children && item.children.length > 0);
           const isExpanded = expandedItems[item.label] ?? false;
           const isParentActive =
             location.pathname === item.href ||
-            (item.children &&
-              item.children.some((child) =>
+            Boolean(
+              item.children?.some((child) =>
                 child.href === item.href
                   ? location.pathname === child.href ||
                     (child.href === "/super-admin/reports" &&
@@ -95,37 +89,38 @@ export function AppSidebar({
                           !location.pathname.startsWith("/super-admin/tests/parameters"))))
                   : child.href === "/super-admin/licensing/plans"
                   ? location.pathname.startsWith("/super-admin/licensing/plans")
-                  : location.pathname.startsWith(child.href),
-              ));
+                  : location.pathname.startsWith(child.href)
+              )
+            );
 
           if (hasChildren) {
             return (
-              <div key={item.label} className="space-y-1">
+              <div key={item.label} className="space-y-0.5">
                 <button
                   type="button"
                   onClick={() => toggleExpanded(item.label)}
                   className={[
-                    "flex w-full items-center justify-between rounded-lg px-3 py-2.5",
-                    "text-sm font-medium transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400",
+                    "flex w-full items-center justify-between rounded-xl px-3.5 py-2.5",
+                    "text-sm font-medium transition-colors cursor-pointer",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500",
                     isParentActive
                       ? "text-slate-900 font-semibold"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
                   ].join(" ")}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className="h-4 w-4 shrink-0" />
+                    <Icon className={`h-4 w-4 shrink-0 ${isParentActive ? "text-teal-600" : "text-slate-400"}`} />
                     <span>{item.label}</span>
                   </div>
                   {isExpanded ? (
-                    <ChevronDown className="h-4 w-4 text-slate-400" />
+                    <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
                   ) : (
-                    <ChevronRight className="h-4 w-4 text-slate-400" />
+                    <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
                   )}
                 </button>
 
                 {isExpanded && item.children && (
-                  <div className="ml-7 space-y-1 border-l border-slate-200 pl-2">
+                  <div className="ml-6 space-y-0.5 border-l border-slate-100 pl-3.5 py-1">
                     {item.children.map((child) => {
                       const isChildActive =
                         child.href === "/super-admin/tests"
@@ -146,9 +141,9 @@ export function AppSidebar({
                           to={child.href}
                           onClick={onNavigate}
                           className={[
-                            "flex items-center rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                            "flex items-center rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors",
                             isChildActive
-                              ? "bg-slate-100 font-semibold text-slate-900"
+                              ? "bg-teal-50/70 font-semibold text-teal-800"
                               : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
                           ].join(" ")}
                         >
@@ -166,72 +161,61 @@ export function AppSidebar({
             <NavLink
               key={item.href}
               to={item.href}
-              end={
-                item.href ===
-                getDashboardPath(user.role)
-              }
+              end={item.href === getDashboardPath(user.role)}
               onClick={onNavigate}
               className={({ isActive }) =>
                 [
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5",
+                  "flex items-center gap-3 rounded-xl px-3.5 py-2.5",
                   "text-sm font-medium transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2",
-                  "focus-visible:ring-slate-400",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500",
                   isActive
-                    ? "bg-slate-100 text-slate-900"
+                    ? "bg-[#e6f4f1] text-[#0d766e] font-semibold"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
                 ].join(" ")
               }
             >
-              <Icon className="h-4 w-4 shrink-0" />
-
-              <span>{item.label}</span>
+              {({ isActive }) => (
+                <>
+                  <Icon
+                    className={`h-4 w-4 shrink-0 ${
+                      isActive ? "text-[#0d766e]" : "text-slate-400"
+                    }`}
+                  />
+                  <span>{item.label}</span>
+                </>
+              )}
             </NavLink>
           );
         })}
       </nav>
 
-      <Separator />
-
-      {/* User + Logout */}
-      <div className="p-3">
-        <div className="rounded-lg bg-slate-50 p-3">
-          <p className="text-xs text-slate-500">
-            Signed in as
-          </p>
-
-          <p className="mt-1 truncate text-sm font-medium text-slate-900">
-            {user.name}
-          </p>
-
-          <p className="truncate text-xs text-slate-500">
-            {user.email}
-          </p>
-
-          <p className="mt-1.5 inline-block rounded bg-slate-200/80 px-1.5 py-0.5 text-[11px] font-medium text-slate-700">
-            {user.role.replace("_", " ")}
-          </p>
-
-          {user.organizationRefId && (
-            <p
-              className="mt-1.5 truncate text-[11px] font-mono text-slate-500 border-t border-slate-200/80 pt-1"
-              title={user.organizationRefId}
-            >
-              Org: {user.organizationRefId}
+      {/* User Info & Logout at bottom */}
+      <div className="border-t border-slate-100 p-4">
+        <div className="flex items-center gap-3 px-1 py-1">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white font-semibold">
+            <User className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-semibold text-slate-900 leading-tight">
+              {user.name || "System Super Admin"}
             </p>
-          )}
+            <p className="truncate text-[11px] text-slate-400">
+              {user.email || "admin@swasthai.com"}
+            </p>
+            <span className="inline-block mt-0.5 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-500 tracking-wider uppercase">
+              {user.role.replace("_", " ")}
+            </span>
+          </div>
         </div>
 
-        {/* Logout */}
         <button
           type="button"
           onClick={() => {
             void handleLogout();
           }}
-          className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+          className="mt-3 flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600 cursor-pointer"
         >
-          <LogOut className="h-4 w-4 shrink-0" />
-
+          <LogOut className="h-3.5 w-3.5" />
           <span>Logout</span>
         </button>
       </div>

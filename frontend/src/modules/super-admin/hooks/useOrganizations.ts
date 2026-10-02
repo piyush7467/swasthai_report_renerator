@@ -205,3 +205,42 @@ export function useDeleteOrganizationSignatureMutation() {
     },
   });
 }
+
+export function useApproveSignatureMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (refId: string) => organizationApi.approveOrganizationSignature(refId),
+    onSuccess: (_, refId) => {
+      void queryClient.invalidateQueries({
+        queryKey: organizationKeys.profile(refId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["organizations", refId, "signature"],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: organizationKeys.detail(refId),
+      });
+    },
+  });
+}
+
+export function useRejectSignatureMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ refId, reason }: { refId: string; reason?: string }) =>
+      organizationApi.rejectOrganizationSignature(refId, reason),
+    onSuccess: (_, { refId }) => {
+      void queryClient.invalidateQueries({
+        queryKey: organizationKeys.profile(refId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["organizations", refId, "signature"],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: organizationKeys.detail(refId),
+      });
+    },
+  });
+}

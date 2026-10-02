@@ -1,7 +1,9 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Building2,
   FileText,
   FlaskConical,
+  Home,
   LayoutDashboard,
   Settings,
   ShieldCheck,
@@ -30,12 +32,12 @@ const navigationByRole: Record<
     {
       label: "Dashboard",
       href: "/super-admin",
-      icon: LayoutDashboard,
+      icon: Home,
     },
     {
       label: "Organizations",
       href: "/super-admin/organizations",
-      icon: Users,
+      icon: Building2,
     },
     {
       label: "Users",

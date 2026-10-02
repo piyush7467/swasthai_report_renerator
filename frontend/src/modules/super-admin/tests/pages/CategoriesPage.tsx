@@ -5,7 +5,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Edit,
-  FolderTree,
   MoreVertical,
   Plus,
   RefreshCw,
@@ -31,6 +30,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 import {
   useCategoriesQuery,
@@ -337,32 +337,39 @@ export function CategoriesPage() {
             </table>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-3">
-              <FolderTree className="h-6 w-6" />
-            </div>
-            <h3 className="text-base font-semibold text-slate-900">
-              No categories found
-            </h3>
-            <p className="mt-1 text-sm text-slate-500 max-w-sm">
-              {search || status !== "ALL"
-                ? "No categories match your filter criteria."
-                : "Create top-level diagnostic categories like Hematology, Biochemistry, or Microbiology."}
-            </p>
-            <div className="mt-4">
-              <Button
-                size="sm"
-                onClick={() => {
-                  setCategoryToEdit(null);
-                  setDialogOpen(true);
-                }}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Category
-              </Button>
-            </div>
-          </div>
+          <EmptyState
+            title={
+              search || status !== "ALL"
+                ? "No Categories Found"
+                : "No Test Categories Yet"
+            }
+            description={
+              search || status !== "ALL"
+                ? "No diagnostic categories match your filter criteria. Try adjusting your search query or status filter."
+                : "Create top-level diagnostic categories like Hematology, Biochemistry, or Microbiology to organize test catalogs."
+            }
+            action={{
+              label: "Add Category",
+              onClick: () => {
+                setCategoryToEdit(null);
+                setDialogOpen(true);
+              },
+              icon: Plus,
+              className: "bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs h-9 px-4 rounded-lg",
+            }}
+            secondaryAction={
+              search || status !== "ALL"
+                ? {
+                    label: "Clear Filters",
+                    onClick: () => {
+                      setSearch("");
+                      setStatus("ALL");
+                      setPage(0);
+                    },
+                  }
+                : undefined
+            }
+          />
         )}
 
         {/* Pagination Bar */}

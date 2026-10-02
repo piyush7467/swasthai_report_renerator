@@ -7,7 +7,6 @@ import {
   ChevronRight,
   Eye,
   FileEdit,
-  FlaskConical,
   Link2,
   MoreVertical,
   Plus,
@@ -35,6 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 import {
   useTestsQuery,
@@ -430,29 +430,37 @@ export function TestCatalogPage() {
             </table>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-3">
-              <FlaskConical className="h-6 w-6" />
-            </div>
-            <h3 className="text-base font-semibold text-slate-900">
-              No tests found
-            </h3>
-            <p className="mt-1 text-sm text-slate-500 max-w-sm">
-              {search || categoryRefId !== "ALL" || status !== "ALL"
-                ? "No diagnostic tests match your filter criteria. Try adjusting your search."
-                : "Get started by creating your first diagnostic test specification."}
-            </p>
-            <div className="mt-4">
-              <Button
-                size="sm"
-                onClick={() => navigate("/super-admin/tests/new")}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Test
-              </Button>
-            </div>
-          </div>
+          <EmptyState
+            title={
+              search || categoryRefId !== "ALL" || status !== "ALL"
+                ? "No Diagnostic Tests Found"
+                : "No Tests in Catalog"
+            }
+            description={
+              search || categoryRefId !== "ALL" || status !== "ALL"
+                ? "No diagnostic tests match your filter criteria. Try adjusting your search or resetting category filters."
+                : "Get started by creating your first diagnostic test specification in the master catalog."
+            }
+            action={{
+              label: "Add Test",
+              onClick: () => navigate("/super-admin/tests/new"),
+              icon: Plus,
+              className: "bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs h-9 px-4 rounded-lg",
+            }}
+            secondaryAction={
+              search || categoryRefId !== "ALL" || status !== "ALL"
+                ? {
+                    label: "Clear Filters",
+                    onClick: () => {
+                      setSearch("");
+                      setCategoryRefId("ALL");
+                      setStatus("ALL");
+                      setPage(0);
+                    },
+                  }
+                : undefined
+            }
+          />
         )}
 
         {/* Pagination Bar */}

@@ -4,7 +4,6 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
-  Building2,
   Edit,
   Eye,
   Filter,
@@ -41,6 +40,7 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { EmptyState } from "@/components/ui/empty-state";
 
 import type {
   OrganizationResponse,
@@ -294,39 +294,23 @@ export function OrganizationsPage() {
           </div>
         ) : organizations.length === 0 ? (
           /* Empty Database State */
-          <div className="p-12 text-center space-y-4">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
-              <Building2 className="h-8 w-8" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-base font-semibold text-slate-900">
-                No organizations found
-              </h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                No laboratory tenants have been registered in SwasthAI yet. Create your
-                first organization to configure diagnostic workflows.
-              </p>
-            </div>
-            <CreateOrganizationDialog />
-          </div>
+          <EmptyState
+            title="No Organizations Found"
+            description="No laboratory tenants have been registered in SwasthAI yet. Create your first organization to configure diagnostic workflows."
+            action={<CreateOrganizationDialog />}
+          />
         ) : filteredOrganizations.length === 0 ? (
           /* Empty Filter State */
-          <div className="p-8 text-center space-y-2">
-            <p className="text-sm font-medium text-slate-700">
-              No matching organizations on this page
-            </p>
-            <p className="text-xs text-slate-500">
-              No loaded organizations match the filter "{clientSearch}".
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setClientSearch("")}
-              className="mt-2"
-            >
-              Clear Filter
-            </Button>
-          </div>
+          <EmptyState
+            compact
+            title="No Matching Organizations"
+            description={`No loaded organizations match the filter "${clientSearch}".`}
+            action={{
+              label: "Clear Search Filter",
+              onClick: () => setClientSearch(""),
+              variant: "outline",
+            }}
+          />
         ) : (
           /* Populated Table */
           <Table>

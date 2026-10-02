@@ -533,9 +533,19 @@ export default function OrganizationDetailsPage() {
                   <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
                     <span className="text-xs font-semibold text-slate-700">Authorized Signature</span>
                     {profile?.signatureConfigured ? (
-                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px]">
-                        Configured
-                      </Badge>
+                      profile?.signatureVerificationStatus === "APPROVED" ? (
+                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px]">
+                          Verified & Active
+                        </Badge>
+                      ) : profile?.signatureVerificationStatus === "REJECTED" ? (
+                        <Badge className="bg-rose-100 text-rose-800 border-rose-200 text-[10px]">
+                          Rejected
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[10px]">
+                          Pending Verification
+                        </Badge>
+                      )
                     ) : (
                       <Badge variant="outline" className="text-slate-500 text-[10px]">
                         Not Uploaded

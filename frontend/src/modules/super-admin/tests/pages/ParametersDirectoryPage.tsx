@@ -37,6 +37,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { EmptyState } from "@/components/ui/empty-state";
 
 import { useTestsQuery } from "../hooks/useTests";
 import {
@@ -401,29 +402,39 @@ export default function ParametersDirectoryPage() {
                 </Alert>
               </div>
             ) : filteredParameters.length === 0 ? (
-              <div className="text-center py-12 px-4">
-                <Sliders className="mx-auto h-8 w-8 text-slate-300 mb-2" />
-                <h3 className="text-sm font-semibold text-slate-900">
-                  No parameters found
-                </h3>
-                <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                  {searchTerm
-                    ? `No parameters matched "${searchTerm}". Try resetting search filter.`
-                    : "This test does not have any diagnostic parameters configured yet."}
-                </p>
-                {currentTest && !searchTerm && (
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      navigate(`/super-admin/tests/${currentTest.refId}/parameters/new`)
-                    }
-                    className="mt-4 text-xs bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <Plus className="mr-1.5 h-3.5 w-3.5" />
-                    Add First Parameter
-                  </Button>
-                )}
-              </div>
+              <EmptyState
+                title={
+                  searchTerm
+                    ? "No Matching Parameters Found"
+                    : "No Parameters Configured"
+                }
+                description={
+                  searchTerm
+                    ? `No parameters matched "${searchTerm}". Try resetting your search filter keyword.`
+                    : "This diagnostic test does not have any parameters configured yet. Define parameters and reference intervals to enable clinical recording."
+                }
+                action={
+                  currentTest && !searchTerm
+                    ? {
+                        label: "Add First Parameter",
+                        onClick: () =>
+                          navigate(
+                            `/super-admin/tests/${currentTest.refId}/parameters/new`,
+                          ),
+                        icon: Plus,
+                        className: "bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs h-9 px-4 rounded-lg",
+                      }
+                    : undefined
+                }
+                secondaryAction={
+                  searchTerm
+                    ? {
+                        label: "Clear Search",
+                        onClick: () => setSearchTerm(""),
+                      }
+                    : undefined
+                }
+              />
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-slate-700 border-collapse">

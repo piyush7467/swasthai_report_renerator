@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useAuth } from "@/core/auth/AuthContext";
 
 import { useReportsQuery, useDeleteReportMutation } from "../hooks/useReports";
@@ -244,23 +245,31 @@ export default function ReportsListPage() {
             </Button>
           </div>
         ) : reportsList.length === 0 ? (
-          <div className="p-12 text-center">
-            <FileText className="h-10 w-10 text-slate-300 mx-auto mb-2" />
-            <h3 className="text-sm font-bold text-slate-800">No Reports Found</h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-              {selectedStatus !== "ALL"
-                ? `There are no reports with status "${selectedStatus}" in your organization.`
-                : "Your organization has not created any diagnostic reports yet."}
-            </p>
-            <Button
-              size="sm"
-              onClick={() => navigate(`${basePath}/new`)}
-              className="mt-4 text-xs bg-[#0F766E] hover:bg-[#115E59] text-white"
-            >
-              <Plus className="mr-1.5 h-3.5 w-3.5" />
-              Create First Report
-            </Button>
-          </div>
+          <EmptyState
+            title={
+              selectedStatus !== "ALL"
+                ? "No Reports Found"
+                : "No Diagnostic Reports Yet"
+            }
+            description={
+              selectedStatus !== "ALL"
+                ? `There are no diagnostic reports currently marked as "${selectedStatus}" in your organization.`
+                : "Your organization has not created any diagnostic reports yet. Start preparing patient reports to build clinical records."
+            }
+            action={{
+              label: "Create Report",
+              onClick: () => navigate(`${basePath}/new`),
+              icon: Plus,
+            }}
+            secondaryAction={
+              selectedStatus !== "ALL"
+                ? {
+                    label: "View All Reports",
+                    onClick: () => handleStatusChange("ALL"),
+                  }
+                : undefined
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">

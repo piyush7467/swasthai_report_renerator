@@ -8,7 +8,9 @@ import {
   AlertCircle,
   ArrowLeft,
   Building2,
+  Check,
   CheckCircle2,
+  Clock,
   FileSignature,
   FileText,
   Globe,
@@ -22,6 +24,7 @@ import {
   Save,
   Trash2,
   Upload,
+  X,
 } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -34,6 +37,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -51,6 +62,8 @@ import {
   useDeleteOrganizationLogoMutation,
   useUploadOrganizationSignatureMutation,
   useDeleteOrganizationSignatureMutation,
+  useApproveSignatureMutation,
+  useRejectSignatureMutation,
 } from "../hooks/useOrganizations";
 
 const profileFormSchema = z.object({
@@ -146,6 +159,10 @@ export default function OrganizationProfilePage() {
   const deleteLogoMutation = useDeleteOrganizationLogoMutation();
   const uploadSignatureMutation = useUploadOrganizationSignatureMutation();
   const deleteSignatureMutation = useDeleteOrganizationSignatureMutation();
+  const approveSignatureMutation = useApproveSignatureMutation();
+  const rejectSignatureMutation = useRejectSignatureMutation();
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
 
   const {
     register,
@@ -617,11 +634,21 @@ export default function OrganizationProfilePage() {
                       </CardTitle>
                     </div>
                     {profile?.signatureConfigured ? (
-                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
-                        Configured
-                      </Badge>
+                      profile?.signatureVerificationStatus === "APPROVED" ? (
+                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs">
+                          Verified & Active
+                        </Badge>
+                      ) : profile?.signatureVerificationStatus === "REJECTED" ? (
+                        <Badge className="bg-rose-100 text-rose-800 border-rose-200 text-xs">
+                          Rejected
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs">
+                          Pending Verification
+                        </Badge>
+                      )
                     ) : (
-                      <Badge variant="outline" className="text-slate-500">
+                      <Badge variant="outline" className="text-slate-500 text-xs">
                         Not Configured
                       </Badge>
                     )}
@@ -632,6 +659,115 @@ export default function OrganizationProfilePage() {
                 </CardHeader>
 
                 <CardContent className="space-y-3 pt-1">
+                  {/* Super Admin Verification Action Bar */}
+                  {profile?.signatureConfigured && profile?.signatureVerificationStatus === "APPROVED" && (
+                    <div className="rounded-lg bg-emerald-50/70 border border-emerald-200 p-3 text-xs text-emerald-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+                        <div>
+                          <div className="font-semibold text-emerald-950">Verified & Active Signature</div>
+                          <div className="text-[11px] text-emerald-800">
+                            Approved by <strong>{profile.signatureVerifiedBy || "Super Admin"}</strong>
+                            {profile.signatureVerifiedAt ? ` on ${new Date(profile.signatureVerifiedAt).toLocaleDateString()}` : ""}
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={approveSignatureMutation.isPending || rejectSignatureMutation.isPending}
+                        onClick={() => {
+                          setRejectReason("");
+                          setIsRejectModalOpen(true);
+                        }}
+                        className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50 text-xs h-8 px-3 gap-1 cursor-pointer font-semibold shadow-xs shrink-0"
+                      >
+                        <X className="size-3.5" />
+                        Revoke / Reject
+                      </Button>
+                    </div>
+                  )}
+
+                  {profile?.signatureConfigured && profile?.signatureVerificationStatus === "REJECTED" && (
+                    <div className="rounded-lg bg-rose-50 border border-rose-200 p-3 text-xs text-rose-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                      <div>
+                        <div className="flex items-center gap-1.5 font-bold text-rose-800">
+                          <AlertCircle className="size-4 text-rose-600" />
+                          <span>Specimen Rejected</span>
+                        </div>
+                        <p className="text-[11px] text-rose-700 mt-0.5">
+                          Reason: {profile.signatureRejectionReason || "Signature did not meet clinical verification standards."}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={approveSignatureMutation.isPending || rejectSignatureMutation.isPending}
+                        onClick={async () => {
+                          try {
+                            await approveSignatureMutation.mutateAsync(organizationRefId);
+                            setSaveSuccessMessage("Authorized signature specimen re-approved successfully.");
+                          } catch (e: unknown) {
+                            setActionErrorMessage(e instanceof Error ? e.message : "Failed to approve signature.");
+                          }
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 px-3 gap-1 cursor-pointer font-semibold shadow-xs shrink-0"
+                      >
+                        <Check className="size-3.5" />
+                        Re-Approve
+                      </Button>
+                    </div>
+                  )}
+
+                  {profile?.signatureConfigured && profile?.signatureVerificationStatus !== "APPROVED" && profile?.signatureVerificationStatus !== "REJECTED" && (
+                    <div className="rounded-lg bg-amber-50/90 border border-amber-200 p-3 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                      <div>
+                        <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                          <Clock className="size-4 text-amber-600" />
+                          <span>Specimen Awaiting Verification</span>
+                        </div>
+                        <p className="text-amber-700 text-[11px] mt-0.5">
+                          Review this specimen to authorize its stamping on finalized reports.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={approveSignatureMutation.isPending || rejectSignatureMutation.isPending}
+                          onClick={async () => {
+                            try {
+                              await approveSignatureMutation.mutateAsync(organizationRefId);
+                              setSaveSuccessMessage("Authorized signature specimen approved successfully.");
+                            } catch (e: unknown) {
+                              setActionErrorMessage(e instanceof Error ? e.message : "Failed to approve signature.");
+                            }
+                          }}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 px-3 gap-1 cursor-pointer font-semibold shadow-xs"
+                        >
+                          <Check className="size-3.5" />
+                          Approve
+                        </Button>
+
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={approveSignatureMutation.isPending || rejectSignatureMutation.isPending}
+                          onClick={() => {
+                            setRejectReason("");
+                            setIsRejectModalOpen(true);
+                          }}
+                          className="border-rose-200 bg-white text-rose-700 hover:bg-rose-50 text-xs h-8 px-3 gap-1 cursor-pointer font-semibold shadow-xs"
+                        >
+                          <X className="size-3.5" />
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Signature Owner Info or Restriction Alert */}
                   {!profile?.signatureOwnerRefId ? (
                     <Alert className="bg-amber-50/80 border-amber-200 text-amber-900 py-2.5">
@@ -1084,6 +1220,70 @@ export default function OrganizationProfilePage() {
             onConfirm={handleConfirmDeleteSignature}
             isDeleting={deleteSignatureMutation.isPending}
           />
+
+          {/* Signature Rejection Dialog */}
+          <Dialog open={isRejectModalOpen} onOpenChange={setIsRejectModalOpen}>
+            <DialogContent className="sm:max-w-md bg-white border border-slate-200">
+              <DialogHeader>
+                <DialogTitle className="text-base font-bold text-slate-900">
+                  Reject Signature Specimen
+                </DialogTitle>
+                <DialogDescription className="text-xs text-slate-500">
+                  Provide a compliance reason for rejecting this signature. The organization administrator will be notified to draw or upload a replacement.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="py-2">
+                <Label htmlFor="rejectReason" className="text-xs font-semibold text-slate-700">
+                  Rejection Reason
+                </Label>
+                <Textarea
+                  id="rejectReason"
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="e.g. Signature is illegible, cropped, or does not match doctor's identity..."
+                  rows={3}
+                  className="mt-1.5 text-xs border-slate-200"
+                />
+              </div>
+
+              <DialogFooter className="flex items-center justify-between sm:justify-between pt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsRejectModalOpen(false)}
+                  disabled={rejectSignatureMutation.isPending}
+                  className="text-xs text-slate-600 hover:text-slate-900"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  disabled={rejectSignatureMutation.isPending}
+                  onClick={async () => {
+                    try {
+                      await rejectSignatureMutation.mutateAsync({
+                        refId: organizationRefId,
+                        reason: rejectReason,
+                      });
+                      setIsRejectModalOpen(false);
+                      setSaveSuccessMessage("Authorized signature specimen rejected.");
+                    } catch (e: unknown) {
+                      setActionErrorMessage(
+                        e instanceof Error ? e.message : "Failed to reject signature."
+                      );
+                    }
+                  }}
+                  className="text-xs font-semibold shadow-xs"
+                >
+                  {rejectSignatureMutation.isPending ? "Rejecting..." : "Confirm Rejection"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
     </div>

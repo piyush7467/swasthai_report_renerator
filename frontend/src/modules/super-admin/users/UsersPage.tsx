@@ -7,13 +7,11 @@ import {
   Clock,
   Edit,
   Eye,
-  Filter,
   MoreVertical,
   RefreshCw,
   Search,
   Shield,
   ShieldAlert,
-  Users,
   X,
 } from "lucide-react";
 
@@ -43,6 +41,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 import type {
@@ -483,38 +482,24 @@ export function UsersPage() {
                 ))
               ) : filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-12 text-center">
+                  <TableCell colSpan={7} className="py-6 text-center">
                     {hasActiveFilters ? (
-                      <div className="flex flex-col items-center justify-center text-slate-500">
-                        <Filter className="h-10 w-10 text-slate-300 stroke-[1.5]" />
-                        <p className="mt-2 text-sm font-medium text-slate-700">
-                          No users match your filter criteria
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          Try adjusting your search terms or clearing role/status filters.
-                        </p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={clearAllFilters}
-                          className="mt-3 text-xs"
-                        >
-                          Clear Filters
-                        </Button>
-                      </div>
+                      <EmptyState
+                        compact
+                        title="No Matching Users Found"
+                        description="No users matched your current role, status, or search filters. Try adjusting your search query."
+                        action={{
+                          label: "Clear Filters",
+                          onClick: clearAllFilters,
+                          variant: "outline",
+                        }}
+                      />
                     ) : (
-                      <div className="flex flex-col items-center justify-center text-slate-500">
-                        <Users className="h-10 w-10 text-slate-300 stroke-[1.5]" />
-                        <p className="mt-2 text-sm font-medium text-slate-700">
-                          No users found in database
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          Get started by registering a new organization administrator or lab staff member.
-                        </p>
-                        <div className="mt-3">
-                          <CreateUserDialog />
-                        </div>
-                      </div>
+                      <EmptyState
+                        title="No Personnel Found in Directory"
+                        description="Get started by registering a new organization administrator or lab staff member in the system."
+                        action={<CreateUserDialog />}
+                      />
                     )}
                   </TableCell>
                 </TableRow>

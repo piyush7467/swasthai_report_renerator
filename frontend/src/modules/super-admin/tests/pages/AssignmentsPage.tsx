@@ -8,7 +8,6 @@ import {
   ChevronRight,
   Edit,
   FlaskConical,
-  Link2,
   MoreVertical,
   Plus,
   RefreshCw,
@@ -32,6 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 
 import { useOrganizationsQuery } from "../../hooks/useOrganizations";
 import {
@@ -383,33 +383,23 @@ export function AssignmentsPage() {
             </table>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-3">
-              <Link2 className="h-6 w-6" />
-            </div>
-            <h3 className="text-base font-semibold text-slate-900">
-              No tests assigned
-            </h3>
-            <p className="mt-1 text-sm text-slate-500 max-w-sm">
-              {selectedOrg
-                ? `No diagnostic tests are currently assigned to ${selectedOrg.name}.`
-                : "No tests assigned."}
-            </p>
-            <div className="mt-4">
-              <Button
-                size="sm"
-                onClick={() =>
-                  navigate(
-                    `/super-admin/tests/assignments/new?organizationRefId=${effectiveOrgRefId}`,
-                  )
-                }
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Assign Tests to Organization
-              </Button>
-            </div>
-          </div>
+          <EmptyState
+            title="No Tests Assigned"
+            description={
+              selectedOrg
+                ? `No diagnostic tests are currently assigned to ${selectedOrg.name}. Assign tests from the catalog to enable them for this lab.`
+                : "No tests assigned. Select an organization to manage its diagnostic test offerings."
+            }
+            action={{
+              label: "Assign Tests to Organization",
+              onClick: () =>
+                navigate(
+                  `/super-admin/tests/assignments/new?organizationRefId=${effectiveOrgRefId}`,
+                ),
+              icon: Plus,
+              className: "bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs h-9 px-4 rounded-lg",
+            }}
+          />
         )}
 
         {/* Pagination Bar */}

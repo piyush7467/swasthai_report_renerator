@@ -49,6 +49,8 @@ import PatientsListPage from "@/modules/org-admin/patients/pages/PatientsListPag
 import PatientProfilePage from "@/modules/org-admin/patients/pages/PatientProfilePage";
 import LabStaffPage from "@/modules/org-admin/staff/pages/LabStaffPage";
 import OrgAdminLicensePage from "@/modules/org-admin/licensing/pages/OrganizationLicensePage";
+import OrganizationSettingsPage from "@/modules/org-admin/settings/pages/OrganizationSettingsPage";
+import { AssignedTestsPage } from "@/modules/org-admin/tests/pages/AssignedTestsPage";
 import SharedReportViewerPage from "@/modules/public/pages/SharedReportViewerPage";
 
 function NotFoundPage() {
@@ -281,6 +283,18 @@ export function AppRouter() {
                 path="/organization/license"
                 element={<OrgAdminLicensePage />}
               />
+              <Route
+                path="/org-admin/tests"
+                element={<AssignedTestsPage />}
+              />
+              <Route
+                path="/org-admin/settings"
+                element={<OrganizationSettingsPage />}
+              />
+              <Route
+                path="/org-admin/profile"
+                element={<OrganizationSettingsPage />}
+              />
             </Route>
 
             {/* LAB STAFF */}
@@ -314,6 +328,10 @@ export function AppRouter() {
               <Route
                 path="/lab-staff/reports/:reportRefId"
                 element={<ReportWorkspacePage />}
+              />
+              <Route
+                path="/lab-staff/tests"
+                element={<AssignedTestsPage />}
               />
             </Route>
 

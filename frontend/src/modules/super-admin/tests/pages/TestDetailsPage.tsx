@@ -21,7 +21,6 @@ import {
   Plus,
   RefreshCw,
   RotateCcw,
-  Sliders,
   Trash2,
 } from "lucide-react";
 
@@ -43,6 +42,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import type { ApiErrorResponse } from "@/core/auth/authTypes";
 
@@ -859,31 +859,33 @@ export function TestDetailsPage() {
                 </table>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-3">
-                  <Sliders className="h-6 w-6" />
-                </div>
-                <h3 className="text-base font-semibold text-slate-900">
-                  {paramStatus !== "ALL" ? "No parameters found" : "No parameters defined"}
-                </h3>
-                <p className="mt-1 text-sm text-slate-500 max-w-sm">
-                  {paramStatus !== "ALL"
-                    ? "No parameters match the selected status filter."
-                    : "Add measurement parameters, biological reference ranges, and critical limits to this test."}
-                </p>
-                <div className="mt-4">
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      navigate(`/super-admin/tests/${test.refId}/parameters/new`)
-                    }
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Parameter
-                  </Button>
-                </div>
-              </div>
+              <EmptyState
+                compact
+                title={paramStatus !== "ALL" ? "No Parameters Found" : "No Parameters Defined"}
+                description={
+                  paramStatus !== "ALL"
+                    ? "No diagnostic parameters match the selected status filter."
+                    : "Add measurement parameters, biological reference intervals, and critical ranges to this test specification."
+                }
+                action={{
+                  label: "Add Parameter",
+                  onClick: () =>
+                    navigate(`/super-admin/tests/${test.refId}/parameters/new`),
+                  icon: Plus,
+                  className: "bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs h-9 px-4 rounded-lg",
+                }}
+                secondaryAction={
+                  paramStatus !== "ALL"
+                    ? {
+                        label: "Show All Parameters",
+                        onClick: () => {
+                          setParamStatus("ALL");
+                          setParamPage(0);
+                        },
+                      }
+                    : undefined
+                }
+              />
             )}
 
             {/* Parameters Pagination */}

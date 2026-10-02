@@ -8,24 +8,88 @@ interface ReportTrendChartProps {
 
 export function ReportTrendChart({
   data,
-  height = 260,
+  height = 240,
 }: ReportTrendChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-  if (!data || data.length === 0) {
+  const hasData = Boolean(
+    data &&
+      data.length > 0 &&
+      data.some((d) => d.totalCount > 0 || d.finalizedCount > 0)
+  );
+
+  if (!hasData) {
     return (
       <div
         style={{ height }}
-        className="flex items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-xs text-slate-500"
+        className="flex flex-col items-center justify-center text-center p-6 select-none"
       >
-        No trend data available for the selected period.
+        {/* Clean document with magnifying glass illustration */}
+        <div className="relative mb-3 flex items-center justify-center">
+          <svg
+            width="64"
+            height="64"
+            viewBox="0 0 64 64"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="text-slate-300"
+          >
+            {/* Paper back */}
+            <path
+              d="M18 10H38L48 20V52C48 54.2091 46.2091 56 44 56H18C15.7909 56 14 54.2091 14 52V14C14 11.7909 15.7909 10 18 10Z"
+              fill="#F8FAFC"
+              stroke="#E2E8F0"
+              strokeWidth="2"
+            />
+            {/* Folded corner */}
+            <path
+              d="M38 10V18C38 19.1046 38.8954 20 40 20H48"
+              stroke="#CBD5E1"
+              strokeWidth="2"
+            />
+            {/* Subtle lines */}
+            <line x1="22" y1="28" x2="34" y2="28" stroke="#E2E8F0" strokeWidth="2" strokeLinecap="round" />
+            <line x1="22" y1="36" x2="30" y2="36" stroke="#E2E8F0" strokeWidth="2" strokeLinecap="round" />
+            {/* Magnifying Glass */}
+            <circle
+              cx="40"
+              cy="40"
+              r="10"
+              fill="white"
+              stroke="#94A3B8"
+              strokeWidth="2.5"
+            />
+            <line
+              x1="47.5"
+              y1="47.5"
+              x2="54"
+              y2="54"
+              stroke="#94A3B8"
+              strokeWidth="3"
+              strokeLinecap="round"
+            />
+            <path
+              d="M37 37C38.5 35.5 40.5 35 42 35.5"
+              stroke="#CBD5E1"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+          </svg>
+        </div>
+
+        <p className="text-xs sm:text-sm font-semibold text-slate-700">
+          No report Activity in this period
+        </p>
+        <p className="text-[11px] sm:text-xs text-slate-400 mt-1 max-w-xs">
+          Try selecting a different time range or check back later.
+        </p>
       </div>
     );
   }
 
   const maxVal = Math.max(
     ...data.map((d) => d.totalCount),
-    5 // Minimum scale so empty charts don't divide by zero
+    5 // Minimum scale
   );
 
   const padding = { top: 20, right: 20, bottom: 35, left: 40 };
@@ -74,7 +138,7 @@ export function ReportTrendChart({
       >
         <defs>
           <linearGradient id="totalGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#0284c7" stopOpacity="0.25" />
+            <stop offset="0%" stopColor="#0284c7" stopOpacity="0.2" />
             <stop offset="100%" stopColor="#0284c7" stopOpacity="0.0" />
           </linearGradient>
         </defs>
@@ -87,7 +151,7 @@ export function ReportTrendChart({
               y1={tick.y}
               x2={width - padding.right}
               y2={tick.y}
-              stroke="#e2e8f0"
+              stroke="#f1f5f9"
               strokeDasharray="4 4"
             />
             <text
@@ -158,35 +222,37 @@ export function ReportTrendChart({
                 className="transition-all duration-150"
               />
 
-              {isHovered && (
-                <line
-                  x1={cx}
-                  y1={padding.top}
-                  x2={cx}
-                  y2={padding.top + chartHeight}
-                  stroke="#cbd5e1"
-                  strokeWidth="1.5"
-                  strokeDasharray="2 2"
-                />
-              )}
+              {/* Finalized dot */}
+              <circle
+                cx={cx}
+                cy={getY(d.finalizedCount)}
+                r={isHovered ? 4 : 2.5}
+                fill="#ffffff"
+                stroke="#10b981"
+                strokeWidth={isHovered ? 2 : 1}
+              />
             </g>
           );
         })}
 
-        {/* X-axis labels */}
+        {/* X-axis date labels */}
         {xLabels.map((lbl, idx) => {
-          const cx = getX(lbl.index);
-          const formatted = lbl.date.slice(5); // MM-DD
+          const x = getX(lbl.index);
+          const formattedDate = new Date(lbl.date).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          });
+
           return (
             <text
               key={idx}
-              x={cx}
+              x={x}
               y={height - 8}
               textAnchor="middle"
               fontSize="11"
-              fill="#64748b"
+              fill="#94a3b8"
             >
-              {formatted}
+              {formattedDate}
             </text>
           );
         })}
@@ -195,57 +261,27 @@ export function ReportTrendChart({
       {/* Floating Tooltip */}
       {hoveredPoint && hoveredIndex !== null && (
         <div
-          className="pointer-events-none absolute top-2 rounded-md border border-slate-200 bg-white/95 px-3 py-2 shadow-md backdrop-blur-xs transition-all text-xs"
+          className="absolute z-20 pointer-events-none -translate-x-1/2 rounded-lg bg-slate-900 px-3 py-2 text-xs text-white shadow-lg transition-all"
           style={{
-            left: `clamp(10px, ${(getX(hoveredIndex) / width) * 100}%, calc(100% - 170px))`,
+            left: `${(getX(hoveredIndex) / width) * 100}%`,
+            top: `${getY(hoveredPoint.totalCount) - 40}px`,
           }}
         >
-          <div className="font-semibold text-slate-800 border-b border-slate-100 pb-1 mb-1">
-            {hoveredPoint.date}
-          </div>
-          <div className="space-y-0.5 text-slate-600">
-            <div className="flex items-center justify-between gap-4">
-              <span className="flex items-center gap-1.5 text-sky-700 font-medium">
-                <span className="h-2 w-2 rounded-full bg-sky-600 inline-block" />
-                Total:
-              </span>
-              <span className="font-bold text-slate-900">
-                {hoveredPoint.totalCount}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <span className="flex items-center gap-1.5 text-emerald-700">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" />
-                Finalized:
-              </span>
-              <span className="font-semibold text-slate-900">
-                {hoveredPoint.finalizedCount}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <span className="flex items-center gap-1.5 text-amber-700">
-                <span className="h-2 w-2 rounded-full bg-amber-500 inline-block" />
-                Draft:
-              </span>
-              <span className="font-semibold text-slate-900">
-                {hoveredPoint.draftCount}
-              </span>
-            </div>
+          <p className="font-semibold text-slate-200">
+            {new Date(hoveredPoint.date).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </p>
+          <div className="mt-1 flex items-center gap-3">
+            <span className="text-sky-400">Total: {hoveredPoint.totalCount}</span>
+            <span className="text-emerald-400">
+              Finalized: {hoveredPoint.finalizedCount}
+            </span>
           </div>
         </div>
       )}
-
-      {/* Legend */}
-      <div className="mt-2 flex items-center justify-center gap-5 text-xs text-slate-600">
-        <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-sky-600" />
-          <span>Total Generated</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-          <span>Finalized</span>
-        </div>
-      </div>
     </div>
   );
 }

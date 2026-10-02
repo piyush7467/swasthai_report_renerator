@@ -185,4 +185,32 @@ export const organizationApi = {
     );
     return response.data.data;
   },
+
+  async approveOrganizationSignature(
+    organizationRefId: string,
+  ): Promise<OrganizationProfileResponse> {
+    const response = await apiClient.post<
+      ApiResponse<OrganizationProfileResponse>
+    >(
+      `/organization-profile/organizations/${encodeURIComponent(
+        organizationRefId,
+      )}/signature/approve`,
+    );
+    return response.data.data;
+  },
+
+  async rejectOrganizationSignature(
+    organizationRefId: string,
+    reason?: string,
+  ): Promise<OrganizationProfileResponse> {
+    const response = await apiClient.post<
+      ApiResponse<OrganizationProfileResponse>
+    >(
+      `/organization-profile/organizations/${encodeURIComponent(
+        organizationRefId,
+      )}/signature/reject`,
+      reason ? { reason } : undefined,
+    );
+    return response.data.data;
+  },
 };

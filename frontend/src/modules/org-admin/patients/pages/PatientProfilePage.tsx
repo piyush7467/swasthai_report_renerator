@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { usePatientQuery, usePatientReportsQuery } from "../hooks/usePatients";
 import { ReportStatusBadge } from "../../reports/components/ReportStatusBadge";
 import { ShareReportModal } from "../../reports/components/ShareReportModal";
@@ -312,23 +313,17 @@ export default function PatientProfilePage() {
               </Button>
             </div>
           ) : reportsList.length === 0 ? (
-            <div className="p-12 text-center space-y-3">
-              <FileText className="h-10 w-10 text-slate-300 mx-auto" />
-              <h3 className="text-sm font-bold text-slate-800">No Reports Yet</h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Create the first diagnostic report for this patient to establish their medical history.
-              </p>
-              <Button
-                size="sm"
-                onClick={() =>
-                  navigate(`${reportsBasePath}/new?patientRefId=${patient.refId}`)
-                }
-                className="mt-2 text-xs bg-[#0F766E] hover:bg-[#115E59] text-white font-semibold cursor-pointer"
-              >
-                <Plus className="h-3.5 w-3.5 mr-1.5" />
-                Create New Report
-              </Button>
-            </div>
+            <EmptyState
+              compact
+              title="No Reports Yet"
+              description="Create the first diagnostic report for this patient to establish their medical history and test findings."
+              action={{
+                label: "Create New Report",
+                onClick: () =>
+                  navigate(`${reportsBasePath}/new?patientRefId=${patient.refId}`),
+                icon: Plus,
+              }}
+            />
           ) : (
             <>
               {/* Desktop Reports Table */}

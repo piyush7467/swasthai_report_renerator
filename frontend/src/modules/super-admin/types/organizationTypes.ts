@@ -64,6 +64,10 @@ export interface OrganizationProfileResponse {
   website?: string | null;
   logoConfigured: boolean;
   signatureConfigured: boolean;
+  signatureVerificationStatus?: "NOT_CONFIGURED" | "PENDING_VERIFICATION" | "APPROVED" | "REJECTED" | null;
+  signatureVerifiedAt?: string | null;
+  signatureVerifiedBy?: string | null;
+  signatureRejectionReason?: string | null;
   signatureOwnerRefId?: string | null;
   signatureOwnerName?: string | null;
   signatureOwnerEmail?: string | null;
@@ -73,6 +77,12 @@ export interface OrganizationProfileResponse {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export type SignatureVerificationStatus =
+  | "NOT_CONFIGURED"
+  | "PENDING_VERIFICATION"
+  | "APPROVED"
+  | "REJECTED";
 
 export interface UpdateOrganizationProfileRequest {
   addressLine1?: string | null;
