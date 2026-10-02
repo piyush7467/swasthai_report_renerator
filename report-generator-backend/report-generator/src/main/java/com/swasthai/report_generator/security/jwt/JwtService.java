@@ -202,25 +202,33 @@ public class JwtService {
      * Reads a PEM file from the configured path.
      */
     private String readPemFile(
-            String filePath) throws IOException {
+            String filePathOrContent) throws IOException {
 
-        if (filePath == null || filePath.isBlank()) {
+        if (filePathOrContent == null || filePathOrContent.isBlank()) {
             throw new IllegalArgumentException(
                     "JWT key path is not configured.");
         }
 
-        Path path = Path.of(filePath);
+        // Support passing the raw PEM key string directly via environment variables
+        if (filePathOrContent.contains("BEGIN PRIVATE KEY")
+                || filePathOrContent.contains("BEGIN PUBLIC KEY")
+                || filePathOrContent.contains("BEGIN RSA PRIVATE KEY")
+                || filePathOrContent.contains("BEGIN RSA PUBLIC KEY")) {
+            return filePathOrContent.replace("\\n", "\n");
+        }
+
+        Path path = Path.of(filePathOrContent);
 
         if (!Files.exists(path)) {
             throw new IllegalArgumentException(
                     "JWT key file does not exist: "
-                            + filePath);
+                            + filePathOrContent);
         }
 
         if (!Files.isRegularFile(path)) {
             throw new IllegalArgumentException(
                     "JWT key path is not a regular file: "
-                            + filePath);
+                            + filePathOrContent);
         }
 
         return Files.readString(

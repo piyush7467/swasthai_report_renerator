@@ -3,9 +3,9 @@ spring:
     name: report-generator
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:swasthai_report_generator}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://${DB_HOST:${PGHOST:localhost}}:${DB_PORT:${PGPORT:5432}}/${DB_NAME:${PGDATABASE:swasthai_report_generator}}
+    username: ${DB_USERNAME:${PGUSER:postgres}}
+    password: ${DB_PASSWORD:${PGPASSWORD:}}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -57,7 +57,7 @@ bootstrap:
     name: ${BOOTSTRAP_ADMIN_NAME:System Super Admin}
 
 server:
-  port: ${SERVER_PORT:8087}
+  port: ${PORT:${SERVER_PORT:8087}}
   error:
     include-stacktrace: never
     include-message: never
@@ -90,7 +90,7 @@ license:
 
 
 storage:
-  root-path: ${STORAGE_ROOT_PATH:E:/swasthai-storage/report-generator}
+  root-path: ${STORAGE_ROOT_PATH:./storage}
   max-image-size-bytes: ${STORAGE_MAX_IMAGE_SIZE_BYTES:5242880}
 
 staff:

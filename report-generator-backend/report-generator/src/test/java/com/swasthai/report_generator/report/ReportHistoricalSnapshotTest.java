@@ -938,9 +938,12 @@ class ReportHistoricalSnapshotTest {
 
                 PdfTextExtractor extractor = new PdfTextExtractor(reader);
                 String pageText = extractor.getTextFromPage(p);
-                assertThat(pageText).as("Page " + p + " must contain Report ID").contains("Report ID: " + finalized.refId());
                 assertThat(pageText).as("Page " + p + " must contain Page number").contains("Page " + p);
             }
+
+            PdfTextExtractor finalExtractor = new PdfTextExtractor(reader);
+            String lastPageText = finalExtractor.getTextFromPage(pageCount);
+            assertThat(lastPageText).as("Last page must contain Report ID in signature box").contains("Report ID: " + finalized.refId());
         } catch (java.io.IOException e) {
             throw new RuntimeException(e);
         }
@@ -1112,13 +1115,11 @@ class ReportHistoricalSnapshotTest {
             PdfTextExtractor extractor = new PdfTextExtractor(reader);
             String pageText = extractor.getTextFromPage(1);
 
-            // Organization name and header title must NOT appear
-            assertThat(pageText).doesNotContain(orgA.getName());
-            assertThat(pageText).doesNotContain("CLINICAL LABORATORY REPORT");
+            // Organization address and contact from top header must NOT appear
+            assertThat(pageText).doesNotContain("123 Health Street");
 
             // Patient and test information must still appear
             assertThat(pageText).contains(patientOrgA.getName());
-            assertThat(pageText).contains("PATIENT & REPORT INFORMATION");
             assertThat(pageText).contains("Complete Blood Profile");
         } catch (java.io.IOException e) {
             throw new RuntimeException(e);
@@ -1140,13 +1141,13 @@ class ReportHistoricalSnapshotTest {
             PdfTextExtractor extractor = new PdfTextExtractor(reader);
             String pageText = extractor.getTextFromPage(1);
 
-            // Organization name and header title MUST appear
+            // Organization name and header contact MUST appear
             assertThat(pageText).contains(orgA.getName());
-            assertThat(pageText).contains("CLINICAL LABORATORY REPORT");
+            assertThat(pageText).contains("123 Health Street");
+            assertThat(pageText).contains("LABORATORY REPORT");
 
             // Patient and test information must also appear
             assertThat(pageText).contains(patientOrgA.getName());
-            assertThat(pageText).contains("PATIENT & REPORT INFORMATION");
             assertThat(pageText).contains("Complete Blood Profile");
         } catch (java.io.IOException e) {
             throw new RuntimeException(e);

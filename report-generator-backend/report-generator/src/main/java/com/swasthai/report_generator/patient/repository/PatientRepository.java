@@ -93,4 +93,25 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
     );
 
     long countByOrganization_IdAndDeletedAtIsNull(UUID organizationId);
+
+    long countByOrganization_IdAndCreatedAtGreaterThanEqualAndDeletedAtIsNull(UUID organizationId, java.time.Instant since);
+
+    @Query(value = """
+        SELECT
+            CAST(p.created_at AT TIME ZONE :timeZone AS DATE) AS registrationDate,
+            COUNT(*) AS patientCount
+        FROM patients p
+        WHERE p.deleted_at IS NULL
+          AND p.created_at >= :fromInstant
+          AND p.created_at < :toInstant
+          AND p.organization_id = :organizationId
+        GROUP BY registrationDate
+        ORDER BY registrationDate ASC
+        """, nativeQuery = true)
+    java.util.List<PatientTrendProjection> findPatientTrend(
+            @Param("fromInstant") java.time.Instant fromInstant,
+            @Param("toInstant") java.time.Instant toInstant,
+            @Param("timeZone") String timeZone,
+            @Param("organizationId") UUID organizationId
+    );
 }

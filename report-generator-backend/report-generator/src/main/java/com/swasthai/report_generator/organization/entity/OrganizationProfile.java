@@ -1,6 +1,7 @@
 package com.swasthai.report_generator.organization.entity;
 
 import com.swasthai.report_generator.organization.entity.Organization;
+import com.swasthai.report_generator.organization.enums.SignatureVerificationStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -149,6 +150,39 @@ public class OrganizationProfile {
             length = 50
     )
     private String signatureOwnerRefId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(
+            name = "signature_verification_status",
+            length = 30
+    )
+    private SignatureVerificationStatus signatureVerificationStatus;
+
+    @Column(
+            name = "signature_verified_at"
+    )
+    private Instant signatureVerifiedAt;
+
+    @Column(
+            name = "signature_verified_by",
+            length = 150
+    )
+    private String signatureVerifiedBy;
+
+    @Column(
+            name = "signature_rejection_reason",
+            length = 500
+    )
+    private String signatureRejectionReason;
+
+    public SignatureVerificationStatus getSignatureVerificationStatus() {
+        if (signatureVerificationStatus == null) {
+            return signatureStorageKey != null
+                    ? SignatureVerificationStatus.APPROVED
+                    : SignatureVerificationStatus.NOT_CONFIGURED;
+        }
+        return signatureVerificationStatus;
+    }
 
     /*
      * Optional report footer configured by the organization.

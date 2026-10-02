@@ -109,4 +109,23 @@ public interface AdminAnalyticsRepository extends JpaRepository<Report, UUID> {
             @Param("limit") int limit,
             @Param("organizationId") UUID organizationId
     );
+
+    @Query(value = """
+        SELECT
+            COALESCE(c.name, 'General Diagnostics') AS categoryName,
+            COUNT(rtr.id) AS usageCount
+        FROM report_test_results rtr
+        JOIN reports r ON r.id = rtr.report_id AND r.deleted_at IS NULL
+        JOIN tests t ON t.id = rtr.test_id
+        LEFT JOIN test_categories c ON c.id = t.category_id
+        WHERE r.organization_id = :organizationId
+        GROUP BY COALESCE(c.name, 'General Diagnostics')
+        ORDER BY usageCount DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<CategoryUsageProjection> findCategoryUsageByOrganization(
+            @Param("organizationId") UUID organizationId,
+            @Param("limit") int limit
+    );
 }
+

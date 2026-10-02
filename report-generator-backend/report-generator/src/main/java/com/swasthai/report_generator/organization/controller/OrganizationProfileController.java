@@ -321,4 +321,48 @@ public class OrganizationProfileController {
                 .contentType(MediaType.parseMediaType(image.getContentType()))
                 .body(image.getBytes());
     }
+
+    @PostMapping("/organizations/{organizationRefId}/signature/approve")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<OrganizationProfileResponse>>
+    approveOrganizationSignature(
+            @PathVariable String organizationRefId
+    ) {
+
+        return ResponseEntity.ok(
+                ApiResponse.<OrganizationProfileResponse>builder()
+                        .success(true)
+                        .message("Organization signature approved successfully.")
+                        .data(
+                                profileService.approveSignatureForOrganization(
+                                        organizationRefId
+                                )
+                        )
+                        .build()
+        );
+    }
+
+    @PostMapping("/organizations/{organizationRefId}/signature/reject")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<OrganizationProfileResponse>>
+    rejectOrganizationSignature(
+            @PathVariable String organizationRefId,
+            @RequestBody(required = false) java.util.Map<String, String> body
+    ) {
+
+        String reason = body != null ? body.get("reason") : null;
+
+        return ResponseEntity.ok(
+                ApiResponse.<OrganizationProfileResponse>builder()
+                        .success(true)
+                        .message("Organization signature rejected.")
+                        .data(
+                                profileService.rejectSignatureForOrganization(
+                                        organizationRefId,
+                                        reason
+                                )
+                        )
+                        .build()
+        );
+    }
 }

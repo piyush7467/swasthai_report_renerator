@@ -5,6 +5,7 @@ import com.swasthai.report_generator.license.service.LicenseGuard;
 import com.swasthai.report_generator.organization.entity.Organization;
 import com.swasthai.report_generator.organization.entity.OrganizationProfile;
 import com.swasthai.report_generator.organization.entity.OrganizationStatus;
+import com.swasthai.report_generator.organization.enums.SignatureVerificationStatus;
 import com.swasthai.report_generator.organization.repository.OrganizationProfileRepository;
 import com.swasthai.report_generator.organization.repository.OrganizationRepository;
 import com.swasthai.report_generator.patient.entity.AgeUnit;
@@ -1323,6 +1324,11 @@ public class ReportServiceImpl implements ReportService {
              */
             if (signatureStorageKey != null
                     && !signatureStorageKey.isBlank()) {
+
+                if (profile.getSignatureVerificationStatus() != SignatureVerificationStatus.APPROVED) {
+                    throw new IllegalStateException(
+                            "Organization signature is not verified. Super Admin approval is required before finalizing reports.");
+                }
 
                 String signatureOwnerRefId =
                         profile.getSignatureOwnerRefId();

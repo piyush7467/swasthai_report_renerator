@@ -43,6 +43,14 @@ public class OrganizationProfileResponse {
 
     private String signatureOwnerEmail;
 
+    private com.swasthai.report_generator.organization.enums.SignatureVerificationStatus signatureVerificationStatus;
+
+    private Instant signatureVerifiedAt;
+
+    private String signatureVerifiedBy;
+
+    private String signatureRejectionReason;
+
     private String reportFooterText;
 
     private String reportDisclaimer;
@@ -52,4 +60,8 @@ public class OrganizationProfileResponse {
     private Instant createdAt;
 
     private Instant updatedAt;
+
+    public boolean isSignatureApproved() {
+        return signatureVerificationStatus == com.swasthai.report_generator.organization.enums.SignatureVerificationStatus.APPROVED;
+    }
 }

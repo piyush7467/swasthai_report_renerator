@@ -13,6 +13,7 @@ import com.swasthai.report_generator.organization.dto.response.OrganizationRespo
 import com.swasthai.report_generator.organization.entity.Organization;
 import com.swasthai.report_generator.organization.entity.OrganizationProfile;
 import com.swasthai.report_generator.organization.entity.OrganizationStatus;
+import com.swasthai.report_generator.organization.enums.SignatureVerificationStatus;
 import com.swasthai.report_generator.organization.repository.OrganizationProfileRepository;
 import com.swasthai.report_generator.organization.repository.OrganizationRepository;
 import com.swasthai.report_generator.organization.service.OrganizationProfileService;
@@ -531,6 +532,10 @@ class OrganizationProfileSecurityAndLifecycleTest {
         organizationProfileService.uploadMyLogo(createMockPng("file"));
         organizationProfileService.uploadMySignature(createMockPng("file"));
 
+        // Super Admin approves signature before finalization
+        authenticateUser(superAdminUser);
+        organizationProfileService.approveSignatureForOrganization(orgA.getRefId());
+
         // Create and finalize report
         authenticateUser(labStaffA);
         ReportResponse report = reportService.createReport(new CreateReportRequest(patientOrgA.getRefId()));
@@ -561,6 +566,10 @@ class OrganizationProfileSecurityAndLifecycleTest {
         authenticateUser(orgAdminA);
         organizationProfileService.uploadMyLogo(createMockPng("file"));
         organizationProfileService.uploadMySignature(createMockPng("file"));
+
+        // Super Admin approves signature before finalization
+        authenticateUser(superAdminUser);
+        organizationProfileService.approveSignatureForOrganization(orgA.getRefId());
 
         OrganizationProfile profileBefore = organizationProfileRepository.findByOrganization_Id(orgA.getId()).orElseThrow();
         String originalLogoKey = profileBefore.getLogoStorageKey();
@@ -635,5 +644,53 @@ class OrganizationProfileSecurityAndLifecycleTest {
         byte[] pdfBytesAfterOrgChange = reportService.generateReportPdf(finalized.refId());
         assertThat(pdfBytesAfterOrgChange).isNotNull().isNotEmpty();
         assertThat(new String(pdfBytesAfterOrgChange, 0, 5, StandardCharsets.US_ASCII)).isEqualTo("%PDF-");
+    }
+
+    @Test
+    @DisplayName("13. Signature Verification Lifecycle: Pending -> Blocked Finalization -> Approved -> Successful Finalization -> Rejected")
+    void testSignatureVerificationLifecycle_AndReportFinalizationEnforcement() {
+        authenticateUser(orgAdminA);
+        organizationProfileService.uploadMySignature(createMockPng("file"));
+
+        OrganizationProfileResponse profileResp = organizationProfileService.getMyProfile();
+        assertThat(profileResp.getSignatureVerificationStatus()).isEqualTo(SignatureVerificationStatus.PENDING_VERIFICATION);
+        assertThat(profileResp.isSignatureApproved()).isFalse();
+
+        // Lab staff tries to finalize report -> MUST be blocked
+        authenticateUser(labStaffA);
+        ReportResponse report = reportService.createReport(new CreateReportRequest(patientOrgA.getRefId()));
+        report = reportService.addTest(report.refId(), new AddReportTestRequest(cbcTest.getRefId(), null));
+        String testRefId = report.tests().get(0).refId();
+        report = reportService.updateParameterValues(report.refId(), testRefId, new UpdateReportParametersRequest(
+                null,
+                List.of(new TestParameterResultInput(paramHgb.getRefId(), "HGB", "14.5"))
+        ));
+
+        final String reportRefId = report.refId();
+        assertThatThrownBy(() -> reportService.finalizeReport(reportRefId))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Organization signature is not verified");
+
+        // Super Admin approves the signature
+        authenticateUser(superAdminUser);
+        OrganizationProfileResponse approvedProfile = organizationProfileService.approveSignatureForOrganization(orgA.getRefId());
+        assertThat(approvedProfile.getSignatureVerificationStatus()).isEqualTo(SignatureVerificationStatus.APPROVED);
+        assertThat(approvedProfile.isSignatureApproved()).isTrue();
+        assertThat(approvedProfile.getSignatureVerifiedBy()).isEqualTo(superAdminUser.getEmail());
+        assertThat(approvedProfile.getSignatureVerifiedAt()).isNotNull();
+
+        // Now Lab Staff can finalize report successfully
+        authenticateUser(labStaffA);
+        ReportResponse finalized = reportService.finalizeReport(reportRefId);
+        assertThat(finalized.status()).isEqualTo(ReportStatus.FINALIZED);
+
+        // Super Admin rejects the signature with reason
+        authenticateUser(superAdminUser);
+        OrganizationProfileResponse rejectedProfile = organizationProfileService.rejectSignatureForOrganization(
+                orgA.getRefId(), "Signature does not match authorized physician registry."
+        );
+        assertThat(rejectedProfile.getSignatureVerificationStatus()).isEqualTo(SignatureVerificationStatus.REJECTED);
+        assertThat(rejectedProfile.isSignatureApproved()).isFalse();
+        assertThat(rejectedProfile.getSignatureRejectionReason()).isEqualTo("Signature does not match authorized physician registry.");
     }
 }

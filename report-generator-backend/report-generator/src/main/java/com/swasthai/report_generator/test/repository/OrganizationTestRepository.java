@@ -97,4 +97,9 @@ public interface OrganizationTestRepository
             String testRefId,
             Pageable pageable
     );
+
+    long countByOrganization_IdAndStatus(
+            UUID organizationId,
+            OrganizationTestStatus status
+    );
 }

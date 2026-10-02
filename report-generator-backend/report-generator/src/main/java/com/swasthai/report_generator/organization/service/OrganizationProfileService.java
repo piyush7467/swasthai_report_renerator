@@ -63,4 +63,13 @@ public interface OrganizationProfileService {
     OrganizationImageResponse getSignatureForOrganization(
             String organizationRefId
     );
+
+    OrganizationProfileResponse approveSignatureForOrganization(
+            String organizationRefId
+    );
+
+    OrganizationProfileResponse rejectSignatureForOrganization(
+            String organizationRefId,
+            String reason
+    );
 }

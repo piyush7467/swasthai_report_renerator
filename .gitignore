@@ -1,0 +1,30 @@
+# =========================================================================
+# SwasthAI Root .gitignore
+# =========================================================================
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.pk8
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# OS and Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build & Dependencies
+node_modules/
+dist/
+target/
+*.log

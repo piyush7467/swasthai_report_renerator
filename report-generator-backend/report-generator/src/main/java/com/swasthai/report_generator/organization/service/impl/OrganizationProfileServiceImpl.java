@@ -8,6 +8,7 @@ import com.swasthai.report_generator.organization.dto.response.OrganizationProfi
 import com.swasthai.report_generator.organization.entity.Organization;
 import com.swasthai.report_generator.organization.entity.OrganizationProfile;
 import com.swasthai.report_generator.organization.entity.OrganizationStatus;
+import com.swasthai.report_generator.organization.enums.SignatureVerificationStatus;
 import com.swasthai.report_generator.organization.repository.OrganizationProfileRepository;
 import com.swasthai.report_generator.organization.repository.OrganizationRepository;
 import com.swasthai.report_generator.organization.service.OrganizationProfileService;
@@ -238,6 +239,10 @@ public class OrganizationProfileServiceImpl
 
             profile.setSignatureStorageKey(newKey);
             profile.setSignatureOwnerRefId(currentUser.getRefId());
+            profile.setSignatureVerificationStatus(SignatureVerificationStatus.PENDING_VERIFICATION);
+            profile.setSignatureVerifiedAt(null);
+            profile.setSignatureVerifiedBy(null);
+            profile.setSignatureRejectionReason(null);
 
             profileRepository.save(profile);
 
@@ -272,6 +277,10 @@ public class OrganizationProfileServiceImpl
 
         profile.setSignatureStorageKey(null);
         profile.setSignatureOwnerRefId(null);
+        profile.setSignatureVerificationStatus(SignatureVerificationStatus.NOT_CONFIGURED);
+        profile.setSignatureVerifiedAt(null);
+        profile.setSignatureVerifiedBy(null);
+        profile.setSignatureRejectionReason(null);
 
         profileRepository.save(profile);
 
@@ -451,6 +460,10 @@ public class OrganizationProfileServiceImpl
         try {
 
             profile.setSignatureStorageKey(newKey);
+            profile.setSignatureVerificationStatus(SignatureVerificationStatus.APPROVED);
+            profile.setSignatureVerifiedAt(java.time.Instant.now());
+            profile.setSignatureVerifiedBy(currentUserService.getCurrentUser().getEmail());
+            profile.setSignatureRejectionReason(null);
 
             profileRepository.save(profile);
 
@@ -482,6 +495,10 @@ public class OrganizationProfileServiceImpl
 
         profile.setSignatureStorageKey(null);
         profile.setSignatureOwnerRefId(null);
+        profile.setSignatureVerificationStatus(SignatureVerificationStatus.NOT_CONFIGURED);
+        profile.setSignatureVerifiedAt(null);
+        profile.setSignatureVerifiedBy(null);
+        profile.setSignatureRejectionReason(null);
 
         profileRepository.save(profile);
 
@@ -510,6 +527,53 @@ public class OrganizationProfileServiceImpl
 
         byte[] bytes = fileStorageService.load(profile.getSignatureStorageKey());
         return new OrganizationImageResponse(bytes, resolveContentType(profile.getSignatureStorageKey()));
+    }
+
+    @Override
+    public OrganizationProfileResponse approveSignatureForOrganization(
+            String organizationRefId
+    ) {
+        requireSuperAdmin();
+        Organization organization = getOrganizationByRefId(organizationRefId);
+        validateActiveOrganization(organization);
+        OrganizationProfile profile = getRequiredProfile(organization.getId());
+
+        if (profile.getSignatureStorageKey() == null) {
+            throw new IllegalStateException("Organization has no signature configured to approve.");
+        }
+
+        profile.setSignatureVerificationStatus(SignatureVerificationStatus.APPROVED);
+        profile.setSignatureVerifiedAt(java.time.Instant.now());
+        profile.setSignatureVerifiedBy(currentUserService.getCurrentUser().getEmail());
+        profile.setSignatureRejectionReason(null);
+
+        profileRepository.save(profile);
+        return mapToResponse(profile);
+    }
+
+    @Override
+    public OrganizationProfileResponse rejectSignatureForOrganization(
+            String organizationRefId,
+            String reason
+    ) {
+        requireSuperAdmin();
+        Organization organization = getOrganizationByRefId(organizationRefId);
+        validateActiveOrganization(organization);
+        OrganizationProfile profile = getRequiredProfile(organization.getId());
+
+        if (profile.getSignatureStorageKey() == null) {
+            throw new IllegalStateException("Organization has no signature configured to reject.");
+        }
+
+        profile.setSignatureVerificationStatus(SignatureVerificationStatus.REJECTED);
+        profile.setSignatureVerifiedAt(null);
+        profile.setSignatureVerifiedBy(currentUserService.getCurrentUser().getEmail());
+        profile.setSignatureRejectionReason(reason != null && !reason.isBlank()
+                ? reason.trim()
+                : "Signature specimen does not meet clinical verification standards.");
+
+        profileRepository.save(profile);
+        return mapToResponse(profile);
     }
 
     private String resolveContentType(String storageKey) {
@@ -769,6 +833,18 @@ public class OrganizationProfileServiceImpl
                 )
                 .signatureOwnerEmail(
                         sigOwnerEmail
+                )
+                .signatureVerificationStatus(
+                        profile.getSignatureVerificationStatus()
+                )
+                .signatureVerifiedAt(
+                        profile.getSignatureVerifiedAt()
+                )
+                .signatureVerifiedBy(
+                        profile.getSignatureVerifiedBy()
+                )
+                .signatureRejectionReason(
+                        profile.getSignatureRejectionReason()
                 )
                 .reportFooterText(
                         profile.getReportFooterText()
