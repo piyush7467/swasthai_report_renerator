@@ -20,6 +20,7 @@ public interface TestService {
             String search,
             String categoryRefId,
             String status,
+            Boolean hasParameters,
             Pageable pageable
     );
 

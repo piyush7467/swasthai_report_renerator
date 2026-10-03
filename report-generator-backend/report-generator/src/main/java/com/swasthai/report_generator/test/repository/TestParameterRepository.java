@@ -57,4 +57,9 @@ public interface TestParameterRepository
 
     java.util.List<TestParameter> findAllByTest_IdOrderByDisplayOrderAsc(
             UUID testId);
+
+    long countByTest_Id(UUID testId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT tp.test.id, COUNT(tp) FROM TestParameter tp WHERE tp.test.id IN :testIds GROUP BY tp.test.id")
+    java.util.List<Object[]> countByTestIds(@org.springframework.data.repository.query.Param("testIds") java.util.Collection<UUID> testIds);
 }

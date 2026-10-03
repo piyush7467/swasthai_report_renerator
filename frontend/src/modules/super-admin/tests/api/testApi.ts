@@ -26,6 +26,9 @@ export const testApi = {
     if (params.status && params.status.trim()) {
       queryParams.status = params.status.trim();
     }
+    if (params.hasParameters !== undefined) {
+      queryParams.hasParameters = String(params.hasParameters);
+    }
 
     const response = await apiClient.get<ApiResponse<SpringPage<TestResponse>>>(
       "/tests",

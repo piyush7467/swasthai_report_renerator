@@ -121,6 +121,9 @@ public class TestController {
             @RequestParam(required = false)
             String status,
 
+            @RequestParam(required = false)
+            Boolean hasParameters,
+
             @RequestParam(defaultValue = "0")
             @Min(value = 0, message = "Page must be greater than or equal to 0")
             int page,
@@ -150,6 +153,7 @@ public class TestController {
                         search,
                         categoryRefId,
                         status,
+                        hasParameters,
                         pageable
                 )
         );

@@ -62,4 +62,7 @@ public class TestResponse {
     // Audit timestamps
     private Instant createdAt;
     private Instant updatedAt;
+
+    // Parameters
+    private Integer parameterCount;
 }

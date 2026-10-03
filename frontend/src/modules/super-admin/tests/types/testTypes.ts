@@ -60,6 +60,9 @@ export interface TestResponse {
   // Audit
   createdAt: string;
   updatedAt: string;
+
+  // Parameters
+  parameterCount?: number;
 }
 
 export interface CreateTestRequest {
@@ -127,6 +130,7 @@ export interface TestQueryParams {
   search?: string;
   categoryRefId?: string;
   status?: string;
+  hasParameters?: boolean;
   page?: number;
   size?: number;
   sort?: string;

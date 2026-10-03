@@ -12,6 +12,7 @@ import com.swasthai.report_generator.test.entity.TestCategory;
 import com.swasthai.report_generator.test.entity.TestCategoryStatus;
 import com.swasthai.report_generator.test.entity.TestStatus;
 import com.swasthai.report_generator.test.repository.TestCategoryRepository;
+import com.swasthai.report_generator.test.repository.TestParameterRepository;
 import com.swasthai.report_generator.test.repository.TestRepository;
 import com.swasthai.report_generator.test.specification.TestSpecification;
 import com.swasthai.report_generator.test.service.TestService;
@@ -23,9 +24,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +38,7 @@ public class TestServiceImpl implements TestService {
 
     private final TestRepository testRepository;
     private final TestCategoryRepository testCategoryRepository;
+    private final TestParameterRepository testParameterRepository;
 
     // ============================================================
     // CREATE SINGLE TEST
@@ -156,7 +161,7 @@ public class TestServiceImpl implements TestService {
 
         Test savedTest = testRepository.save(test);
 
-        return mapToResponse(savedTest);
+        return mapToResponse(savedTest, 0);
     }
 
     // ============================================================
@@ -218,7 +223,8 @@ public class TestServiceImpl implements TestService {
                         )
                 );
 
-        return mapToResponse(test);
+        long paramCount = testParameterRepository.countByTest_Id(test.getId());
+        return mapToResponse(test, (int) paramCount);
     }
 
     // ============================================================
@@ -231,6 +237,7 @@ public class TestServiceImpl implements TestService {
             String search,
             String categoryRefId,
             String status,
+            Boolean hasParameters,
             Pageable pageable
     ) {
 
@@ -287,9 +294,35 @@ public class TestServiceImpl implements TestService {
             );
         }
 
-        return testRepository
-                .findAll(specification, pageable)
-                .map(this::mapToResponse);
+        // --------------------------------------------------------
+        // Parameter existence filter
+        // --------------------------------------------------------
+
+        if (hasParameters != null) {
+            specification = specification.and(
+                    TestSpecification.hasParameters(
+                            hasParameters
+                    )
+            );
+        }
+
+        Page<Test> testPage = testRepository
+                .findAll(specification, pageable);
+
+        if (testPage.isEmpty()) {
+            return testPage.map(this::mapToResponse);
+        }
+
+        List<UUID> testIds = testPage.getContent().stream().map(Test::getId).toList();
+        List<Object[]> countRows = testParameterRepository.countByTestIds(testIds);
+        Map<UUID, Integer> countMap = new HashMap<>();
+        for (Object[] row : countRows) {
+            UUID tId = (UUID) row[0];
+            Long cnt = (Long) row[1];
+            countMap.put(tId, cnt != null ? cnt.intValue() : 0);
+        }
+
+        return testPage.map(t -> mapToResponse(t, countMap.getOrDefault(t.getId(), 0)));
     }
 
     // ============================================================
@@ -667,7 +700,8 @@ public class TestServiceImpl implements TestService {
         Test updatedTest =
                 testRepository.save(test);
 
-        return mapToResponse(updatedTest);
+        long paramCount = testParameterRepository.countByTest_Id(updatedTest.getId());
+        return mapToResponse(updatedTest, (int) paramCount);
     }
 
     // ============================================================
@@ -973,6 +1007,13 @@ public class TestServiceImpl implements TestService {
     private TestResponse mapToResponse(
             Test test
     ) {
+        return mapToResponse(test, null);
+    }
+
+    private TestResponse mapToResponse(
+            Test test,
+            Integer parameterCount
+    ) {
 
         return TestResponse.builder()
 
@@ -1091,6 +1132,7 @@ public class TestServiceImpl implements TestService {
                 .updatedAt(
                         test.getUpdatedAt()
                 )
+                .parameterCount(parameterCount)
 
                 .build();
     }

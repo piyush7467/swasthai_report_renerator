@@ -55,6 +55,7 @@ export function TestCatalogPage() {
   const [search, setSearch] = useState("");
   const [categoryRefId, setCategoryRefId] = useState<string>("ALL");
   const [status, setStatus] = useState<string>("ALL");
+  const [paramFilter, setParamFilter] = useState<"ALL" | "WITH_PARAMS" | "WITHOUT_PARAMS">("ALL");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
   const [sortField, setSortField] = useState("name");
@@ -70,6 +71,12 @@ export function TestCatalogPage() {
     search: search.trim() ? search.trim() : undefined,
     categoryRefId: categoryRefId !== "ALL" ? categoryRefId : undefined,
     status: status !== "ALL" ? status : undefined,
+    hasParameters:
+      paramFilter === "WITH_PARAMS"
+        ? true
+        : paramFilter === "WITHOUT_PARAMS"
+          ? false
+          : undefined,
   };
 
   const {
@@ -208,6 +215,26 @@ export function TestCatalogPage() {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Parameter Status Filter */}
+          <div className="w-full sm:w-48">
+            <Select
+              value={paramFilter}
+              onValueChange={(val: "ALL" | "WITH_PARAMS" | "WITHOUT_PARAMS") => {
+                setParamFilter(val);
+                setPage(0);
+              }}
+            >
+              <SelectTrigger className="text-sm">
+                <SelectValue placeholder="All Parameters" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Parameters</SelectItem>
+                <SelectItem value="WITH_PARAMS">Configured (Has Params)</SelectItem>
+                <SelectItem value="WITHOUT_PARAMS">Needs Setup (0 Params)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Sort */}
@@ -297,6 +324,9 @@ export function TestCatalogPage() {
                       Type
                     </th>
                     <th scope="col" className="px-6 py-3.5">
+                      Parameters
+                    </th>
+                    <th scope="col" className="px-6 py-3.5">
                       Base Price
                     </th>
                     <th scope="col" className="px-6 py-3.5">
@@ -338,6 +368,27 @@ export function TestCatalogPage() {
                       <td className="px-6 py-4">
                         <TestTypeBadge type={test.testType} />
                       </td>
+                      <td className="px-6 py-4">
+                        {test.parameterCount && test.parameterCount > 0 ? (
+                          <Link
+                            to={`/super-admin/tests/${test.refId}?tab=parameters`}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 border border-teal-200/80 px-2.5 py-1 text-xs font-semibold text-teal-800 hover:bg-teal-100/80 transition-colors shadow-2xs"
+                            title="View test parameters"
+                          >
+                            <Sliders className="size-3 text-teal-600" />
+                            {test.parameterCount} {test.parameterCount === 1 ? "param" : "params"}
+                          </Link>
+                        ) : (
+                          <Link
+                            to={`/super-admin/tests/${test.refId}/parameters/new`}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200/80 px-2.5 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100 transition-colors shadow-2xs"
+                            title="No parameters configured yet. Click to add parameter."
+                          >
+                            <AlertCircle className="size-3 text-amber-600" />
+                            0 params (Needs Setup)
+                          </Link>
+                        )}
+                      </td>
                       <td className="px-6 py-4 text-xs font-medium text-slate-700">
                         {test.basePrice != null
                           ? `${test.currency || "INR"} ${Number(test.basePrice).toFixed(2)}`
@@ -351,19 +402,34 @@ export function TestCatalogPage() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 px-2.5 text-xs font-medium text-slate-700 hover:text-teal-700 hover:border-teal-300"
-                            onClick={() =>
-                              navigate(
-                                `/super-admin/tests/${test.refId}?tab=parameters`,
-                              )
-                            }
-                          >
-                            <Sliders className="mr-1.5 h-3.5 w-3.5 text-indigo-600" />
-                            Parameters
-                          </Button>
+                          {test.parameterCount && test.parameterCount > 0 ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-2.5 text-xs font-medium text-slate-700 hover:text-teal-700 hover:border-teal-300 cursor-pointer"
+                              onClick={() =>
+                                navigate(
+                                  `/super-admin/tests/${test.refId}?tab=parameters`,
+                                )
+                              }
+                            >
+                              <Sliders className="mr-1.5 h-3.5 w-3.5 text-indigo-600" />
+                              Parameters ({test.parameterCount})
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              className="h-8 px-2.5 text-xs font-semibold bg-[#0F766E] hover:bg-[#115E59] text-white shadow-2xs cursor-pointer"
+                              onClick={() =>
+                                navigate(
+                                  `/super-admin/tests/${test.refId}/parameters/new`,
+                                )
+                              }
+                            >
+                              <Plus className="mr-1.5 h-3.5 w-3.5" />
+                              Add Parameters
+                            </Button>
+                          )}
 
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -395,17 +461,31 @@ export function TestCatalogPage() {
                                 <FileEdit className="h-3.5 w-3.5 text-slate-500" />
                                 Edit Test
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  navigate(
-                                    `/super-admin/tests/${test.refId}?tab=parameters`,
-                                  )
-                                }
-                                className="cursor-pointer flex items-center gap-2"
-                              >
-                                <Sliders className="h-3.5 w-3.5 text-indigo-500" />
-                                Manage Parameters
-                              </DropdownMenuItem>
+                              {test.parameterCount && test.parameterCount > 0 ? (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    navigate(
+                                      `/super-admin/tests/${test.refId}?tab=parameters`,
+                                    )
+                                  }
+                                  className="cursor-pointer flex items-center gap-2"
+                                >
+                                  <Sliders className="h-3.5 w-3.5 text-indigo-500" />
+                                  Manage Parameters ({test.parameterCount})
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    navigate(
+                                      `/super-admin/tests/${test.refId}/parameters/new`,
+                                    )
+                                  }
+                                  className="cursor-pointer flex items-center gap-2 text-teal-700 font-semibold"
+                                >
+                                  <Plus className="h-3.5 w-3.5 text-teal-600" />
+                                  Add Parameter
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem
                                 onClick={() =>
                                   navigate(
@@ -490,18 +570,50 @@ export function TestCatalogPage() {
                     </div>
                   </div>
 
+                  <div className="flex items-center justify-between text-xs pt-1.5 border-t border-slate-100">
+                    <span className="text-[11px] font-medium text-slate-500">Parameters:</span>
+                    {test.parameterCount && test.parameterCount > 0 ? (
+                      <Link
+                        to={`/super-admin/tests/${test.refId}?tab=parameters`}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 border border-teal-200/80 px-2.5 py-0.5 text-xs font-semibold text-teal-800"
+                      >
+                        <Sliders className="size-3 text-teal-600" />
+                        {test.parameterCount} {test.parameterCount === 1 ? "param" : "params"}
+                      </Link>
+                    ) : (
+                      <Link
+                        to={`/super-admin/tests/${test.refId}/parameters/new`}
+                        className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200/80 px-2 py-0.5 text-xs font-medium text-amber-800"
+                      >
+                        <AlertCircle className="size-3 text-amber-600" />
+                        0 params (Needs Setup)
+                      </Link>
+                    )}
+                  </div>
+
                   <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
                     <span>Updated {new Date(test.updatedAt).toLocaleDateString()}</span>
 
                     <div className="flex items-center gap-1.5">
-                      <Button
-                        size="sm"
-                        onClick={() => navigate(`/super-admin/tests/${test.refId}?tab=parameters`)}
-                        className="h-7 px-2.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-medium"
-                      >
-                        <Sliders className="mr-1 h-3 w-3 text-indigo-600" />
-                        Params
-                      </Button>
+                      {test.parameterCount && test.parameterCount > 0 ? (
+                        <Button
+                          size="sm"
+                          onClick={() => navigate(`/super-admin/tests/${test.refId}?tab=parameters`)}
+                          className="h-7 px-2.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-medium cursor-pointer"
+                        >
+                          <Sliders className="mr-1 h-3 w-3 text-indigo-600" />
+                          Params ({test.parameterCount})
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={() => navigate(`/super-admin/tests/${test.refId}/parameters/new`)}
+                          className="h-7 px-2.5 text-xs bg-[#0F766E] hover:bg-[#115E59] text-white font-medium cursor-pointer shadow-2xs"
+                        >
+                          <Plus className="mr-1 h-3 w-3" />
+                          Add Params
+                        </Button>
+                      )}
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -529,13 +641,23 @@ export function TestCatalogPage() {
                             <FileEdit className="h-3.5 w-3.5 text-slate-500" />
                             Edit Test
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => navigate(`/super-admin/tests/${test.refId}?tab=parameters`)}
-                            className="cursor-pointer flex items-center gap-2"
-                          >
-                            <Sliders className="h-3.5 w-3.5 text-indigo-500" />
-                            Manage Parameters
-                          </DropdownMenuItem>
+                          {test.parameterCount && test.parameterCount > 0 ? (
+                            <DropdownMenuItem
+                              onClick={() => navigate(`/super-admin/tests/${test.refId}?tab=parameters`)}
+                              className="cursor-pointer flex items-center gap-2"
+                            >
+                              <Sliders className="h-3.5 w-3.5 text-indigo-500" />
+                              Manage Parameters ({test.parameterCount})
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              onClick={() => navigate(`/super-admin/tests/${test.refId}/parameters/new`)}
+                              className="cursor-pointer flex items-center gap-2 text-teal-700 font-semibold"
+                            >
+                              <Plus className="h-3.5 w-3.5 text-teal-600" />
+                              Add Parameter
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem
                             onClick={() => navigate(`/super-admin/tests/${test.refId}?tab=assignments`)}
                             className="cursor-pointer flex items-center gap-2"
@@ -572,13 +694,13 @@ export function TestCatalogPage() {
         ) : (
           <EmptyState
             title={
-              search || categoryRefId !== "ALL" || status !== "ALL"
+              search || categoryRefId !== "ALL" || status !== "ALL" || paramFilter !== "ALL"
                 ? "No Diagnostic Tests Found"
                 : "No Tests in Catalog"
             }
             description={
-              search || categoryRefId !== "ALL" || status !== "ALL"
-                ? "No diagnostic tests match your filter criteria. Try adjusting your search or resetting category filters."
+              search || categoryRefId !== "ALL" || status !== "ALL" || paramFilter !== "ALL"
+                ? "No diagnostic tests match your filter criteria. Try adjusting your search, category, or parameter status filters."
                 : "Get started by creating your first diagnostic test specification in the master catalog."
             }
             action={{
@@ -588,13 +710,14 @@ export function TestCatalogPage() {
               className: "bg-[#0F766E] hover:bg-[#115E59] text-white font-semibold text-xs h-9 px-4 rounded-lg shadow-xs",
             }}
             secondaryAction={
-              search || categoryRefId !== "ALL" || status !== "ALL"
+              search || categoryRefId !== "ALL" || status !== "ALL" || paramFilter !== "ALL"
                 ? {
                     label: "Clear Filters",
                     onClick: () => {
                       setSearch("");
                       setCategoryRefId("ALL");
                       setStatus("ALL");
+                      setParamFilter("ALL");
                       setPage(0);
                     },
                   }
