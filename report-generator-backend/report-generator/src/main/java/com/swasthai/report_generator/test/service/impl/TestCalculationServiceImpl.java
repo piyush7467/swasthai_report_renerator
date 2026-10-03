@@ -3,6 +3,9 @@ package com.swasthai.report_generator.test.service.impl;
 import com.swasthai.report_generator.common.exception.ResourceNotFoundException;
 import com.swasthai.report_generator.organization.entity.Organization;
 import com.swasthai.report_generator.organization.entity.OrganizationStatus;
+import com.swasthai.report_generator.patient.entity.Gender;
+import com.swasthai.report_generator.test.calculation.CalculationContext;
+import com.swasthai.report_generator.test.calculation.CalculationDependencyResolver;
 import com.swasthai.report_generator.test.calculation.CalculationEngine;
 import com.swasthai.report_generator.test.calculation.CalculationException;
 import com.swasthai.report_generator.test.dto.request.CalculateTestRequest;
@@ -132,44 +135,73 @@ public class TestCalculationServiceImpl implements TestCalculationService {
             }
         }
 
-        // 6. Perform backend calculations for all CALCULATED parameters
-        for (TestParameter param : allActiveParameters) {
-            if (param.getInputType() == ParameterInputType.CALCULATED) {
-                CalculationType calcType = param.getCalculationType();
+        // 6. Perform backend calculations for all CALCULATED parameters in topological order
+        List<TestParameter> sortedCalculatedParams = CalculationDependencyResolver.resolveParameterOrder(
+                allActiveParameters,
+                calculationEngine
+        );
 
-                if (calcType == null || calcType == CalculationType.NONE) {
-                    throw new CalculationException(
-                            "Calculated parameter " + param.getCode() + " has invalid calculation type: " + calcType
-                    );
-                }
-
-                if (!calculationEngine.isSupported(calcType)) {
-                    throw new CalculationException(
-                            "No calculator registered for: " + calcType
-                    );
-                }
-
-                // Verify dependencies belong to active test parameters and have values
-                Set<String> requiredDeps = calculationEngine.getRequiredParameters(calcType);
-                for (String depCode : requiredDeps) {
-                    TestParameter depParam = paramByCode.get(depCode);
-                    if (depParam == null) {
-                        throw new CalculationException(
-                                "Calculation dependency " + depCode + " is not an active parameter of this test"
-                        );
-                    }
-                    if (!numericValues.containsKey(depCode) || numericValues.get(depCode) == null) {
-                        throw new CalculationException(
-                                "Required parameter is missing: " + depCode
-                        );
-                    }
-                }
-
-                // Calculate deterministically via CalculationEngine
-                BigDecimal result = calculationEngine.calculate(calcType, numericValues);
-                numericValues.put(param.getCode(), result);
-                stringValues.put(param.getCode(), result.stripTrailingZeros().toPlainString());
+        Map<String, String> unitsByCode = new HashMap<>();
+        for (TestParameter p : allActiveParameters) {
+            if (p.getUnit() != null) {
+                unitsByCode.put(p.getCode(), p.getUnit());
             }
+        }
+
+        com.swasthai.report_generator.patient.entity.Gender patientGender = null;
+        if (request.patientGender() != null && !request.patientGender().isBlank()) {
+            try {
+                patientGender = com.swasthai.report_generator.patient.entity.Gender.valueOf(
+                        request.patientGender().trim().toUpperCase()
+                );
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+
+        com.swasthai.report_generator.test.calculation.CalculationContext calcContext =
+                com.swasthai.report_generator.test.calculation.CalculationContext.of(
+                        numericValues,
+                        unitsByCode,
+                        request.patientAgeInYears(),
+                        patientGender
+                );
+
+        for (TestParameter param : sortedCalculatedParams) {
+            CalculationType calcType = param.getCalculationType();
+
+            if (calcType == null || calcType == CalculationType.NONE) {
+                throw new CalculationException(
+                        "Calculated parameter " + param.getCode() + " has invalid calculation type: " + calcType
+                );
+            }
+
+            if (!calculationEngine.isSupported(calcType)) {
+                throw new CalculationException(
+                        "No calculator registered for: " + calcType
+                );
+            }
+
+            // Verify dependencies belong to active test parameters and have values
+            Set<String> requiredDeps = calculationEngine.getRequiredParameters(calcType, paramByCode.keySet());
+            for (String depCode : requiredDeps) {
+                TestParameter depParam = paramByCode.get(depCode);
+                if (depParam == null) {
+                    throw new CalculationException(
+                            "Calculation dependency " + depCode + " is not an active parameter of this test"
+                    );
+                }
+                if (!calcContext.hasValue(depCode)) {
+                    throw new CalculationException(
+                            "Required parameter is missing: " + depCode
+                    );
+                }
+            }
+
+            // Calculate deterministically via CalculationEngine
+            BigDecimal result = calculationEngine.calculate(calcType, calcContext);
+            calcContext.putValue(param.getCode(), result);
+            numericValues.put(param.getCode(), result);
+            stringValues.put(param.getCode(), result.stripTrailingZeros().toPlainString());
         }
 
         // 7. Classify ranges and build response items

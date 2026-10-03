@@ -1,16 +1,16 @@
 package com.swasthai.report_generator.test.calculation.impl;
 
+import com.swasthai.report_generator.test.calculation.CalculationContext;
 import com.swasthai.report_generator.test.calculation.CalculationEngine;
 import com.swasthai.report_generator.test.calculation.CalculationException;
+import com.swasthai.report_generator.test.calculation.ClinicalParameterAliases;
 import com.swasthai.report_generator.test.calculation.ParameterCalculator;
 import com.swasthai.report_generator.test.entity.CalculationType;
+import com.swasthai.report_generator.test.entity.TestParameterDataType;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Service
 public class CalculationEngineImpl implements CalculationEngine {
@@ -26,42 +26,43 @@ public class CalculationEngineImpl implements CalculationEngine {
             CalculationType calculationType,
             Map<String, BigDecimal> values
     ) {
+        if (values == null) {
+            throw new CalculationException("Calculation values cannot be null");
+        }
+        return calculate(calculationType, CalculationContext.of(values));
+    }
 
+    @Override
+    public BigDecimal calculate(
+            CalculationType calculationType,
+            CalculationContext context
+    ) {
         if (calculationType == null) {
-            throw new CalculationException(
-                    "Calculation type cannot be null"
-            );
+            throw new CalculationException("Calculation type cannot be null");
         }
 
         if (calculationType == CalculationType.NONE) {
-            throw new CalculationException(
-                    "Calculation type NONE cannot be calculated"
-            );
+            throw new CalculationException("Calculation type NONE cannot be calculated");
         }
 
-        if (values == null) {
-            throw new CalculationException(
-                    "Calculation values cannot be null"
-            );
+        if (context == null) {
+            throw new CalculationException("Calculation context cannot be null");
         }
 
         ParameterCalculator calculator = calculators.get(calculationType);
 
         if (calculator == null) {
-            throw new CalculationException(
-                    "No calculator registered for: " + calculationType
-            );
+            throw new CalculationException("No calculator registered for: " + calculationType);
         }
 
-        validateRequiredParameters(calculator, values);
+        validateRequiredParameters(calculator, context);
 
-        return calculator.calculate(values);
+        return calculator.calculate(context);
     }
 
     private Map<CalculationType, ParameterCalculator> buildCalculatorRegistry(
             List<ParameterCalculator> calculatorList
     ) {
-
         if (calculatorList == null) {
             return Map.of();
         }
@@ -70,33 +71,27 @@ public class CalculationEngineImpl implements CalculationEngine {
                 new EnumMap<>(CalculationType.class);
 
         for (ParameterCalculator calculator : calculatorList) {
-
             if (calculator == null) {
-                throw new IllegalStateException(
-                        "Calculator in registry cannot be null"
-                );
+                throw new IllegalStateException("Calculator in registry cannot be null");
             }
 
             CalculationType calculationType = calculator.supports();
 
             if (calculationType == null) {
                 throw new IllegalStateException(
-                        "Calculator returned null CalculationType: "
-                                + calculator.getClass().getName()
+                        "Calculator returned null CalculationType: " + calculator.getClass().getName()
                 );
             }
 
             if (calculationType == CalculationType.NONE) {
                 throw new IllegalStateException(
-                        "Calculator cannot support CalculationType.NONE: "
-                                + calculator.getClass().getName()
+                        "Calculator cannot support CalculationType.NONE: " + calculator.getClass().getName()
                 );
             }
 
             if (registry.containsKey(calculationType)) {
                 throw new IllegalStateException(
-                        "Duplicate calculator registered for: "
-                                + calculationType
+                        "Duplicate calculator registered for: " + calculationType
                 );
             }
 
@@ -121,17 +116,33 @@ public class CalculationEngineImpl implements CalculationEngine {
         }
         ParameterCalculator calculator = calculators.get(calculationType);
         if (calculator == null) {
-            throw new CalculationException(
-                    "No calculator registered for: " + calculationType
-            );
+            throw new CalculationException("No calculator registered for: " + calculationType);
         }
         return calculator.requiredParameters();
     }
 
     @Override
+    public Set<String> getRequiredParameters(
+            CalculationType calculationType,
+            Set<String> availableCodes
+    ) {
+        Set<String> baseRequired = getRequiredParameters(calculationType);
+        if (baseRequired.isEmpty() || availableCodes == null || availableCodes.isEmpty()) {
+            return baseRequired;
+        }
+
+        Set<String> resolved = new LinkedHashSet<>();
+        for (String req : baseRequired) {
+            Optional<String> matched = ClinicalParameterAliases.resolveAvailableCode(req, availableCodes);
+            resolved.add(matched.orElse(req));
+        }
+        return Collections.unmodifiableSet(resolved);
+    }
+
+    @Override
     public boolean isResultDataTypeSupported(
             CalculationType calculationType,
-            com.swasthai.report_generator.test.entity.TestParameterDataType dataType
+            TestParameterDataType dataType
     ) {
         if (calculationType == null || calculationType == CalculationType.NONE || dataType == null) {
             return false;
@@ -145,18 +156,15 @@ public class CalculationEngineImpl implements CalculationEngine {
 
     private void validateRequiredParameters(
             ParameterCalculator calculator,
-            Map<String, BigDecimal> values
+            CalculationContext context
     ) {
-
         for (String parameterCode : calculator.requiredParameters()) {
-
-            if (!values.containsKey(parameterCode)) {
+            if (!context.containsKey(parameterCode)) {
                 throw new CalculationException(
                         "Required parameter is missing: " + parameterCode
                 );
             }
-
-            if (values.get(parameterCode) == null) {
+            if (context.getValue(parameterCode) == null) {
                 throw new CalculationException(
                         "Required parameter value is null: " + parameterCode
                 );

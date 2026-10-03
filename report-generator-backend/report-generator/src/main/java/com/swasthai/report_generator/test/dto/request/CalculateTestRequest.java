@@ -9,6 +9,11 @@ import java.util.List;
 public record CalculateTestRequest(
         @NotEmpty(message = "Parameter values list cannot be empty")
         @Size(max = 100, message = "Cannot submit more than 100 parameters")
-        List<@Valid ParameterValueInput> parameters
+        List<@Valid ParameterValueInput> parameters,
+        Integer patientAgeInYears,
+        String patientGender
 ) {
+    public CalculateTestRequest(List<@Valid ParameterValueInput> parameters) {
+        this(parameters, null, null);
+    }
 }

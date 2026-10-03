@@ -15,7 +15,22 @@ public interface ParameterCalculator {
 
     BigDecimal calculate(Map<String, BigDecimal> values);
 
+    default BigDecimal calculate(CalculationContext context) {
+        if (context == null) {
+            throw new CalculationException("Calculation context cannot be null");
+        }
+        return calculate(context.getValues());
+    }
+
     default boolean isResultDataTypeSupported(TestParameterDataType dataType) {
         return dataType == TestParameterDataType.DECIMAL;
+    }
+
+    default String getFormulaDescription() {
+        return "";
+    }
+
+    default String getExpectedOutputUnit() {
+        return "";
     }
 }

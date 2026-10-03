@@ -101,7 +101,7 @@ class CalculationEngineImplTest {
     void shouldThrowExceptionWhenValuesNull() {
         CalculationException exception = assertThrows(
                 CalculationException.class,
-                () -> calculationEngine.calculate(CalculationType.MCV, null)
+                () -> calculationEngine.calculate(CalculationType.MCV, (Map<String, BigDecimal>) null)
         );
 
         assertEquals("Calculation values cannot be null", exception.getMessage());

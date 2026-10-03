@@ -32,6 +32,7 @@ import { ParameterResultFlagBadge } from "../ParameterResultFlagBadge";
 import { ReportStatusBadge } from "../ReportStatusBadge";
 import { AddTestModal } from "../AddTestModal";
 import { formatDisplayUnit } from "../../utils/unitFormatter";
+import { computeAllCalculatedValues } from "../../utils/clinicalCalculations";
 import { testApi } from "@/modules/super-admin/tests/api/testApi";
 import type {
   ReportParameterItemResponse,
@@ -107,6 +108,7 @@ export function Step4EnterResults({
   >({});
   const desktopInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const mobileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const lastReportRefIdRef = useRef<string | null>(null);
 
   // Helper to retrieve currently visible active input (desktop vs mobile)
   const getVisibleInput = useCallback((key: string): HTMLInputElement | null => {
@@ -162,16 +164,66 @@ export function Step4EnterResults({
     return list;
   }, [report]);
 
-  // Sync incoming report data with local state
+  // Real-time clinical calculation derivation across all test panels
+  const calculatedValuesByTest = useMemo(() => {
+    return computeAllCalculatedValues(
+      report.tests,
+      localParamValues,
+      patient
+        ? {
+            gender: patient.gender,
+            ageValue: patient.ageValue,
+            ageUnit: patient.ageUnit,
+            dateOfBirth: patient.dateOfBirth,
+          }
+        : {
+            gender: report.patientGender,
+            ageValue: report.patientAgeAtReportingValue,
+            ageUnit: report.patientAgeAtReportingUnit,
+          }
+    );
+  }, [
+    report.tests,
+    localParamValues,
+    patient,
+    report.patientGender,
+    report.patientAgeAtReportingValue,
+    report.patientAgeAtReportingUnit,
+  ]);
+
+  // Sync incoming report data with local state while protecting typed inputs
   useEffect(() => {
-    const initial: Record<string, Record<string, string>> = {};
-    report.tests.forEach((test) => {
-      initial[test.refId] = {};
-      test.parameters.forEach((param) => {
-        initial[test.refId][param.parameterRefId] = param.value ?? "";
+    const isNewReport = lastReportRefIdRef.current !== report.refId;
+    if (isNewReport) {
+      lastReportRefIdRef.current = report.refId;
+      const initial: Record<string, Record<string, string>> = {};
+      report.tests.forEach((test) => {
+        initial[test.refId] = {};
+        test.parameters.forEach((param) => {
+          initial[test.refId][param.parameterRefId] = param.value ?? "";
+        });
       });
-    });
-    setLocalParamValues(initial);
+      setLocalParamValues(initial);
+    } else {
+      // Merge newly added tests or parameters without wiping user-typed inputs
+      setLocalParamValues((prev) => {
+        let hasChanges = false;
+        const merged = { ...prev };
+        report.tests.forEach((test) => {
+          if (!merged[test.refId]) {
+            merged[test.refId] = {};
+            hasChanges = true;
+          }
+          test.parameters.forEach((param) => {
+            if (merged[test.refId][param.parameterRefId] === undefined) {
+              merged[test.refId][param.parameterRefId] = param.value ?? "";
+              hasChanges = true;
+            }
+          });
+        });
+        return hasChanges ? merged : prev;
+      });
+    }
 
     // Default first active param if none selected
     if (manualParamList.length > 0 && !activeParam) {
@@ -181,7 +233,7 @@ export function Step4EnterResults({
         param: manualParamList[0].param,
       });
     }
-  }, [report, manualParamList, activeParam]);
+  }, [report.refId, report.tests, manualParamList, activeParam]);
 
   // Direct save execution without debounce
   const executeSave = useCallback(
@@ -318,6 +370,19 @@ export function Step4EnterResults({
     } finally {
       setIsDeletingTest(false);
     }
+  };
+
+  // Flush pending saves before advancing to review
+  const handleProceedToReview = async () => {
+    const pendingTests = Object.keys(pendingSaveTimeoutRef.current);
+    for (const testRefId of pendingTests) {
+      if (pendingSaveTimeoutRef.current[testRefId]) {
+        clearTimeout(pendingSaveTimeoutRef.current[testRefId]);
+        delete pendingSaveTimeoutRef.current[testRefId];
+        await executeSave(testRefId);
+      }
+    }
+    onProceedToReview();
   };
 
   const existingTestRefIds = report.tests.map((t) => t.testRefId);
@@ -541,10 +606,13 @@ export function Step4EnterResults({
                       activeParam?.reportTestRefId === test.refId &&
                       activeParam?.param.parameterRefId === param.parameterRefId;
 
-                    const displayVal =
-                      localParamValues[test.refId]?.[param.parameterRefId] ??
-                      param.value ??
-                      "";
+                    const calculatedVal =
+                      calculatedValuesByTest[test.refId]?.[param.parameterRefId];
+                    const displayVal = isCalculated
+                      ? (calculatedVal !== undefined ? calculatedVal : (param.value ?? ""))
+                      : (localParamValues[test.refId]?.[param.parameterRefId] ??
+                        param.value ??
+                        "");
 
                     return (
                       <tr
@@ -574,16 +642,26 @@ export function Step4EnterResults({
                         <td className="py-2.5 px-4" onClick={(e) => e.stopPropagation()}>
                           {isCalculated ? (
                             <div className="flex items-center gap-2">
-                              <div className="h-11 px-3.5 rounded-lg bg-slate-100/90 border border-slate-200 flex items-center justify-center font-mono font-bold text-[15px] text-slate-800 min-w-[85px] shadow-2xs select-none">
+                              <div
+                                className={`h-11 px-3.5 rounded-lg border flex items-center justify-center font-mono font-bold text-[15px] min-w-[85px] shadow-2xs select-none transition-colors ${
+                                  displayVal
+                                    ? "bg-emerald-50/70 border-emerald-300 text-emerald-900"
+                                    : "bg-slate-100/90 border-slate-200 text-slate-400"
+                                }`}
+                              >
                                 {displayVal || "—"}
                               </div>
                               <Badge
                                 variant="outline"
-                                className="bg-slate-100 text-slate-600 border-slate-300 text-[11px] font-medium flex items-center gap-1 shrink-0 select-none py-1"
-                                title="Calculated automatically by formula"
+                                className={`text-[11px] font-medium flex items-center gap-1 shrink-0 select-none py-1 transition-colors ${
+                                  displayVal
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                    : "bg-slate-100 text-slate-600 border-slate-300"
+                                }`}
+                                title="Calculated automatically by clinical formula"
                               >
                                 <Lock className="h-3 w-3 text-slate-500" />
-                                Calculated
+                                {displayVal ? "Auto calculated" : "Calculated"}
                               </Badge>
                             </div>
                           ) : (
@@ -662,10 +740,13 @@ export function Step4EnterResults({
               {test.parameters.map((param) => {
                 const key = `${test.refId}_${param.parameterRefId}`;
                 const isCalculated = param.inputType === "CALCULATED";
-                const displayVal =
-                  localParamValues[test.refId]?.[param.parameterRefId] ??
-                  param.value ??
-                  "";
+                const calculatedVal =
+                  calculatedValuesByTest[test.refId]?.[param.parameterRefId];
+                const displayVal = isCalculated
+                  ? (calculatedVal !== undefined ? calculatedVal : (param.value ?? ""))
+                  : (localParamValues[test.refId]?.[param.parameterRefId] ??
+                    param.value ??
+                    "");
 
                 return (
                   <div
@@ -691,15 +772,26 @@ export function Step4EnterResults({
                       </label>
                       {isCalculated ? (
                         <div className="flex items-center gap-2">
-                          <div className="h-11 px-3.5 rounded-lg bg-slate-100 border border-slate-200 flex-1 flex items-center font-mono font-bold text-base text-slate-800">
+                          <div
+                            className={`h-11 px-3.5 rounded-lg border flex-1 flex items-center font-mono font-bold text-base transition-colors ${
+                              displayVal
+                                ? "bg-emerald-50/70 border-emerald-300 text-emerald-900"
+                                : "bg-slate-100 border-slate-200 text-slate-400"
+                            }`}
+                          >
                             {displayVal || "—"}
                           </div>
                           <Badge
                             variant="outline"
-                            className="bg-slate-100 text-slate-600 border-slate-300 text-xs font-medium flex items-center gap-1 shrink-0 h-11 px-3"
+                            className={`text-xs font-medium flex items-center gap-1 shrink-0 h-11 px-3 transition-colors ${
+                              displayVal
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-slate-100 text-slate-600 border-slate-300"
+                            }`}
+                            title="Calculated automatically by clinical formula"
                           >
                             <Lock className="h-3.5 w-3.5 text-slate-500" />
-                            Calculated
+                            {displayVal ? "Auto calculated" : "Calculated"}
                           </Badge>
                         </div>
                       ) : (
@@ -822,7 +914,7 @@ export function Step4EnterResults({
         </Button>
         <Button
           type="button"
-          onClick={onProceedToReview}
+          onClick={handleProceedToReview}
           className="bg-[#0F766E] hover:bg-[#115E59] text-white text-xs h-9 px-5 font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer"
         >
           <span>Proceed to Review & Finalize</span>

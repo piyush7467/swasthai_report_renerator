@@ -14,9 +14,19 @@ public interface CalculationEngine {
             Map<String, BigDecimal> values
     );
 
+    BigDecimal calculate(
+            CalculationType calculationType,
+            CalculationContext context
+    );
+
     boolean isSupported(CalculationType calculationType);
 
     Set<String> getRequiredParameters(CalculationType calculationType);
+
+    Set<String> getRequiredParameters(
+            CalculationType calculationType,
+            Set<String> availableCodes
+    );
 
     boolean isResultDataTypeSupported(
             CalculationType calculationType,

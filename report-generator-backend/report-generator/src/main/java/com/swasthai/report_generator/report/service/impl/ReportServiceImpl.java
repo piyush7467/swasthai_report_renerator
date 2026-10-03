@@ -72,6 +72,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Period;
@@ -1574,110 +1575,120 @@ public class ReportServiceImpl implements ReportService {
 
 
         /*
-         * Then calculate derived parameters.
-         *
-         * CalculationEngine remains authoritative for formulas.
+         * Collect parameter units and patient demographics.
          */
+        Map<String, String> units = new HashMap<>();
+        for (TestParameterResult result : reportTest.getParameterResults()) {
+            if (result != null && result.getParameterCode() != null && result.getUnit() != null) {
+                units.put(result.getParameterCode().trim().toUpperCase(), result.getUnit());
+            }
+        }
 
-        for (TestParameterResult result :
-                reportTest.getParameterResults()) {
+        Integer patientAge = null;
+        com.swasthai.report_generator.patient.entity.Gender patientGender = null;
+        if (reportTest.getReport() != null) {
+            Report report = reportTest.getReport();
+            if (report.getPatientGender() != null && !report.getPatientGender().isBlank()) {
+                try {
+                    patientGender = com.swasthai.report_generator.patient.entity.Gender.valueOf(
+                            report.getPatientGender().trim().toUpperCase()
+                    );
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+            if (Boolean.TRUE.equals(report.getPatientDateOfBirthKnown()) && report.getPatientDateOfBirth() != null) {
+                patientAge = java.time.Period.between(report.getPatientDateOfBirth(), java.time.LocalDate.now()).getYears();
+            } else if (report.getPatientAgeAtReportingValue() != null) {
+                String unit = report.getPatientAgeAtReportingUnit();
+                if (unit == null || unit.equalsIgnoreCase("YEARS")) {
+                    patientAge = report.getPatientAgeAtReportingValue();
+                } else if (unit.equalsIgnoreCase("MONTHS")) {
+                    patientAge = report.getPatientAgeAtReportingValue() / 12;
+                }
+            }
+        }
 
-            if (result == null) {
+        com.swasthai.report_generator.test.calculation.CalculationContext calcContext =
+                com.swasthai.report_generator.test.calculation.CalculationContext.of(
+                        numericValues,
+                        units,
+                        patientAge,
+                        patientGender
+                );
+
+        /*
+         * Sort calculated parameters topologically to ensure multi-step dependencies
+         * (e.g. Globulin before A/G ratio, LDL before LDL/HDL ratio) are executed in order.
+         */
+        List<TestParameterResult> sortedCalculatedResults =
+                com.swasthai.report_generator.test.calculation.CalculationDependencyResolver.resolveResultOrder(
+                        reportTest.getParameterResults(),
+                        calculationEngine
+                );
+
+        Set<String> availableCodes = new HashSet<>();
+        for (TestParameterResult r : reportTest.getParameterResults()) {
+            if (r != null && r.getParameterCode() != null) {
+                availableCodes.add(r.getParameterCode().trim().toUpperCase());
+            }
+        }
+
+        for (TestParameterResult result : sortedCalculatedResults) {
+            CalculationType calculationType = result.getCalculationType();
+
+            if (calculationType == null || calculationType == CalculationType.NONE) {
                 continue;
             }
 
-            if (result.getInputType()
-                    != ParameterInputType.CALCULATED) {
-                continue;
-            }
-
-            CalculationType calculationType =
-                    result.getCalculationType();
-
-            if (calculationType == null
-                    || calculationType == CalculationType.NONE) {
-
-                continue;
-            }
-
-            if (!calculationEngine.isSupported(
-                    calculationType)) {
-
+            if (!calculationEngine.isSupported(calculationType)) {
                 throw new CalculationException(
-                        "Unsupported calculation type: "
-                                + calculationType);
+                        "Unsupported calculation type: " + calculationType
+                );
             }
 
-            Set<String> requiredDependencies =
-                    calculationEngine
-                            .getRequiredParameters(
-                                    calculationType);
+            Set<String> requiredDependencies = calculationEngine.getRequiredParameters(
+                    calculationType,
+                    availableCodes
+            );
 
-            boolean allDependenciesPresent =
-                    true;
-
-            for (String dependency :
-                    requiredDependencies) {
-
-                if (dependency == null
-                        || !numericValues.containsKey(
-                        dependency.trim().toUpperCase())
-                        || numericValues.get(
-                        dependency.trim().toUpperCase()) == null) {
-
+            boolean allDependenciesPresent = true;
+            for (String dependency : requiredDependencies) {
+                if (dependency == null || !calcContext.hasValue(dependency)) {
                     allDependenciesPresent = false;
                     break;
                 }
             }
 
             if (!allDependenciesPresent) {
-
                 result.setNumericValue(null);
                 result.setValue(null);
                 result.setFlag(null);
-
                 continue;
             }
 
-            BigDecimal calculated =
-                    calculationEngine.calculate(
-                            calculationType,
-                            numericValues);
+            try {
+                BigDecimal calculated = calculationEngine.calculate(calculationType, calcContext);
 
-            if (calculated == null) {
+                if (calculated == null) {
+                    result.setNumericValue(null);
+                    result.setValue(null);
+                    result.setFlag(null);
+                    continue;
+                }
 
+                calcContext.putValue(result.getParameterCode().trim().toUpperCase(), calculated);
+                numericValues.put(result.getParameterCode().trim().toUpperCase(), calculated);
+
+                result.setNumericValue(calculated);
+                result.setValue(calculated.stripTrailingZeros().toPlainString());
+                result.setFlag(classifyFlag(result, calculated));
+            } catch (CalculationException ex) {
+                // If a clinical validation fails (e.g. TG >= 400 for Friedewald, negative LDL, or age < 18 for eGFR),
+                // clear the calculated result gracefully rather than breaking report finalization
                 result.setNumericValue(null);
                 result.setValue(null);
                 result.setFlag(null);
-
-                continue;
             }
-
-            numericValues.put(
-                    result.getParameterCode()
-                            .trim()
-                            .toUpperCase(),
-                    calculated);
-
-            result.setNumericValue(
-                    calculated);
-
-            result.setValue(
-                    calculated
-                            .stripTrailingZeros()
-                            .toPlainString());
-
-            /*
-             * IMPORTANT:
-             *
-             * Flag is calculated once by the service and stored.
-             * PDF rendering must use this stored flag and must
-             * never recalculate it.
-             */
-            result.setFlag(
-                    classifyFlag(
-                            result,
-                            calculated));
         }
     }
 
