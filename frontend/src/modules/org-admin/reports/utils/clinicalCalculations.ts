@@ -71,11 +71,117 @@ for (const [canonical, aliases] of Object.entries(PARAMETER_ALIASES)) {
 }
 
 /**
+ * Normalizes parameter codes for reliable clinical comparison (removes spaces, hyphens, slashes).
+ */
+export function normalizeCode(code?: string | null): string {
+  if (!code) return "";
+  return code
+    .trim()
+    .toUpperCase()
+    .replace(/[-\s/:]+/g, "_");
+}
+
+/**
+ * Target output parameters and aliases associated with each CalculationType.
+ * Prevents cross-contamination (e.g. MCV executing for MCH or MCHC).
+ */
+export const TARGET_ALIASES_BY_CALCULATION: Record<CalculationType, string[]> = {
+  NONE: [],
+  MCV: ["MCV", "MEAN_CORPUSCULAR_VOLUME", "MEAN_CELL_VOLUME"],
+  MCH: ["MCH", "MEAN_CORPUSCULAR_HEMOGLOBIN", "MEAN_CELL_HEMOGLOBIN", "MEAN_CORPUSCULAR_HAEMOGLOBIN"],
+  MCHC: [
+    "MCHC",
+    "MEAN_CORPUSCULAR_HEMOGLOBIN_CONCENTRATION",
+    "MEAN_CORPUSCULAR_HAEMOGLOBIN_CONCENTRATION",
+    "MEAN_CELL_HEMOGLOBIN_CONCENTRATION",
+  ],
+  VLDL: ["VLDL", "VLDL_C", "VLDL_CHOLESTEROL", "SERUM_VLDL"],
+  LDL_FRIEDEWALD: ["LDL", "LDL_C", "LDL_CHOLESTEROL", "LDL_FRIEDEWALD", "SERUM_LDL"],
+  NON_HDL_CHOLESTEROL: ["NON_HDL", "NON_HDL_C", "NON_HDL_CHOLESTEROL", "NON_HDL_CHOL"],
+  CHOL_HDL_RATIO: [
+    "CHOL_HDL_RATIO",
+    "TC_HDL_RATIO",
+    "CHOLESTEROL_HDL_RATIO",
+    "CHOL_TO_HDL_RATIO",
+    "TC_HDL",
+    "CHOL_HDL",
+  ],
+  LDL_HDL_RATIO: ["LDL_HDL_RATIO", "LDL_TO_HDL_RATIO", "LDL_HDL"],
+  INDIRECT_BILIRUBIN: ["IBIL", "INDIRECT_BILIRUBIN", "BILIRUBIN_INDIRECT", "I_BIL", "UNCONJUGATED_BILIRUBIN"],
+  GLOBULIN: ["GLOB", "GLOBULIN", "SERUM_GLOBULIN"],
+  AG_RATIO: ["AG_RATIO", "ALB_GLOB_RATIO", "A_G_RATIO", "A_G", "AG", "ALBUMIN_GLOBULIN_RATIO"],
+  BUN_CREATININE_RATIO: ["BUN_CREATININE_RATIO", "BUN_CREAT_RATIO", "BUN_TO_CREATININE_RATIO", "BUN_CREAT"],
+  UREA_CREATININE_RATIO: ["UREA_CREATININE_RATIO", "UREA_CREAT_RATIO", "UREA_TO_CREATININE_RATIO", "UREA_CREAT"],
+  EGFR_CKD_EPI_2021: ["EGFR", "E_GFR", "EGFR_CKD_EPI", "EGFR_CKD_EPI_2021", "ESTIMATED_GFR"],
+  ANION_GAP: ["ANION_GAP", "AGAP", "SERUM_ANION_GAP"],
+  ANION_GAP_K: ["ANION_GAP_K", "AGAP_K", "ANION_GAP_WITH_K"],
+};
+
+// Build reverse lookup: Normalized Alias -> CalculationType
+const CALCULATION_BY_TARGET_ALIAS: Record<string, CalculationType> = {};
+for (const [calcType, aliases] of Object.entries(TARGET_ALIASES_BY_CALCULATION)) {
+  for (const alias of aliases) {
+    CALCULATION_BY_TARGET_ALIAS[normalizeCode(alias)] = calcType as CalculationType;
+  }
+}
+
+/**
+ * Infers the clinical CalculationType from a parameter's code or label.
+ */
+export function inferCalculationTypeFromCode(code?: string | null): CalculationType | null {
+  if (!code) return null;
+  const norm = normalizeCode(code);
+  return CALCULATION_BY_TARGET_ALIAS[norm] || null;
+}
+
+/**
+ * Returns true if the CalculationType is clinically compatible with the parameter code.
+ */
+export function isCalculationCompatible(calcType: CalculationType, code?: string | null): boolean {
+  if (!calcType || calcType === "NONE" || !code) return false;
+  const aliases = TARGET_ALIASES_BY_CALCULATION[calcType];
+  if (!aliases) return false;
+  const norm = normalizeCode(code);
+  return aliases.some((a) => normalizeCode(a) === norm);
+}
+
+/**
+ * Defensively resolves the effective CalculationType for a parameter.
+ * Strictly prevents cross-contamination (e.g. MCV executing for MCH or MCHC parameters).
+ */
+export function resolveEffectiveCalculationType(param: {
+  parameterCode?: string | null;
+  inputType?: string | null;
+  calculationType?: CalculationType | null;
+}): CalculationType {
+  const code = param.parameterCode;
+  const configured = param.calculationType;
+  const isCalculatedMode = param.inputType === "CALCULATED";
+
+  const inferred = inferCalculationTypeFromCode(code);
+
+  if (configured && configured !== "NONE") {
+    // If the parameter code belongs to a DIFFERENT clinical calculation,
+    // prevent collision and preserve parameter identity!
+    if (inferred && inferred !== configured) {
+      return inferred;
+    }
+    return configured;
+  }
+
+  if (isCalculatedMode && inferred) {
+    return inferred;
+  }
+
+  return "NONE";
+}
+
+/**
  * Returns canonical parameter code for any known laboratory alias.
  */
 export function getCanonicalCode(code?: string | null): string {
   if (!code) return "";
-  const upper = code.trim().toUpperCase();
+  const upper = normalizeCode(code);
   return ALIAS_TO_CANONICAL[upper] || upper;
 }
 
@@ -510,10 +616,17 @@ export function computeCalculationsForTest(
     paramsByCanonical.set(param.parameterCode.toUpperCase(), param);
   }
 
-  // Filter and topologically sort calculated parameters
-  const calculatedParams = test.parameters.filter(
-    (p) => p.inputType === "CALCULATED" && p.calculationType && p.calculationType !== "NONE"
-  );
+  // Filter and defensively resolve calculated parameters
+  const calculatedParams: ReportParameterItemResponse[] = [];
+  for (const param of test.parameters) {
+    const effectiveType = resolveEffectiveCalculationType(param);
+    if (effectiveType !== "NONE") {
+      calculatedParams.push({
+        ...param,
+        calculationType: effectiveType,
+      });
+    }
+  }
 
   const sortedCalculated = sortCalculatedParametersTopologically(calculatedParams);
 

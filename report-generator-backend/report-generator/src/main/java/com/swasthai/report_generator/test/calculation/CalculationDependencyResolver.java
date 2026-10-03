@@ -31,9 +31,13 @@ public final class CalculationDependencyResolver {
         Map<String, TestParameter> calcByCode = new HashMap<>();
 
         for (TestParameter p : parameters) {
-            if (p != null && p.getInputType() == ParameterInputType.CALCULATED
-                    && p.getCalculationType() != null
-                    && p.getCalculationType() != CalculationType.NONE) {
+            if (p == null) continue;
+            CalculationType effectiveType = ClinicalParameterAliases.resolveCalculationType(
+                    p.getCode(),
+                    p.getCalculationType()
+            );
+            if ((p.getInputType() == ParameterInputType.CALCULATED || effectiveType != CalculationType.NONE)
+                    && effectiveType != CalculationType.NONE) {
                 calculated.add(p);
                 calcByCode.put(p.getCode().trim().toUpperCase(), p);
                 // Also index by canonical code
@@ -46,7 +50,13 @@ public final class CalculationDependencyResolver {
             return calculated;
         }
 
-        return topologicalSort(calculated, calcByCode, calculationEngine, TestParameter::getCalculationType, TestParameter::getCode);
+        return topologicalSort(
+                calculated,
+                calcByCode,
+                calculationEngine,
+                p -> ClinicalParameterAliases.resolveCalculationType(p.getCode(), p.getCalculationType()),
+                TestParameter::getCode
+        );
     }
 
     /**
@@ -64,9 +74,13 @@ public final class CalculationDependencyResolver {
         Map<String, TestParameterResult> calcByCode = new HashMap<>();
 
         for (TestParameterResult r : results) {
-            if (r != null && r.getInputType() == ParameterInputType.CALCULATED
-                    && r.getCalculationType() != null
-                    && r.getCalculationType() != CalculationType.NONE) {
+            if (r == null) continue;
+            CalculationType effectiveType = ClinicalParameterAliases.resolveCalculationType(
+                    r.getParameterCode(),
+                    r.getCalculationType()
+            );
+            if ((r.getInputType() == ParameterInputType.CALCULATED || effectiveType != CalculationType.NONE)
+                    && effectiveType != CalculationType.NONE) {
                 calculated.add(r);
                 if (r.getParameterCode() != null) {
                     calcByCode.put(r.getParameterCode().trim().toUpperCase(), r);
@@ -80,7 +94,13 @@ public final class CalculationDependencyResolver {
             return calculated;
         }
 
-        return topologicalSort(calculated, calcByCode, calculationEngine, TestParameterResult::getCalculationType, TestParameterResult::getParameterCode);
+        return topologicalSort(
+                calculated,
+                calcByCode,
+                calculationEngine,
+                r -> ClinicalParameterAliases.resolveCalculationType(r.getParameterCode(), r.getCalculationType()),
+                TestParameterResult::getParameterCode
+        );
     }
 
     private static <T> List<T> topologicalSort(

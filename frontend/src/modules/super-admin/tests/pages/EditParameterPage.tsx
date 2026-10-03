@@ -37,6 +37,7 @@ import {
   useUpdateParameterMutation,
 } from "../hooks/useParameters";
 import { ParameterUnitSelect } from "../components/ParameterUnitSelect";
+import { inferCalculationTypeFromCode } from "@/modules/org-admin/reports/utils/clinicalCalculations";
 import type {
   CalculationType,
   ParameterInputType,
@@ -69,7 +70,25 @@ const editParameterSchema = z
     inputType: z.enum(["MANUAL", "CALCULATED"], {
       message: "Input type is required",
     }),
-    calculationType: z.enum(["NONE", "MCV", "MCH", "MCHC"]).default("NONE"),
+    calculationType: z.enum([
+      "NONE",
+      "MCV",
+      "MCH",
+      "MCHC",
+      "VLDL",
+      "LDL_FRIEDEWALD",
+      "NON_HDL_CHOLESTEROL",
+      "CHOL_HDL_RATIO",
+      "LDL_HDL_RATIO",
+      "INDIRECT_BILIRUBIN",
+      "GLOBULIN",
+      "AG_RATIO",
+      "BUN_CREATININE_RATIO",
+      "UREA_CREATININE_RATIO",
+      "EGFR_CKD_EPI_2021",
+      "ANION_GAP",
+      "ANION_GAP_K",
+    ]).default("NONE"),
     unit: z
       .string()
       .trim()
@@ -136,8 +155,17 @@ const editParameterSchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["calculationType"],
-          message: "Please select a clinical calculation formula (MCV, MCH, or MCHC)",
+          message: "Please select a clinical calculation formula",
         });
+      } else if (data.code) {
+        const inferred = inferCalculationTypeFromCode(data.code);
+        if (inferred && inferred !== data.calculationType) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["calculationType"],
+            message: `Selected formula ${data.calculationType} does not match parameter code '${data.code}'. Did you mean ${inferred}?`,
+          });
+        }
       }
     } else {
       if (data.calculationType !== "NONE") {
@@ -391,7 +419,17 @@ export function EditParameterPage() {
                 <Input
                   id="code"
                   className="font-mono uppercase"
-                  {...register("code")}
+                  {...register("code", {
+                    onChange: (e) => {
+                      const codeVal = e.target.value;
+                      if (watch("inputType") === "CALCULATED") {
+                        const inferred = inferCalculationTypeFromCode(codeVal);
+                        if (inferred) {
+                          setValue("calculationType", inferred, { shouldValidate: true });
+                        }
+                      }
+                    },
+                  })}
                 />
                 {errors.code && (
                   <p className="text-xs text-red-500">{errors.code.message}</p>
@@ -516,7 +554,9 @@ export function EditParameterPage() {
                         if (val === "MANUAL") {
                           setValue("calculationType", "NONE");
                         } else if (val === "CALCULATED") {
-                          setValue("calculationType", "MCV");
+                          const currentCode = watch("code");
+                          const inferred = inferCalculationTypeFromCode(currentCode);
+                          setValue("calculationType", inferred || "NONE", { shouldValidate: true });
                           if (!isNumeric) {
                             setValue("dataType", "DECIMAL");
                           }
@@ -572,15 +612,63 @@ export function EditParameterPage() {
                       <SelectTrigger id="calculationType" className="bg-white">
                         <SelectValue placeholder="Select calculation..." />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="max-h-80">
+                        {/* CBC Panel */}
                         <SelectItem value="MCV">
-                          MCV — Mean Corpuscular Volume (HCT × 10 / RBC)
+                          MCV — Mean Corpuscular Volume (HCT × 10 / RBC) [fL]
                         </SelectItem>
                         <SelectItem value="MCH">
-                          MCH — Mean Corpuscular Hemoglobin (HGB × 10 / RBC)
+                          MCH — Mean Corpuscular Hemoglobin (HGB × 10 / RBC) [pg]
                         </SelectItem>
                         <SelectItem value="MCHC">
-                          MCHC — Mean Corpuscular Hemoglobin Concentration (HGB × 100 / HCT)
+                          MCHC — Mean Corpuscular Hemoglobin Concentration (HGB × 100 / HCT) [g/dL]
+                        </SelectItem>
+
+                        {/* Lipid Profile */}
+                        <SelectItem value="VLDL">
+                          VLDL — Very Low-Density Lipoprotein (TG / 5) [mg/dL]
+                        </SelectItem>
+                        <SelectItem value="LDL_FRIEDEWALD">
+                          LDL (Friedewald) — (Total Chol - HDL - TG / 5) [mg/dL]
+                        </SelectItem>
+                        <SelectItem value="NON_HDL_CHOLESTEROL">
+                          Non-HDL Cholesterol — (Total Chol - HDL) [mg/dL]
+                        </SelectItem>
+                        <SelectItem value="CHOL_HDL_RATIO">
+                          Total Cholesterol / HDL Ratio
+                        </SelectItem>
+                        <SelectItem value="LDL_HDL_RATIO">
+                          LDL / HDL Ratio
+                        </SelectItem>
+
+                        {/* Liver Function Tests */}
+                        <SelectItem value="INDIRECT_BILIRUBIN">
+                          Indirect Bilirubin — (Total Bilirubin - Direct Bilirubin) [mg/dL]
+                        </SelectItem>
+                        <SelectItem value="GLOBULIN">
+                          Serum Globulin — (Total Protein - Albumin) [g/dL]
+                        </SelectItem>
+                        <SelectItem value="AG_RATIO">
+                          Albumin / Globulin (A/G) Ratio
+                        </SelectItem>
+
+                        {/* Renal Function & eGFR */}
+                        <SelectItem value="BUN_CREATININE_RATIO">
+                          BUN / Creatinine Ratio
+                        </SelectItem>
+                        <SelectItem value="UREA_CREATININE_RATIO">
+                          Urea / Creatinine Ratio
+                        </SelectItem>
+                        <SelectItem value="EGFR_CKD_EPI_2021">
+                          eGFR (CKD-EPI 2021 Creatinine) [mL/min/1.73m²]
+                        </SelectItem>
+
+                        {/* Electrolytes */}
+                        <SelectItem value="ANION_GAP">
+                          Anion Gap — (Na - [Cl + HCO3]) [mEq/L]
+                        </SelectItem>
+                        <SelectItem value="ANION_GAP_K">
+                          Anion Gap with K — ([Na + K] - [Cl + HCO3]) [mEq/L]
                         </SelectItem>
                       </SelectContent>
                     </Select>

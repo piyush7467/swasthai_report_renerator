@@ -426,4 +426,59 @@ class ClinicalCalculationEngineTest {
             assertEquals(new BigDecimal("33.3333"), mchc);
         }
     }
+
+    @Nested
+    @DisplayName("Parameter Identity Protection & Cross-Contamination Prevention")
+    class ParameterIdentityAndAntiCollisionTests {
+
+        @Test
+        @DisplayName("MCH configured with MCV must resolve to MCH, preventing duplicate 79.8 value")
+        void shouldResolveMchWhenMisconfiguredAsMcv() {
+            CalculationType resolved = ClinicalParameterAliases.resolveCalculationType("MCH", CalculationType.MCV);
+            assertEquals(CalculationType.MCH, resolved);
+        }
+
+        @Test
+        @DisplayName("MCHC configured with MCV must resolve to MCHC, preventing duplicate 79.8 value")
+        void shouldResolveMchcWhenMisconfiguredAsMcv() {
+            CalculationType resolved = ClinicalParameterAliases.resolveCalculationType("MCHC", CalculationType.MCV);
+            assertEquals(CalculationType.MCHC, resolved);
+        }
+
+        @Test
+        @DisplayName("MCV configured with MCV resolves to MCV correctly")
+        void shouldPreserveMcv() {
+            CalculationType resolved = ClinicalParameterAliases.resolveCalculationType("MCV", CalculationType.MCV);
+            assertEquals(CalculationType.MCV, resolved);
+        }
+
+        @Test
+        @DisplayName("Lipid and LFT parameters misconfigured as MCV resolve to their correct types")
+        void shouldResolveLipidAndLftParametersWhenMisconfigured() {
+            assertEquals(CalculationType.VLDL, ClinicalParameterAliases.resolveCalculationType("VLDL", CalculationType.MCV));
+            assertEquals(CalculationType.LDL_FRIEDEWALD, ClinicalParameterAliases.resolveCalculationType("LDL", CalculationType.MCV));
+            assertEquals(CalculationType.NON_HDL_CHOLESTEROL, ClinicalParameterAliases.resolveCalculationType("NON_HDL", CalculationType.MCV));
+            assertEquals(CalculationType.GLOBULIN, ClinicalParameterAliases.resolveCalculationType("GLOBULIN", CalculationType.MCV));
+            assertEquals(CalculationType.INDIRECT_BILIRUBIN, ClinicalParameterAliases.resolveCalculationType("INDIRECT_BILIRUBIN", CalculationType.MCV));
+            assertEquals(CalculationType.AG_RATIO, ClinicalParameterAliases.resolveCalculationType("AG_RATIO", CalculationType.MCV));
+            assertEquals(CalculationType.BUN_CREATININE_RATIO, ClinicalParameterAliases.resolveCalculationType("BUN_CREATININE_RATIO", CalculationType.MCV));
+            assertEquals(CalculationType.UREA_CREATININE_RATIO, ClinicalParameterAliases.resolveCalculationType("UREA_CREATININE_RATIO", CalculationType.MCV));
+            assertEquals(CalculationType.EGFR_CKD_EPI_2021, ClinicalParameterAliases.resolveCalculationType("EGFR", CalculationType.MCV));
+            assertEquals(CalculationType.ANION_GAP, ClinicalParameterAliases.resolveCalculationType("ANION_GAP", CalculationType.MCV));
+            assertEquals(CalculationType.ANION_GAP_K, ClinicalParameterAliases.resolveCalculationType("ANION_GAP_K", CalculationType.MCV));
+        }
+
+        @Test
+        @DisplayName("Compatibility checks correctly identify matching formulas")
+        void shouldValidateCompatibilityAccurately() {
+            assertTrue(ClinicalParameterAliases.isCompatible(CalculationType.MCV, "MCV"));
+            assertFalse(ClinicalParameterAliases.isCompatible(CalculationType.MCV, "MCH"));
+            assertFalse(ClinicalParameterAliases.isCompatible(CalculationType.MCV, "MCHC"));
+
+            assertTrue(ClinicalParameterAliases.isCompatible(CalculationType.MCH, "MCH"));
+            assertTrue(ClinicalParameterAliases.isCompatible(CalculationType.MCHC, "MCHC"));
+            assertTrue(ClinicalParameterAliases.isCompatible(CalculationType.VLDL, "VLDL"));
+            assertTrue(ClinicalParameterAliases.isCompatible(CalculationType.LDL_FRIEDEWALD, "LDL"));
+        }
+    }
 }

@@ -2,6 +2,7 @@ package com.swasthai.report_generator.test.service.impl;
 
 import com.swasthai.report_generator.common.exception.ResourceNotFoundException;
 import com.swasthai.report_generator.test.calculation.CalculationEngine;
+import com.swasthai.report_generator.test.calculation.ClinicalParameterAliases;
 import com.swasthai.report_generator.test.dto.request.CreateTestParameterRequest;
 import com.swasthai.report_generator.test.dto.request.UpdateTestParameterRequest;
 import com.swasthai.report_generator.test.dto.response.TestParameterResponse;
@@ -84,9 +85,10 @@ public class TestParameterServiceImpl implements TestParameterService {
                 .dataType(request.dataType())
                 .inputType(request.inputType())
                 .calculationType(
-                        request.calculationType() != null
-                                ? request.calculationType()
-                                : CalculationType.NONE
+                        ClinicalParameterAliases.resolveCalculationType(
+                                code,
+                                request.calculationType()
+                        )
                 )
                 .unit(normalize(request.unit()))
                 .required(
@@ -215,9 +217,10 @@ public class TestParameterServiceImpl implements TestParameterService {
                                                 request.inputType()
                                         )
                                         .calculationType(
-                                                request.calculationType() != null
-                                                        ? request.calculationType()
-                                                        : CalculationType.NONE
+                                                ClinicalParameterAliases.resolveCalculationType(
+                                                        normalizeCode(request.code()),
+                                                        request.calculationType()
+                                                )
                                         )
                                         .unit(
                                                 normalize(
@@ -462,7 +465,10 @@ public class TestParameterServiceImpl implements TestParameterService {
         if (request.calculationType() != null) {
 
             parameter.setCalculationType(
-                    request.calculationType()
+                    ClinicalParameterAliases.resolveCalculationType(
+                            parameter.getCode(),
+                            request.calculationType()
+                    )
             );
         }
 
@@ -678,6 +684,7 @@ public class TestParameterServiceImpl implements TestParameterService {
         );
 
         validateCalculationConfiguration(
+                code,
                 request.inputType(),
                 request.calculationType(),
                 request.dataType()
@@ -701,6 +708,7 @@ public class TestParameterServiceImpl implements TestParameterService {
         );
 
         validateCalculationConfiguration(
+                parameter.getCode(),
                 parameter.getInputType(),
                 parameter.getCalculationType(),
                 parameter.getDataType()
@@ -736,6 +744,7 @@ public class TestParameterServiceImpl implements TestParameterService {
     // ============================================================
 
     private void validateCalculationConfiguration(
+            String code,
             ParameterInputType inputType,
             CalculationType calculationType,
             TestParameterDataType dataType
@@ -762,10 +771,19 @@ public class TestParameterServiceImpl implements TestParameterService {
         } else if (inputType == ParameterInputType.CALCULATED) {
 
             if (effectiveCalcType == CalculationType.NONE) {
-
                 throw new IllegalArgumentException(
                         "Calculated parameter must have a valid calculation type"
                 );
+            }
+
+            if (code != null && !code.isBlank()) {
+                CalculationType inferred = ClinicalParameterAliases.inferFromCode(code);
+                if (inferred != null && inferred != effectiveCalcType) {
+                    throw new IllegalArgumentException(
+                            "Calculation formula " + effectiveCalcType + " is not clinically compatible with parameter code '"
+                                    + code + "'. Did you mean " + inferred + "?"
+                    );
+                }
             }
 
             if (calculationEngine != null && !calculationEngine.isSupported(effectiveCalcType)) {

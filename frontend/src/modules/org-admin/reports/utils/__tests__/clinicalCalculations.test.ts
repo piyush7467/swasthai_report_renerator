@@ -1,4 +1,4 @@
-import { computeCalculationsForTest, getCanonicalCode } from "../clinicalCalculations";
+import { computeCalculationsForTest } from "../clinicalCalculations";
 import type { ReportTestItemResponse } from "../../types/reportTypes";
 
 function assert(condition: boolean, message: string) {
@@ -531,7 +531,130 @@ function runTests() {
   assert(lytesResults["param_agk"] === "20.5", `Anion Gap K expected 20.5, got ${lytesResults["param_agk"]}`);
   console.log("  ✓ Anion Gap = 16.0 and Anion Gap K = 20.5 verified");
 
-  console.log("\nALL 5 TEST SUITES PASSED 100% SUCCESSFULLY!");
+  // 6. Anti-Collision & Parameter Identity Preservation (The Bug Verification Test)
+  console.log("\n6. Testing Anti-Collision & Parameter Identity Preservation (Root-Cause Bug Test)...");
+  
+  // Test case matching user screenshot: HCT/PCV = 39.9, RBC = 5.0, HB = 14.0
+  const cbcAntiCollisionTest: ReportTestItemResponse = {
+    refId: "test_cbc_collision",
+    testRefId: "master_cbc",
+    testCode: "CBC",
+    testName: "Complete Blood Count",
+    displayOrder: 1,
+    testVersion: 1,
+    parameters: [
+      {
+        refId: "p_hb",
+        parameterRefId: "param_hb",
+        parameterCode: "HB",
+        parameterName: "Hemoglobin",
+        dataType: "DECIMAL",
+        inputType: "MANUAL",
+        calculationType: "NONE",
+        unit: "g/dL",
+        displayOrder: 1,
+      },
+      {
+        refId: "p_rbc",
+        parameterRefId: "param_rbc",
+        parameterCode: "RBC",
+        parameterName: "RBC Count",
+        dataType: "DECIMAL",
+        inputType: "MANUAL",
+        calculationType: "NONE",
+        unit: "million/µL",
+        displayOrder: 2,
+      },
+      {
+        refId: "p_pcv",
+        parameterRefId: "param_pcv",
+        parameterCode: "PCV",
+        parameterName: "PCV (Hematocrit)",
+        dataType: "DECIMAL",
+        inputType: "MANUAL",
+        calculationType: "NONE",
+        unit: "%",
+        displayOrder: 3,
+      },
+      // Note: In legacy bad configuration, MCH and MCHC were misconfigured as MCV!
+      {
+        refId: "p_mcv",
+        parameterRefId: "param_mcv",
+        parameterCode: "MCV",
+        parameterName: "Mean Corpuscular Volume",
+        dataType: "DECIMAL",
+        inputType: "CALCULATED",
+        calculationType: "MCV",
+        unit: "fL",
+        displayOrder: 4,
+      },
+      {
+        refId: "p_mch",
+        parameterRefId: "param_mch",
+        parameterCode: "MCH",
+        parameterName: "Mean Corpuscular Hemoglobin",
+        dataType: "DECIMAL",
+        inputType: "CALCULATED",
+        calculationType: "MCV", // Misconfigured as MCV in legacy DB!
+        unit: "pg",
+        displayOrder: 5,
+      },
+      {
+        refId: "p_mchc",
+        parameterRefId: "param_mchc",
+        parameterCode: "MCHC",
+        parameterName: "Mean Corpuscular Hemoglobin Concentration",
+        dataType: "DECIMAL",
+        inputType: "CALCULATED",
+        calculationType: "MCV", // Misconfigured as MCV in legacy DB!
+        unit: "g/dL",
+        displayOrder: 6,
+      },
+    ],
+  };
+
+  const antiCollisionResults = computeCalculationsForTest(cbcAntiCollisionTest, {
+    param_hb: "14",
+    param_rbc: "5.0",
+    param_pcv: "39.9",
+  });
+
+  // HCT (39.9) * 10 / RBC (5.0) = 79.8
+  assert(
+    antiCollisionResults["param_mcv"] === "79.8",
+    `MCV expected 79.8, got ${antiCollisionResults["param_mcv"]}`
+  );
+
+  // HB (14) * 10 / RBC (5.0) = 28.0 (MUST NOT BE 79.8!)
+  assert(
+    antiCollisionResults["param_mch"] === "28.0",
+    `MCH expected 28.0, got ${antiCollisionResults["param_mch"]}. Cross-contamination detected!`
+  );
+
+  // HB (14) * 100 / HCT (39.9) = 35.09 (MUST NOT BE 79.8!)
+  assert(
+    antiCollisionResults["param_mchc"] === "35.09",
+    `MCHC expected 35.09, got ${antiCollisionResults["param_mchc"]}. Cross-contamination detected!`
+  );
+
+  // Assert all 3 are distinct
+  assert(
+    antiCollisionResults["param_mcv"] !== antiCollisionResults["param_mch"],
+    "MCV and MCH must have different values"
+  );
+  assert(
+    antiCollisionResults["param_mch"] !== antiCollisionResults["param_mchc"],
+    "MCH and MCHC must have different values"
+  );
+  assert(
+    antiCollisionResults["param_mcv"] !== antiCollisionResults["param_mchc"],
+    "MCV and MCHC must have different values"
+  );
+
+  console.log("  ✓ Anti-collision verified: MCV=79.8, MCH=28.0, MCHC=35.09 are all distinct and correctly computed!");
+
+  console.log("\nALL 6 TEST SUITES PASSED 100% SUCCESSFULLY!");
 }
 
 runTests();
+

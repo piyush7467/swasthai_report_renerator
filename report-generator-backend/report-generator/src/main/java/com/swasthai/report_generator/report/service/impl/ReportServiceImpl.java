@@ -383,17 +383,20 @@ public class ReportServiceImpl implements ReportService {
         for (TestParameter param : activeParams) {
 
             CalculationType calculationType =
-                    param.getCalculationType() == null
-                            ? CalculationType.NONE
-                            : param.getCalculationType();
+                    com.swasthai.report_generator.test.calculation.ClinicalParameterAliases.resolveCalculationType(
+                            param.getCode(),
+                            param.getCalculationType()
+                    );
 
             String calculationVersion = null;
 
-            if (param.getInputType()
-                    == ParameterInputType.CALCULATED) {
+            if (param.getInputType() == ParameterInputType.CALCULATED
+                    || calculationType != CalculationType.NONE) {
 
                 calculationVersion =
-                        calculationType.name() + ":v1";
+                        calculationType != CalculationType.NONE
+                                ? calculationType.name() + ":v1"
+                                : null;
             }
 
             TestParameterResult paramResult =
@@ -494,8 +497,13 @@ public class ReportServiceImpl implements ReportService {
                     .findAllByTest_IdAndStatusOrderByDisplayOrderAsc(test.getId(), TestParameterStatus.ACTIVE);
 
             for (TestParameter param : activeParams) {
-                CalculationType calculationType = param.getCalculationType() == null ? CalculationType.NONE : param.getCalculationType();
-                String calculationVersion = param.getInputType() == ParameterInputType.CALCULATED ? calculationType.name() + ":v1" : null;
+                CalculationType calculationType = com.swasthai.report_generator.test.calculation.ClinicalParameterAliases.resolveCalculationType(
+                        param.getCode(),
+                        param.getCalculationType()
+                );
+                String calculationVersion = (param.getInputType() == ParameterInputType.CALCULATED || calculationType != CalculationType.NONE)
+                        ? (calculationType != CalculationType.NONE ? calculationType.name() + ":v1" : null)
+                        : null;
 
                 TestParameterResult paramResult = TestParameterResult.builder()
                         .testParameter(param)
@@ -1634,10 +1642,19 @@ public class ReportServiceImpl implements ReportService {
         }
 
         for (TestParameterResult result : sortedCalculatedResults) {
-            CalculationType calculationType = result.getCalculationType();
+            CalculationType calculationType = com.swasthai.report_generator.test.calculation.ClinicalParameterAliases.resolveCalculationType(
+                    result.getParameterCode(),
+                    result.getCalculationType()
+            );
 
             if (calculationType == null || calculationType == CalculationType.NONE) {
                 continue;
+            }
+
+            // If misconfigured in DB/payload, defensively correct the result's calculation metadata
+            if (result.getCalculationType() != calculationType) {
+                result.setCalculationType(calculationType);
+                result.setCalculationVersion(calculationType.name() + ":v1");
             }
 
             if (!calculationEngine.isSupported(calculationType)) {
