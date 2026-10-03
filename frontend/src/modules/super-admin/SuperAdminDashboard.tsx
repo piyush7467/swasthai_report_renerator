@@ -261,19 +261,19 @@ export function SuperAdminDashboard() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. METRICS RAIL (CLEAN CONTINUOUS HORIZONTAL BAR WITH SUBTLE DIVIDERS)    */}
+      {/* 2. METRICS CARDS (ELEVATED CLINICAL STAT CARDS WITH HOVER GLOW)          */}
       {/* ========================================================================= */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs divide-y divide-slate-100 lg:divide-y-0 lg:divide-x grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
         {/* Metric 1: Active Organizations */}
-        <div className="p-5 flex flex-col justify-between">
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:border-teal-300/80 hover:shadow-sm transition-all p-5 flex flex-col justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-teal-50 text-teal-600">
+            <div className="p-2 rounded-xl bg-teal-50 text-teal-600 border border-teal-100/60">
               <Building2 className="size-4" />
             </div>
-            <span className="text-xs font-medium text-slate-500">Active Organizations</span>
+            <span className="text-xs font-semibold text-slate-500">Active Organizations</span>
           </div>
           <div className="mt-4">
-            <div className="text-3xl font-bold tracking-tight text-slate-900">
+            <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
               {isStatsLoading || isOrgsLoading ? (
                 <Skeleton className="h-8 w-16" />
               ) : (
@@ -289,15 +289,15 @@ export function SuperAdminDashboard() {
         </div>
 
         {/* Metric 2: Reports Today */}
-        <div className="p-5 flex flex-col justify-between">
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:border-sky-300/80 hover:shadow-sm transition-all p-5 flex flex-col justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-sky-50 text-sky-600">
+            <div className="p-2 rounded-xl bg-sky-50 text-sky-600 border border-sky-100/60">
               <FileText className="size-4" />
             </div>
-            <span className="text-xs font-medium text-slate-500">Reports Today</span>
+            <span className="text-xs font-semibold text-slate-500">Reports Today</span>
           </div>
           <div className="mt-4">
-            <div className="text-3xl font-bold tracking-tight text-slate-900">
+            <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
               {isStatsLoading ? (
                 <Skeleton className="h-8 w-12" />
               ) : (
@@ -309,15 +309,15 @@ export function SuperAdminDashboard() {
         </div>
 
         {/* Metric 3: Total Reports */}
-        <div className="p-5 flex flex-col justify-between">
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:border-blue-300/80 hover:shadow-sm transition-all p-5 flex flex-col justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+            <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100/60">
               <TrendingUp className="size-4" />
             </div>
-            <span className="text-xs font-medium text-slate-500">Total Reports</span>
+            <span className="text-xs font-semibold text-slate-500">Total Reports</span>
           </div>
           <div className="mt-4">
-            <div className="text-3xl font-bold tracking-tight text-slate-900">
+            <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
               {isStatsLoading ? (
                 <Skeleton className="h-8 w-14" />
               ) : (
@@ -329,15 +329,15 @@ export function SuperAdminDashboard() {
         </div>
 
         {/* Metric 4: Finalized Reports */}
-        <div className="p-5 flex flex-col justify-between">
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:border-emerald-300/80 hover:shadow-sm transition-all p-5 flex flex-col justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100/60">
               <CheckCircle2 className="size-4" />
             </div>
-            <span className="text-xs font-medium text-slate-500">Finalized Reports</span>
+            <span className="text-xs font-semibold text-slate-500">Finalized Reports</span>
           </div>
           <div className="mt-4">
-            <div className="text-3xl font-bold tracking-tight text-slate-900 flex items-center">
+            <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 flex items-center">
               {isStatsLoading ? (
                 <Skeleton className="h-8 w-16" />
               ) : (
@@ -357,15 +357,15 @@ export function SuperAdminDashboard() {
         </div>
 
         {/* Metric 5: Security Audits */}
-        <div className="p-5 flex flex-col justify-between col-span-2 md:col-span-1">
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:border-indigo-300/80 hover:shadow-sm transition-all p-5 flex flex-col justify-between sm:col-span-2 lg:col-span-1">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
+            <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100/60">
               <Shield className="size-4" />
             </div>
-            <span className="text-xs font-medium text-slate-500">Security Audits</span>
+            <span className="text-xs font-semibold text-slate-500">Security Audits</span>
           </div>
           <div className="mt-4">
-            <div className="text-3xl font-bold tracking-tight text-slate-900">
+            <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
               {isStatsLoading ? (
                 <Skeleton className="h-8 w-12" />
               ) : (

@@ -12,6 +12,7 @@ import {
   Search,
   Shield,
   ShieldAlert,
+  Users,
   X,
 } from "lucide-react";
 
@@ -173,30 +174,35 @@ export function UsersPage() {
   return (
     <div className="space-y-6">
       {/* Header & Primary Actions */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-              Global User Directory
-            </h1>
-            {data && (
-              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
-                {data.totalElements} Total
-              </span>
-            )}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200/70 pb-5">
+        <div className="flex items-center gap-3">
+          <div className="flex size-11 items-center justify-center rounded-xl bg-teal-50 text-[#0F766E] border border-teal-100 shadow-2xs shrink-0">
+            <Users className="size-5" />
           </div>
-          <p className="mt-1 text-sm text-slate-600">
-            Search, inspect, and audit user accounts across all clinical laboratory organizations and platform operators.
-          </p>
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+                Global User Directory
+              </h1>
+              {data && (
+                <span className="rounded-full bg-teal-50 border border-teal-200/60 px-2.5 py-0.5 font-mono text-xs font-semibold text-[#0F766E]">
+                  {data.totalElements} Total
+                </span>
+              )}
+            </div>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Search, inspect, and audit user accounts across all clinical laboratory organizations and platform operators.
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={() => void refetch()}
             disabled={isFetching}
-            className="text-slate-600 hover:text-slate-900"
+            className="text-xs h-9 text-slate-600 hover:text-slate-900 border-slate-200 flex-1 sm:flex-none justify-center cursor-pointer"
           >
             <RefreshCw
               className={`mr-1.5 h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`}
@@ -204,7 +210,9 @@ export function UsersPage() {
             Refresh
           </Button>
 
-          <CreateUserDialog />
+          <div className="flex-1 sm:flex-none">
+            <CreateUserDialog />
+          </div>
         </div>
       </div>
 
@@ -386,13 +394,14 @@ export function UsersPage() {
 
       {/* Users Table */}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <Table>
             <TableHeader className="bg-slate-50/80">
               <TableRow className="border-b border-slate-200 hover:bg-transparent">
                 <TableHead
                   onClick={() => handleSort("name")}
-                  className="cursor-pointer select-none text-xs font-semibold text-slate-700"
+                  className="cursor-pointer select-none text-xs font-semibold text-slate-700 hover:text-slate-900"
                 >
                   <div className="flex items-center">
                     User / Name
@@ -402,7 +411,7 @@ export function UsersPage() {
 
                 <TableHead
                   onClick={() => handleSort("role")}
-                  className="cursor-pointer select-none text-xs font-semibold text-slate-700"
+                  className="cursor-pointer select-none text-xs font-semibold text-slate-700 hover:text-slate-900"
                 >
                   <div className="flex items-center">
                     Role
@@ -412,7 +421,7 @@ export function UsersPage() {
 
                 <TableHead
                   onClick={() => handleSort("status")}
-                  className="cursor-pointer select-none text-xs font-semibold text-slate-700"
+                  className="cursor-pointer select-none text-xs font-semibold text-slate-700 hover:text-slate-900"
                 >
                   <div className="flex items-center">
                     Status
@@ -426,7 +435,7 @@ export function UsersPage() {
 
                 <TableHead
                   onClick={() => handleSort("lastLoginAt")}
-                  className="cursor-pointer select-none text-xs font-semibold text-slate-700"
+                  className="cursor-pointer select-none text-xs font-semibold text-slate-700 hover:text-slate-900"
                 >
                   <div className="flex items-center">
                     Last Sign In
@@ -436,7 +445,7 @@ export function UsersPage() {
 
                 <TableHead
                   onClick={() => handleSort("createdAt")}
-                  className="cursor-pointer select-none text-xs font-semibold text-slate-700"
+                  className="cursor-pointer select-none text-xs font-semibold text-slate-700 hover:text-slate-900"
                 >
                   <div className="flex items-center">
                     Created Date
@@ -518,7 +527,7 @@ export function UsersPage() {
                           <button
                             type="button"
                             onClick={() => setSelectedUserForDetails(user.refId)}
-                            className="text-left font-semibold text-slate-900 hover:text-blue-600 hover:underline focus:outline-none"
+                            className="text-left font-semibold text-slate-900 hover:text-teal-700 transition-colors focus:outline-none"
                           >
                             {user.name}
                           </button>
@@ -548,7 +557,7 @@ export function UsersPage() {
                             to={`/super-admin/organizations/${encodeURIComponent(
                               user.organizationRefId,
                             )}`}
-                            className="font-mono text-xs text-blue-700 hover:text-blue-900 hover:underline bg-blue-50/80 px-2 py-0.5 rounded border border-blue-200/60 inline-flex items-center transition-colors"
+                            className="font-mono text-xs text-teal-700 hover:text-teal-900 hover:underline bg-teal-50 px-2 py-0.5 rounded border border-teal-200/60 inline-flex items-center transition-colors"
                             title={`Navigate to organization ${user.organizationRefId}`}
                           >
                             {user.organizationRefId}
@@ -580,13 +589,13 @@ export function UsersPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900"
+                              className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900 rounded-md"
                             >
                               <MoreVertical className="h-4 w-4" />
                               <span className="sr-only">Open menu</span>
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuContent align="end" className="w-48 text-xs">
                             <DropdownMenuLabel className="text-xs font-semibold text-slate-500">
                               User Actions
                             </DropdownMenuLabel>
@@ -594,27 +603,27 @@ export function UsersPage() {
 
                             <DropdownMenuItem
                               onClick={() => setSelectedUserForDetails(user.refId)}
-                              className="cursor-pointer text-xs"
+                              className="cursor-pointer flex items-center gap-2"
                             >
-                              <Eye className="mr-2 h-3.5 w-3.5 text-slate-500" />
+                              <Eye className="h-3.5 w-3.5 text-slate-500" />
                               View Details
                             </DropdownMenuItem>
 
                             {isProtectedSuperAdmin ? (
                               <DropdownMenuItem
                                 disabled
-                                className="text-xs text-slate-400 cursor-not-allowed"
+                                className="text-slate-400 cursor-not-allowed flex items-center gap-2"
                                 title="SUPER_ADMIN account cannot be modified"
                               >
-                                <Edit className="mr-2 h-3.5 w-3.5 text-slate-400" />
+                                <Edit className="h-3.5 w-3.5 text-slate-400" />
                                 Edit Protected User
                               </DropdownMenuItem>
                             ) : (
                               <DropdownMenuItem
                                 onClick={() => setSelectedUserForEdit(user)}
-                                className="cursor-pointer text-xs"
+                                className="cursor-pointer flex items-center gap-2"
                               >
-                                <Edit className="mr-2 h-3.5 w-3.5 text-slate-500" />
+                                <Edit className="h-3.5 w-3.5 text-slate-500" />
                                 Edit User
                               </DropdownMenuItem>
                             )}
@@ -622,18 +631,18 @@ export function UsersPage() {
                             {isProtectedSuperAdmin ? (
                               <DropdownMenuItem
                                 disabled
-                                className="text-xs text-slate-400 cursor-not-allowed"
+                                className="text-slate-400 cursor-not-allowed flex items-center gap-2"
                                 title="SUPER_ADMIN status cannot be modified"
                               >
-                                <Shield className="mr-2 h-3.5 w-3.5 text-slate-400" />
+                                <Shield className="h-3.5 w-3.5 text-slate-400" />
                                 Status Locked
                               </DropdownMenuItem>
                             ) : (
                               <DropdownMenuItem
                                 onClick={() => setSelectedUserForStatus(user)}
-                                className="cursor-pointer text-xs"
+                                className="cursor-pointer flex items-center gap-2 text-amber-700 focus:text-amber-800 focus:bg-amber-50"
                               >
-                                <Shield className="mr-2 h-3.5 w-3.5 text-slate-500" />
+                                <Shield className="h-3.5 w-3.5 text-amber-600" />
                                 Change Status
                               </DropdownMenuItem>
                             )}
@@ -646,6 +655,139 @@ export function UsersPage() {
               )}
             </TableBody>
           </Table>
+        </div>
+
+        {/* Mobile Cards View */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="p-4 space-y-3">
+                <Skeleton className="h-10 w-full rounded-md" />
+                <Skeleton className="h-6 w-3/4 rounded-md" />
+              </div>
+            ))
+          ) : filteredUsers.length === 0 ? (
+            <div className="p-6 text-center">
+              <EmptyState
+                compact
+                title="No Matching Users Found"
+                description="No users matched your current role, status, or search filters."
+                action={{
+                  label: "Clear Filters",
+                  onClick: clearAllFilters,
+                  variant: "outline",
+                }}
+              />
+            </div>
+          ) : (
+            filteredUsers.map((user) => {
+              const isProtectedSuperAdmin = user.role === "SUPER_ADMIN";
+              return (
+                <div key={user.refId} className="p-4 space-y-3 hover:bg-slate-50/50 transition-colors">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-full bg-teal-50 border border-teal-100 text-[#0F766E] flex items-center justify-center font-bold text-xs shrink-0">
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedUserForDetails(user.refId)}
+                          className="text-left font-bold text-sm text-slate-900 hover:text-teal-700 transition-colors block"
+                        >
+                          {user.name}
+                        </button>
+                        <p className="text-xs text-slate-500 truncate max-w-[190px]">{user.email}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-1">
+                      <UserRoleBadge role={user.role} />
+                      <UserStatusBadge status={user.status} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100 text-slate-500">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Organization</span>
+                      {user.organizationRefId ? (
+                        <Link
+                          to={`/super-admin/organizations/${encodeURIComponent(user.organizationRefId)}`}
+                          className="font-mono text-[11px] text-teal-700 hover:underline truncate block"
+                        >
+                          {user.organizationRefId}
+                        </Link>
+                      ) : (
+                        <span className="text-slate-400 italic">Platform Wide</span>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Last Active</span>
+                      <span>{formatDate(user.lastLoginAt)}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
+                    <span className="font-mono text-[10px] text-slate-400">{user.refId}</span>
+
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        size="sm"
+                        onClick={() => setSelectedUserForDetails(user.refId)}
+                        className="h-7 px-2.5 text-xs bg-[#0F766E] hover:bg-[#115E59] text-white font-medium"
+                      >
+                        Details
+                      </Button>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md"
+                            aria-label={`Actions for ${user.name}`}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48 text-xs">
+                          <DropdownMenuLabel className="text-xs font-semibold text-slate-500">
+                            User Actions
+                          </DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => setSelectedUserForDetails(user.refId)}
+                            className="cursor-pointer flex items-center gap-2"
+                          >
+                            <Eye className="h-3.5 w-3.5 text-slate-500" />
+                            View Details
+                          </DropdownMenuItem>
+                          {!isProtectedSuperAdmin && (
+                            <DropdownMenuItem
+                              onClick={() => setSelectedUserForEdit(user)}
+                              className="cursor-pointer flex items-center gap-2"
+                            >
+                              <Edit className="h-3.5 w-3.5 text-slate-500" />
+                              Edit User
+                            </DropdownMenuItem>
+                          )}
+                          {!isProtectedSuperAdmin && (
+                            <DropdownMenuItem
+                              onClick={() => setSelectedUserForStatus(user)}
+                              className="cursor-pointer flex items-center gap-2 text-amber-700 focus:text-amber-800 focus:bg-amber-50"
+                            >
+                              <Shield className="h-3.5 w-3.5 text-amber-600" />
+                              Change Status
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
 
         {/* Server-Side Pagination Bar */}

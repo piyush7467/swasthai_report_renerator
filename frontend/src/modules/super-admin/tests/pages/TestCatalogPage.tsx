@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Eye,
   FileEdit,
+  FlaskConical,
   Link2,
   MoreVertical,
   Plus,
@@ -31,6 +32,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -102,30 +104,36 @@ export function TestCatalogPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-              Test Catalog
-            </h1>
-            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
-              {totalElements} tests
-            </span>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200/70 pb-5">
+        <div className="flex items-center gap-3">
+          <div className="flex size-11 items-center justify-center rounded-xl bg-teal-50 text-[#0F766E] border border-teal-100 shadow-2xs shrink-0">
+            <FlaskConical className="size-5" />
           </div>
-          <p className="text-sm text-slate-500">
-            Manage the master diagnostic test catalog and specifications.
-          </p>
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+                Diagnostic Test Catalog
+              </h1>
+              <span className="rounded-full bg-teal-50 border border-teal-200/60 px-2.5 py-0.5 font-mono text-xs font-semibold text-[#0F766E]">
+                {totalElements} tests
+              </span>
+            </div>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Manage the clinical diagnostic test catalog, specimen requirements, and reference parameters.
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={() => void refetch()}
             disabled={isFetching}
+            className="text-xs h-9 text-slate-600 hover:text-slate-900 border-slate-200 flex-1 sm:flex-none justify-center cursor-pointer"
           >
             <RefreshCw
-              className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
+              className={`mr-1.5 h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`}
             />
             Refresh
           </Button>
@@ -133,28 +141,28 @@ export function TestCatalogPage() {
           <Button
             size="sm"
             onClick={() => navigate("/super-admin/tests/new")}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className="text-xs h-9 bg-[#0F766E] hover:bg-[#115E59] text-white flex-1 sm:flex-none justify-center font-semibold shadow-2xs cursor-pointer"
           >
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
             Add Test
           </Button>
         </div>
       </div>
 
       {/* Filters Toolbar */}
-      <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between shadow-xs">
-        <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 rounded-xl border border-slate-200/80 bg-white p-3 sm:flex-row sm:items-center sm:justify-between shadow-xs">
+        <div className="flex flex-1 flex-col gap-2.5 sm:flex-row sm:items-center">
           {/* Search */}
           <div className="relative flex-1 sm:max-w-xs">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
             <Input
-              placeholder="Search tests..."
+              placeholder="Search tests by name or code..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
                 setPage(0);
               }}
-              className="pl-9 text-sm"
+              className="pl-9 text-xs h-9 border-slate-200 focus-visible:ring-teal-500"
             />
           </div>
 
@@ -270,165 +278,297 @@ export function TestCatalogPage() {
             <Skeleton className="h-14 w-full" />
           </div>
         ) : testsData?.content && testsData.content.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-700">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
-                <tr>
-                  <th scope="col" className="px-6 py-3.5">
-                    Test Name
-                  </th>
-                  <th scope="col" className="px-6 py-3.5">
-                    Code
-                  </th>
-                  <th scope="col" className="px-6 py-3.5">
-                    Category
-                  </th>
-                  <th scope="col" className="px-6 py-3.5">
-                    Type
-                  </th>
-                  <th scope="col" className="px-6 py-3.5">
-                    Base Price
-                  </th>
-                  <th scope="col" className="px-6 py-3.5">
-                    Status
-                  </th>
-                  <th scope="col" className="px-6 py-3.5">
-                    Updated
-                  </th>
-                  <th scope="col" className="px-6 py-3.5 text-right">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {testsData.content.map((test) => (
-                  <tr
-                    key={test.refId}
-                    className="hover:bg-slate-50/80 transition-colors"
-                  >
-                    <td className="px-6 py-4">
-                      <Link
-                        to={`/super-admin/tests/${test.refId}`}
-                        className="font-semibold text-slate-900 hover:text-blue-600 transition-colors"
-                      >
-                        {test.name}
-                      </Link>
-                      {test.shortName && (
-                        <p className="text-xs text-slate-500 font-mono">
-                          {test.shortName}
-                        </p>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 font-mono text-xs font-medium text-slate-600">
-                      {test.code}
-                    </td>
-                    <td className="px-6 py-4 text-xs font-medium text-slate-600">
-                      {test.categoryName || test.categoryRefId}
-                    </td>
-                    <td className="px-6 py-4">
-                      <TestTypeBadge type={test.testType} />
-                    </td>
-                    <td className="px-6 py-4 text-xs font-medium text-slate-700">
-                      {test.basePrice != null
-                        ? `${test.currency || "INR"} ${Number(test.basePrice).toFixed(2)}`
-                        : "—"}
-                    </td>
-                    <td className="px-6 py-4">
-                      <TestStatusBadge status={test.status} />
-                    </td>
-                    <td className="px-6 py-4 text-xs text-slate-500">
-                      {new Date(test.updatedAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 px-2.5 text-xs font-medium text-slate-700 hover:text-blue-600 hover:border-blue-300"
-                          onClick={() =>
-                            navigate(
-                              `/super-admin/tests/${test.refId}?tab=parameters`,
-                            )
-                          }
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-700">
+                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                  <tr>
+                    <th scope="col" className="px-6 py-3.5">
+                      Test Name
+                    </th>
+                    <th scope="col" className="px-6 py-3.5">
+                      Code
+                    </th>
+                    <th scope="col" className="px-6 py-3.5">
+                      Category
+                    </th>
+                    <th scope="col" className="px-6 py-3.5">
+                      Type
+                    </th>
+                    <th scope="col" className="px-6 py-3.5">
+                      Base Price
+                    </th>
+                    <th scope="col" className="px-6 py-3.5">
+                      Status
+                    </th>
+                    <th scope="col" className="px-6 py-3.5">
+                      Updated
+                    </th>
+                    <th scope="col" className="px-6 py-3.5 text-right">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {testsData.content.map((test) => (
+                    <tr
+                      key={test.refId}
+                      className="hover:bg-slate-50/80 transition-colors"
+                    >
+                      <td className="px-6 py-4">
+                        <Link
+                          to={`/super-admin/tests/${test.refId}`}
+                          className="font-semibold text-slate-900 hover:text-teal-700 transition-colors"
                         >
-                          <Sliders className="mr-1.5 h-3.5 w-3.5 text-indigo-600" />
-                          Parameters
-                        </Button>
-
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-slate-500 hover:text-slate-900"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                              <span className="sr-only">Actions</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem
-                            onClick={() =>
-                              navigate(`/super-admin/tests/${test.refId}`)
-                            }
-                          >
-                            <Eye className="mr-2 h-4 w-4 text-slate-500" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() =>
-                              navigate(`/super-admin/tests/${test.refId}/edit`)
-                            }
-                          >
-                            <FileEdit className="mr-2 h-4 w-4 text-slate-500" />
-                            Edit Test
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
+                          {test.name}
+                        </Link>
+                        {test.shortName && (
+                          <p className="text-xs text-slate-500 font-mono">
+                            {test.shortName}
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 font-mono text-xs font-medium text-slate-600">
+                        {test.code}
+                      </td>
+                      <td className="px-6 py-4 text-xs font-medium text-slate-600">
+                        {test.categoryName || test.categoryRefId}
+                      </td>
+                      <td className="px-6 py-4">
+                        <TestTypeBadge type={test.testType} />
+                      </td>
+                      <td className="px-6 py-4 text-xs font-medium text-slate-700">
+                        {test.basePrice != null
+                          ? `${test.currency || "INR"} ${Number(test.basePrice).toFixed(2)}`
+                          : "—"}
+                      </td>
+                      <td className="px-6 py-4">
+                        <TestStatusBadge status={test.status} />
+                      </td>
+                      <td className="px-6 py-4 text-xs text-slate-500">
+                        {new Date(test.updatedAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-2.5 text-xs font-medium text-slate-700 hover:text-teal-700 hover:border-teal-300"
                             onClick={() =>
                               navigate(
                                 `/super-admin/tests/${test.refId}?tab=parameters`,
                               )
                             }
                           >
-                            <Sliders className="mr-2 h-4 w-4 text-indigo-500" />
+                            <Sliders className="mr-1.5 h-3.5 w-3.5 text-indigo-600" />
+                            Parameters
+                          </Button>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-slate-500 hover:text-slate-900 rounded-md"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                                <span className="sr-only">Actions</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 text-xs">
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  navigate(`/super-admin/tests/${test.refId}`)
+                                }
+                                className="cursor-pointer flex items-center gap-2"
+                              >
+                                <Eye className="h-3.5 w-3.5 text-slate-500" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  navigate(`/super-admin/tests/${test.refId}/edit`)
+                                }
+                                className="cursor-pointer flex items-center gap-2"
+                              >
+                                <FileEdit className="h-3.5 w-3.5 text-slate-500" />
+                                Edit Test
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  navigate(
+                                    `/super-admin/tests/${test.refId}?tab=parameters`,
+                                  )
+                                }
+                                className="cursor-pointer flex items-center gap-2"
+                              >
+                                <Sliders className="h-3.5 w-3.5 text-indigo-500" />
+                                Manage Parameters
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  navigate(
+                                    `/super-admin/tests/${test.refId}?tab=assignments`,
+                                  )
+                                }
+                                className="cursor-pointer flex items-center gap-2"
+                              >
+                                <Link2 className="h-3.5 w-3.5 text-teal-600" />
+                                Manage Assignments
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              {test.status === "ACTIVE" ? (
+                                <DropdownMenuItem
+                                  className="text-amber-600 focus:text-amber-700 cursor-pointer flex items-center gap-2"
+                                  onClick={() => setDeactivateTarget(test)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  Deactivate
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  className="text-emerald-600 focus:text-emerald-700 cursor-pointer flex items-center gap-2"
+                                  onClick={() => void handleReactivate(test)}
+                                >
+                                  <RotateCcw className="h-3.5 w-3.5" />
+                                  Reactivate Test
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards View */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {testsData.content.map((test) => (
+                <div key={test.refId} className="p-4 space-y-3 hover:bg-slate-50/50 transition-colors">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-1">
+                      <Link
+                        to={`/super-admin/tests/${test.refId}`}
+                        className="font-bold text-sm text-slate-900 hover:text-teal-700 transition-colors block"
+                      >
+                        {test.name}
+                      </Link>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded">
+                          {test.code}
+                        </span>
+                        {test.shortName && (
+                          <span className="text-xs text-slate-400 font-mono">
+                            {test.shortName}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-1">
+                      <TestStatusBadge status={test.status} />
+                      <TestTypeBadge type={test.testType} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100 text-slate-500">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Category</span>
+                      <span className="text-slate-700 font-medium truncate block">{test.categoryName || test.categoryRefId}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Base Price</span>
+                      <span className="text-slate-900 font-semibold">
+                        {test.basePrice != null
+                          ? `${test.currency || "INR"} ${Number(test.basePrice).toFixed(2)}`
+                          : "—"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
+                    <span>Updated {new Date(test.updatedAt).toLocaleDateString()}</span>
+
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        size="sm"
+                        onClick={() => navigate(`/super-admin/tests/${test.refId}?tab=parameters`)}
+                        className="h-7 px-2.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-medium"
+                      >
+                        <Sliders className="mr-1 h-3 w-3 text-indigo-600" />
+                        Params
+                      </Button>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-md"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                            <span className="sr-only">Actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48 text-xs">
+                          <DropdownMenuItem
+                            onClick={() => navigate(`/super-admin/tests/${test.refId}`)}
+                            className="cursor-pointer flex items-center gap-2"
+                          >
+                            <Eye className="h-3.5 w-3.5 text-slate-500" />
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => navigate(`/super-admin/tests/${test.refId}/edit`)}
+                            className="cursor-pointer flex items-center gap-2"
+                          >
+                            <FileEdit className="h-3.5 w-3.5 text-slate-500" />
+                            Edit Test
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => navigate(`/super-admin/tests/${test.refId}?tab=parameters`)}
+                            className="cursor-pointer flex items-center gap-2"
+                          >
+                            <Sliders className="h-3.5 w-3.5 text-indigo-500" />
                             Manage Parameters
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() =>
-                              navigate(
-                                `/super-admin/tests/${test.refId}?tab=assignments`,
-                              )
-                            }
+                            onClick={() => navigate(`/super-admin/tests/${test.refId}?tab=assignments`)}
+                            className="cursor-pointer flex items-center gap-2"
                           >
-                            <Link2 className="mr-2 h-4 w-4 text-blue-500" />
+                            <Link2 className="h-3.5 w-3.5 text-teal-600" />
                             Manage Assignments
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           {test.status === "ACTIVE" ? (
                             <DropdownMenuItem
-                              className="text-amber-600 focus:text-amber-700"
+                              className="text-amber-600 focus:text-amber-700 cursor-pointer flex items-center gap-2"
                               onClick={() => setDeactivateTarget(test)}
                             >
-                              <Trash2 className="mr-2 h-4 w-4" />
+                              <Trash2 className="h-3.5 w-3.5" />
                               Deactivate
                             </DropdownMenuItem>
                           ) : (
                             <DropdownMenuItem
-                              className="text-emerald-600 focus:text-emerald-700"
+                              className="text-emerald-600 focus:text-emerald-700 cursor-pointer flex items-center gap-2"
                               onClick={() => void handleReactivate(test)}
                             >
-                              <RotateCcw className="mr-2 h-4 w-4" />
+                              <RotateCcw className="h-3.5 w-3.5" />
                               Reactivate Test
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                  </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         ) : (
           <EmptyState
             title={
