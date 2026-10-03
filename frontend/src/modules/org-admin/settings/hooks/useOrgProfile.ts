@@ -17,7 +17,7 @@ export const ORG_PROFILE_QUERY_KEYS = {
   signature: ["organization-profile", "me", "signature"] as const,
 };
 
-export function useMyOrganizationProfileQuery(): UseQueryResult<
+export function useMyOrganizationProfileQuery(enabled = true): UseQueryResult<
   OrganizationProfileResponse,
   Error
 > {
@@ -25,6 +25,7 @@ export function useMyOrganizationProfileQuery(): UseQueryResult<
     queryKey: ORG_PROFILE_QUERY_KEYS.me,
     queryFn: () => orgProfileApi.getMyProfile(),
     staleTime: 5 * 60 * 1000,
+    enabled,
   });
 }
 

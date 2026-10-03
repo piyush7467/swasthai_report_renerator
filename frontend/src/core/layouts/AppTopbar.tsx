@@ -9,7 +9,6 @@ import {
   Settings,
   ShieldAlert,
   ShieldCheck,
-  User,
   Users,
 } from "lucide-react";
 
@@ -23,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { useAuth } from "../auth/AuthContext";
+import { UserAvatar } from "@/core/components/UserAvatar";
 import logoImg from "@/assets/logo.png";
 
 interface AppTopbarProps {
@@ -113,9 +113,7 @@ export function AppTopbar({
               type="button"
               className="flex items-center gap-2 rounded-lg p-1 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 cursor-pointer"
             >
-              <div className="flex size-8 items-center justify-center rounded-full bg-slate-900 text-white font-semibold">
-                <User className="size-4" />
-              </div>
+              <UserAvatar size="md" />
 
               <div className="hidden text-left sm:block">
                 <p className="max-w-40 truncate text-xs font-semibold text-slate-900 leading-tight">
@@ -128,25 +126,29 @@ export function AppTopbar({
             </button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent align="end" className="w-60">
+          <DropdownMenuContent align="end" className="w-64">
             <DropdownMenuLabel>
-              <div className="space-y-1">
-                <p className="truncate text-sm font-semibold text-slate-900">
-                  {user.name}
-                </p>
+              <div className="flex items-center gap-2.5 pb-2">
+                <UserAvatar size="lg" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-slate-900 leading-tight">
+                    {user.name}
+                  </p>
+                  <p className="truncate text-xs font-normal text-slate-500 mt-0.5">
+                    {user.email}
+                  </p>
+                </div>
+              </div>
 
-                <p className="truncate text-xs font-normal text-slate-500">
-                  {user.email}
-                </p>
-
-                <div className="pt-1">
-                  <span className="inline-block rounded bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">
-                    {user.role}
+              <div className="pt-1.5 space-y-1 border-t border-slate-100">
+                <div>
+                  <span className="inline-block rounded bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-800 tracking-wider uppercase">
+                    {user.role.replace("_", " ")}
                   </span>
                 </div>
 
                 {user.organizationRefId && (
-                  <p className="truncate pt-1 text-[11px] font-mono text-slate-500">
+                  <p className="truncate text-[11px] font-mono text-slate-500">
                     Org: {user.organizationRefId}
                   </p>
                 )}

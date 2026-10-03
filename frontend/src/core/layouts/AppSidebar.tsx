@@ -1,9 +1,9 @@
-import { ChevronDown, ChevronRight, LogOut, User } from "lucide-react";
+import { ChevronDown, ChevronRight, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import logoImg from "@/assets/logo.png";
-
 import { useAuth } from "../auth/AuthContext";
+import { UserAvatar } from "@/core/components/UserAvatar";
+import logoImg from "@/assets/logo.png";
 import {
   getDashboardPath,
   getNavigationForRole,
@@ -193,9 +193,7 @@ export function AppSidebar({
       {/* User Info & Logout at bottom */}
       <div className="border-t border-slate-100 p-4">
         <div className="flex items-center gap-3 px-1 py-1">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white font-semibold">
-            <User className="h-4 w-4" />
-          </div>
+          <UserAvatar size="lg" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-semibold text-slate-900 leading-tight">
               {user.name || "System Super Admin"}
