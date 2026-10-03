@@ -278,7 +278,7 @@ export function AssignTestDialog({
             <Button
               type="submit"
               disabled={isPending}
-              className="bg-blue-600 hover:bg-blue-700 text-white min-w-28"
+              className="bg-[#0F766E] hover:bg-[#115E59] text-white min-w-28 shadow-xs"
             >
               {isPending ? (
                 <>

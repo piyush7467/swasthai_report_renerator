@@ -38,13 +38,13 @@ export default function SettingsPage() {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto no-scrollbar">
         <button
           type="button"
           onClick={() => setActiveTab("platform")}
-          className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold whitespace-nowrap transition-colors ${
             activeTab === "platform"
-              ? "bg-slate-900 text-white"
+              ? "bg-[#0F766E] text-white shadow-xs"
               : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
           }`}
         >
@@ -55,9 +55,9 @@ export default function SettingsPage() {
         <button
           type="button"
           onClick={() => setActiveTab("security")}
-          className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold whitespace-nowrap transition-colors ${
             activeTab === "security"
-              ? "bg-slate-900 text-white"
+              ? "bg-[#0F766E] text-white shadow-xs"
               : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
           }`}
         >
@@ -68,9 +68,9 @@ export default function SettingsPage() {
         <button
           type="button"
           onClick={() => setActiveTab("retention")}
-          className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold whitespace-nowrap transition-colors ${
             activeTab === "retention"
-              ? "bg-slate-900 text-white"
+              ? "bg-[#0F766E] text-white shadow-xs"
               : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
           }`}
         >
@@ -83,16 +83,16 @@ export default function SettingsPage() {
       {activeTab === "platform" && (
         <div className="space-y-6">
           {/* Admin Identity Card */}
-          <Card className="border-slate-200 bg-white">
+          <Card className="border-slate-200 bg-white shadow-xs">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-blue-600" />
+                  <User className="h-4 w-4 text-teal-600" />
                   <CardTitle className="text-base font-semibold text-slate-900">
                     Super Admin Profile
                   </CardTitle>
                 </div>
-                <Badge className="bg-slate-900 text-white">{user?.role}</Badge>
+                <Badge className="bg-[#0F766E] text-white shadow-xs">{user?.role}</Badge>
               </div>
               <CardDescription className="text-xs text-slate-500">
                 Current authoritative administrator session parameters.
@@ -167,7 +167,7 @@ export default function SettingsPage() {
             <Card className="border-slate-200 bg-white">
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
-                  <Server className="h-4 w-4 text-blue-600" />
+                  <Server className="h-4 w-4 text-teal-600" />
                   <CardTitle className="text-sm font-semibold text-slate-900">
                     Application Backend Services
                   </CardTitle>
@@ -191,7 +191,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-500">Health Endpoint</span>
-                  <span className="font-mono text-blue-600 font-medium">/actuator/health (Live)</span>
+                  <span className="font-mono text-teal-600 font-medium">/actuator/health (Live)</span>
                 </div>
               </CardContent>
             </Card>

@@ -178,7 +178,7 @@ export function CreateUserDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger ?? (
-          <Button className="bg-slate-900 text-white hover:bg-slate-800">
+          <Button className="bg-[#0F766E] hover:bg-[#115E59] text-white shadow-xs">
             <UserPlus className="mr-2 h-4 w-4" />
             Create User
           </Button>
@@ -405,7 +405,7 @@ export function CreateUserDialog({
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="bg-slate-900 text-white hover:bg-slate-800"
+              className="bg-[#0F766E] hover:bg-[#115E59] text-white shadow-xs"
             >
               {isSubmitting ? (
                 <>

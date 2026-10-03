@@ -285,7 +285,7 @@ export function BreakGlassDialog({
               <Button type="button" variant="outline" size="sm" onClick={handleReset} className="text-xs">
                 Inspect Another Report
               </Button>
-              <Button type="button" size="sm" onClick={handleClose} className="text-xs bg-slate-900 hover:bg-slate-800 text-white">
+              <Button type="button" size="sm" onClick={handleClose} className="text-xs bg-[#0F766E] hover:bg-[#115E59] text-white shadow-xs">
                 Close
               </Button>
             </DialogFooter>

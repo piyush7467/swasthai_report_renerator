@@ -814,7 +814,7 @@ export function AssignTestsPage() {
                 !effectiveOrgRefId ||
                 isSubmitting
               }
-              className="bg-blue-600 hover:bg-blue-700 text-white min-w-36"
+              className="bg-[#0F766E] hover:bg-[#115E59] text-white min-w-36 shadow-xs"
             >
               {isSubmitting ? (
                 <>

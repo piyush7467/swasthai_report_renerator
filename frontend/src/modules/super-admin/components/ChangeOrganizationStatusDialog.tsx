@@ -257,7 +257,7 @@ export function ChangeOrganizationStatusDialog({
                     ? "bg-rose-600 text-white hover:bg-rose-700"
                     : selectedStatus === "SUSPENDED"
                     ? "bg-amber-600 text-white hover:bg-amber-700"
-                    : "bg-emerald-600 text-white hover:bg-emerald-700"
+                    : "bg-[#0F766E] text-white hover:bg-[#115E59]"
                 }
                 onClick={() => void handleConfirm()}
               >

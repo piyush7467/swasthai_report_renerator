@@ -233,7 +233,7 @@ export default function OrganizationDetailsPage() {
               <div className="p-4 pt-0">
                 <Button
                   asChild
-                  className="w-full bg-slate-900 text-white hover:bg-slate-800 text-xs"
+                  className="w-full bg-[#0F766E] hover:bg-[#115E59] text-white text-xs shadow-xs"
                 >
                   <Link to={`/super-admin/organizations/${organization.refId}/users`}>
                     View Users

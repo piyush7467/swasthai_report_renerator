@@ -98,7 +98,7 @@ export function ConfirmReactivateLicenseDialog({
               onOpenChange(false);
             }}
             disabled={isLoading}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+            className="bg-[#0F766E] hover:bg-[#115E59] text-white gap-1.5 shadow-xs"
           >
             {isLoading ? (
               <>

@@ -76,7 +76,7 @@ export function OrganizationDetailsDialog({
         <DialogHeader className="pb-2">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#0F766E] text-white shadow-xs">
                 <Building2 className="h-6 w-6" />
               </div>
               <div>

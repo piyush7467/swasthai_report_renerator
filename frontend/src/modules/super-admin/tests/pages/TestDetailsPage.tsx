@@ -374,7 +374,7 @@ export function TestDetailsPage() {
             <Button
               size="sm"
               onClick={() => navigate(`/super-admin/tests/${test.refId}/edit`)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-[#0F766E] hover:bg-[#115E59] text-white shadow-xs"
             >
               <Edit className="mr-2 h-4 w-4" />
               Edit Test
@@ -635,7 +635,7 @@ export function TestDetailsPage() {
                 onClick={() =>
                   navigate(`/super-admin/tests/${test.refId}/parameters/new`)
                 }
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-[#0F766E] hover:bg-[#115E59] text-white shadow-xs"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Add Parameter
@@ -872,7 +872,7 @@ export function TestDetailsPage() {
                   onClick: () =>
                     navigate(`/super-admin/tests/${test.refId}/parameters/new`),
                   icon: Plus,
-                  className: "bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs h-9 px-4 rounded-lg",
+                  className: "bg-[#0F766E] hover:bg-[#115E59] text-white font-semibold text-xs h-9 px-4 rounded-lg shadow-xs",
                 }}
                 secondaryAction={
                   paramStatus !== "ALL"
@@ -953,7 +953,7 @@ export function TestDetailsPage() {
                     `/super-admin/tests/assignments/new?organizationRefId=${effectiveOrgRefId}`,
                   )
                 }
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-[#0F766E] hover:bg-[#115E59] text-white shadow-xs"
               >
                 <Plus className="mr-1.5 h-4 w-4" />
                 Bulk Assign to Organizations
@@ -1113,7 +1113,7 @@ export function TestDetailsPage() {
                       size="sm"
                       onClick={handleAssignToSelectedOrg}
                       disabled={isAssigningSingle || !effectiveOrgRefId}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      className="bg-[#0F766E] hover:bg-[#115E59] text-white shadow-xs"
                     >
                       {isAssigningSingle ? (
                         <>

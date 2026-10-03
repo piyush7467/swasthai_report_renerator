@@ -285,7 +285,7 @@ export function AdminUpgradeRequestsPage() {
                   }}
                   className={`text-xs h-8 ${
                     statusFilter === st
-                      ? "bg-slate-900 text-white"
+                      ? "bg-[#0F766E] text-white shadow-xs hover:bg-[#115E59]"
                       : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
@@ -337,108 +337,172 @@ export function AdminUpgradeRequestsPage() {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-slate-50/70 hover:bg-slate-50/70">
-                    <TableHead className="text-xs font-semibold text-slate-600 w-[140px]">
-                      Request Ref
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold text-slate-600">
-                      Organization
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold text-slate-600">
-                      Plan Transition
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold text-slate-600">
-                      Requester Contact
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold text-slate-600">
-                      Status
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold text-slate-600">
-                      Submitted
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold text-slate-600 text-right">
-                      Actions
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRequests.map((req) => (
-                    <TableRow key={req.refId} className="hover:bg-slate-50/50">
-                      <TableCell className="font-mono text-xs text-slate-600">
-                        {req.refId}
-                      </TableCell>
+            <>
+              {/* Mobile Cards View (< md) */}
+              <div className="md:hidden divide-y divide-slate-100">
+                {filteredRequests.map((req) => (
+                  <div key={req.refId} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="font-semibold text-sm text-slate-900 leading-snug">
+                          {req.organizationName}
+                        </h4>
+                        <span className="font-mono text-[11px] text-slate-400">
+                          {req.organizationRefId} &bull; {req.refId}
+                        </span>
+                      </div>
+                      <div className="shrink-0">{getStatusBadge(req.status)}</div>
+                    </div>
 
-                      <TableCell>
-                        <div>
-                          <span className="font-semibold text-slate-800 text-xs block">
-                            {req.organizationName}
-                          </span>
-                          <span className="font-mono text-[11px] text-slate-400">
-                            {req.organizationRefId}
-                          </span>
-                        </div>
-                      </TableCell>
+                    <div className="rounded-lg bg-slate-50 p-2.5 text-xs space-y-1.5 border border-slate-100">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-slate-500">Transition:</span>
+                        <span className="text-slate-700 font-medium">{req.currentPlanName}</span>
+                        <ArrowRight className="h-3 w-3 text-slate-400 shrink-0" />
+                        <span className="text-teal-900 font-bold bg-teal-50 px-1.5 py-0.5 rounded-sm border border-teal-100">
+                          {req.requestedPlanName}
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          ({req.requestedStaffCapacity} seats)
+                        </span>
+                      </div>
 
-                      <TableCell>
-                        <div className="flex items-center gap-1.5 text-xs">
-                          <span className="text-slate-600 font-medium">
-                            {req.currentPlanName}
-                          </span>
-                          <ArrowRight className="h-3 w-3 text-slate-400 shrink-0" />
-                          <span className="text-teal-900 font-bold bg-teal-50 px-1.5 py-0.5 rounded-sm border border-teal-100">
-                            {req.requestedPlanName}
-                          </span>
-                          <span className="text-[11px] text-slate-400">
-                            ({req.requestedStaffCapacity} seats)
-                          </span>
-                        </div>
-                      </TableCell>
+                      <div className="text-[11px] text-slate-600 flex items-center justify-between pt-1 border-t border-slate-200/60">
+                        <span>Requester: <strong className="text-slate-800">{req.contactName}</strong></span>
+                        <a href={`mailto:${req.contactEmail}`} className="text-teal-700 hover:underline">
+                          {req.contactEmail}
+                        </a>
+                      </div>
+                    </div>
 
-                      <TableCell>
-                        <div className="text-xs">
-                          <span className="font-medium text-slate-800 block">
-                            {req.contactName}
-                          </span>
-                          <a
-                            href={`mailto:${req.contactEmail}`}
-                            className="text-teal-700 hover:underline text-[11px] block"
-                          >
-                            {req.contactEmail}
-                          </a>
-                        </div>
-                      </TableCell>
-
-                      <TableCell>{getStatusBadge(req.status)}</TableCell>
-
-                      <TableCell className="text-xs text-slate-500 whitespace-nowrap">
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[11px] text-slate-400">
                         {formatDate(req.createdAt)}
-                      </TableCell>
+                      </span>
+                      <Button
+                        variant={req.status === "PENDING" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handleOpenReview(req)}
+                        className={`text-xs h-7 gap-1 ${
+                          req.status === "PENDING"
+                            ? "bg-[#0F766E] hover:bg-[#115E59] text-white shadow-xs"
+                            : "text-slate-700"
+                        }`}
+                      >
+                        <Eye className="h-3 w-3" />
+                        {req.status === "PENDING" || req.status === "CONTACTED"
+                          ? "Review Request"
+                          : "Details"}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
 
-                      <TableCell className="text-right">
-                        <Button
-                          variant={req.status === "PENDING" ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => handleOpenReview(req)}
-                          className={`text-xs h-7 gap-1 ${
-                            req.status === "PENDING"
-                              ? "bg-[#0F766E] hover:bg-[#0D655E] text-white"
-                              : "text-slate-700"
-                          }`}
-                        >
-                          <Eye className="h-3 w-3" />
-                          {req.status === "PENDING" || req.status === "CONTACTED"
-                            ? "Review"
-                            : "Details"}
-                        </Button>
-                      </TableCell>
+              {/* Desktop Table (>= md) */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50/70 hover:bg-slate-50/70">
+                      <TableHead className="text-xs font-semibold text-slate-600 w-[140px]">
+                        Request Ref
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold text-slate-600">
+                        Organization
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold text-slate-600">
+                        Plan Transition
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold text-slate-600">
+                        Requester Contact
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold text-slate-600">
+                        Status
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold text-slate-600">
+                        Submitted
+                      </TableHead>
+                      <TableHead className="text-xs font-semibold text-slate-600 text-right">
+                        Actions
+                      </TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRequests.map((req) => (
+                      <TableRow key={req.refId} className="hover:bg-slate-50/50">
+                        <TableCell className="font-mono text-xs text-slate-600">
+                          {req.refId}
+                        </TableCell>
+
+                        <TableCell>
+                          <div>
+                            <span className="font-semibold text-slate-800 text-xs block">
+                              {req.organizationName}
+                            </span>
+                            <span className="font-mono text-[11px] text-slate-400">
+                              {req.organizationRefId}
+                            </span>
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <span className="text-slate-600 font-medium">
+                              {req.currentPlanName}
+                            </span>
+                            <ArrowRight className="h-3 w-3 text-slate-400 shrink-0" />
+                            <span className="text-teal-900 font-bold bg-teal-50 px-1.5 py-0.5 rounded-sm border border-teal-100">
+                              {req.requestedPlanName}
+                            </span>
+                            <span className="text-[11px] text-slate-400">
+                              ({req.requestedStaffCapacity} seats)
+                            </span>
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="text-xs">
+                            <span className="font-medium text-slate-800 block">
+                              {req.contactName}
+                            </span>
+                            <a
+                              href={`mailto:${req.contactEmail}`}
+                              className="text-teal-700 hover:underline text-[11px] block"
+                            >
+                              {req.contactEmail}
+                            </a>
+                          </div>
+                        </TableCell>
+
+                        <TableCell>{getStatusBadge(req.status)}</TableCell>
+
+                        <TableCell className="text-xs text-slate-500 whitespace-nowrap">
+                          {formatDate(req.createdAt)}
+                        </TableCell>
+
+                        <TableCell className="text-right">
+                          <Button
+                            variant={req.status === "PENDING" ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handleOpenReview(req)}
+                            className={`text-xs h-7 gap-1 ${
+                              req.status === "PENDING"
+                                ? "bg-[#0F766E] hover:bg-[#115E59] text-white shadow-xs"
+                                : "text-slate-700"
+                            }`}
+                          >
+                            <Eye className="h-3 w-3" />
+                            {req.status === "PENDING" || req.status === "CONTACTED"
+                              ? "Review"
+                              : "Details"}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

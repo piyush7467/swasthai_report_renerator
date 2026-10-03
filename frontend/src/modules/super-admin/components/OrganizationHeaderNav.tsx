@@ -111,7 +111,7 @@ export function OrganizationHeaderNav({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -197,16 +197,16 @@ export function OrganizationHeaderNav({
         {/* Sub-Navigation Tabs */}
         {organization && (
           <div className="mt-5 border-t border-slate-100 pt-3">
-            <nav className="flex items-center gap-1">
+            <nav className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-1">
               {navTabs.map((tab) => {
                 const Icon = tab.icon;
                 return (
                   <Link
                     key={tab.href}
                     to={tab.href}
-                    className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
+                    className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold whitespace-nowrap transition-colors ${
                       tab.isActive
-                        ? "bg-slate-900 text-white shadow-xs"
+                        ? "bg-[#0F766E] text-white shadow-xs"
                         : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                     }`}
                   >

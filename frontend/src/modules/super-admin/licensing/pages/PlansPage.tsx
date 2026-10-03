@@ -116,10 +116,10 @@ export function PlansPage() {
             variant="outline"
             size="sm"
             asChild
-            className="text-slate-700 hover:text-slate-900 gap-1.5"
+            className="text-slate-700 hover:text-slate-900 gap-1.5 border-slate-200"
           >
             <Link to="/super-admin/licensing/licenses">
-              <Building2 className="h-4 w-4 text-indigo-600" />
+              <Building2 className="h-4 w-4 text-teal-600" />
               Organization Licenses
             </Link>
           </Button>
@@ -128,7 +128,7 @@ export function PlansPage() {
             variant="outline"
             size="sm"
             asChild
-            className="text-slate-700 hover:text-slate-900 gap-1.5"
+            className="text-slate-700 hover:text-slate-900 gap-1.5 border-slate-200"
           >
             <Link to="/super-admin/licensing/upgrade-requests">
               <Sparkles className="h-4 w-4 text-teal-600" />
@@ -138,7 +138,8 @@ export function PlansPage() {
 
           <Button
             asChild
-            className="bg-slate-900 hover:bg-slate-800 text-white gap-1.5 shadow-xs"
+            size="sm"
+            className="bg-[#0F766E] hover:bg-[#115E59] text-white gap-1.5 shadow-2xs font-semibold"
           >
             <Link to="/super-admin/licensing/plans/new">
               <Plus className="h-4 w-4" />
@@ -225,7 +226,7 @@ export function PlansPage() {
                   <Button
                     size="sm"
                     asChild
-                    className="bg-slate-900 hover:bg-slate-800 text-white gap-1.5"
+                    className="bg-[#0F766E] hover:bg-[#115E59] text-white gap-1.5 shadow-2xs font-semibold"
                   >
                     <Link to="/super-admin/licensing/plans/new">
                       <Plus className="h-4 w-4" />
@@ -236,136 +237,230 @@ export function PlansPage() {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-slate-50/70">
-                  <TableRow>
-                    <TableHead className="w-[120px]">Code</TableHead>
-                    <TableHead>Name & Description</TableHead>
-                    <TableHead className="w-[170px]">Capacity & Limits</TableHead>
-                    <TableHead className="text-right">Annual Price</TableHead>
-                    <TableHead className="w-[110px]">Status</TableHead>
-                    <TableHead className="w-[130px]">Last Updated</TableHead>
-                    <TableHead className="w-[80px] text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPlans.map((plan) => (
-                    <TableRow key={plan.refId} className="hover:bg-slate-50/60">
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className="font-mono text-xs font-semibold bg-slate-50 text-slate-800"
-                        >
-                          {plan.code}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-0.5">
-                          <div className="font-semibold text-slate-900 text-sm">
-                            {plan.name}
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-slate-50/70">
+                    <TableRow>
+                      <TableHead className="w-[120px]">Code</TableHead>
+                      <TableHead>Name & Description</TableHead>
+                      <TableHead className="w-[170px]">Capacity & Limits</TableHead>
+                      <TableHead className="text-right">Annual Price</TableHead>
+                      <TableHead className="w-[110px]">Status</TableHead>
+                      <TableHead className="w-[130px]">Last Updated</TableHead>
+                      <TableHead className="w-[80px] text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPlans.map((plan) => (
+                      <TableRow key={plan.refId} className="hover:bg-slate-50/60">
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className="font-mono text-xs font-semibold bg-slate-50 text-slate-800"
+                          >
+                            {plan.code}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-0.5">
+                            <div className="font-semibold text-slate-900 text-sm">
+                              {plan.name}
+                            </div>
+                            {plan.description && (
+                              <p className="text-xs text-slate-500 line-clamp-1 max-w-md">
+                                {plan.description}
+                              </p>
+                            )}
                           </div>
-                          {plan.description && (
-                            <p className="text-xs text-slate-500 line-clamp-1 max-w-md">
-                              {plan.description}
-                            </p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1 text-xs text-slate-700">
-                          <div className="flex items-center gap-1.5 font-medium">
-                            <Users className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                            <span>{plan.maxLabStaff ?? 3} staff seats</span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1 text-xs text-slate-700">
+                            <div className="flex items-center gap-1.5 font-medium">
+                              <Users className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                              <span>{plan.maxLabStaff ?? 3} staff seats</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-slate-500 text-[11px]">
+                              <FileText className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                              <span>
+                                {plan.maxReportsPerMonth && plan.maxReportsPerMonth > 0
+                                  ? `${plan.maxReportsPerMonth.toLocaleString()}/mo (${plan.maxReportsPerDay ?? 25}/day)`
+                                  : "Unlimited reports"}
+                              </span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1.5 text-slate-500 text-[11px]">
-                            <FileText className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                            <span>
-                              {plan.maxReportsPerMonth && plan.maxReportsPerMonth > 0
-                                ? `${plan.maxReportsPerMonth.toLocaleString()}/mo (${plan.maxReportsPerDay ?? 25}/day)`
-                                : "Unlimited reports"}
-                            </span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-medium text-slate-900">
-                        <span className="text-xs text-slate-500 mr-1">
-                          {plan.currency}
-                        </span>
-                        <span className="font-semibold">
-                          {Number(plan.annualPrice).toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-slate-900">
+                          <span className="text-xs text-slate-500 mr-1">
+                            {plan.currency}
+                          </span>
+                          <span className="font-semibold">
+                            {Number(plan.annualPrice).toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </span>
+                          <span className="text-xs text-slate-400 font-normal">
+                            {" "}/ yr
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <PlanStatusBadge active={plan.active} />
+                        </TableCell>
+                        <TableCell className="text-xs text-slate-500">
+                          {new Date(plan.updatedAt).toLocaleDateString(undefined, {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
                           })}
-                        </span>
-                        <span className="text-xs text-slate-400 font-normal">
-                          {" "}/ yr
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <PlanStatusBadge active={plan.active} />
-                      </TableCell>
-                      <TableCell className="text-xs text-slate-500">
-                        {new Date(plan.updatedAt).toLocaleDateString(undefined, {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </TableCell>
-                      <TableCell className="text-right">
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900 rounded-md"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-40 text-xs">
+                              <DropdownMenuLabel className="text-xs text-slate-500">
+                                Plan Actions
+                              </DropdownMenuLabel>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  navigate(
+                                    `/super-admin/licensing/plans/${plan.refId}/edit`,
+                                  )
+                                }
+                                className="cursor-pointer flex items-center gap-2"
+                              >
+                                <Edit className="h-3.5 w-3.5 text-slate-500" />
+                                Edit Plan
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => setPlanToToggle(plan)}
+                                className={`cursor-pointer flex items-center gap-2 ${
+                                  plan.active
+                                    ? "text-rose-600 focus:text-rose-700"
+                                    : "text-emerald-600 focus:text-emerald-700"
+                                }`}
+                              >
+                                {plan.active ? (
+                                  <>
+                                    <ToggleLeft className="h-3.5 w-3.5" />
+                                    Deactivate
+                                  </>
+                                ) : (
+                                  <>
+                                    <ToggleRight className="h-3.5 w-3.5" />
+                                    Activate
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden divide-y divide-slate-100">
+                {filteredPlans.map((plan) => (
+                  <div key={plan.refId} className="p-4 space-y-3 hover:bg-slate-50/50 transition-colors">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-0.5">
+                        <h4 className="font-bold text-sm text-slate-900">{plan.name}</h4>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded">
+                            {plan.code}
+                          </span>
+                        </div>
+                      </div>
+                      <PlanStatusBadge active={plan.active} />
+                    </div>
+
+                    {plan.description && (
+                      <p className="text-xs text-slate-500 line-clamp-2">{plan.description}</p>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100 text-slate-500">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Capacity</span>
+                        <span className="font-medium text-slate-700">{plan.maxLabStaff ?? 3} staff · {plan.maxReportsPerMonth ? `${plan.maxReportsPerMonth}/mo` : "Unlimited"}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Annual Price</span>
+                        <span className="font-bold text-slate-900">{plan.currency} {Number(plan.annualPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}/yr</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
+                      <span>Updated {new Date(plan.updatedAt).toLocaleDateString()}</span>
+
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          onClick={() => navigate(`/super-admin/licensing/plans/${plan.refId}/edit`)}
+                          className="h-7 px-2.5 text-xs bg-[#0F766E] hover:bg-[#115E59] text-white font-medium"
+                        >
+                          Edit
+                        </Button>
+
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900"
+                              className="h-7 w-7 p-0 text-slate-500 hover:text-slate-900 rounded-md"
                             >
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-40">
-                            <DropdownMenuLabel className="text-xs text-slate-500">
-                              Plan Actions
-                            </DropdownMenuLabel>
+                          <DropdownMenuContent align="end" className="w-40 text-xs">
                             <DropdownMenuItem
-                              onClick={() =>
-                                navigate(
-                                  `/super-admin/licensing/plans/${plan.refId}/edit`,
-                                )
-                              }
+                              onClick={() => navigate(`/super-admin/licensing/plans/${plan.refId}/edit`)}
+                              className="cursor-pointer flex items-center gap-2"
                             >
-                              <Edit className="mr-2 h-4 w-4" />
+                              <Edit className="h-3.5 w-3.5 text-slate-500" />
                               Edit Plan
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => setPlanToToggle(plan)}
-                              className={
+                              className={`cursor-pointer flex items-center gap-2 ${
                                 plan.active
                                   ? "text-rose-600 focus:text-rose-700"
                                   : "text-emerald-600 focus:text-emerald-700"
-                              }
+                              }`}
                             >
                               {plan.active ? (
                                 <>
-                                  <ToggleLeft className="mr-2 h-4 w-4" />
+                                  <ToggleLeft className="h-3.5 w-3.5" />
                                   Deactivate
                                 </>
                               ) : (
                                 <>
-                                  <ToggleRight className="mr-2 h-4 w-4" />
+                                  <ToggleRight className="h-3.5 w-3.5" />
                                   Activate
                                 </>
                               )}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

@@ -219,7 +219,7 @@ export function ChangeUserStatusDialog({
                 disabled={!selectedStatus || statusMutation.isPending}
                 className={
                   selectedStatus === "ACTIVE"
-                    ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                    ? "bg-[#0F766E] text-white hover:bg-[#115E59]"
                     : selectedStatus === "SUSPENDED"
                     ? "bg-amber-600 text-white hover:bg-amber-700"
                     : "bg-slate-700 text-white hover:bg-slate-800"

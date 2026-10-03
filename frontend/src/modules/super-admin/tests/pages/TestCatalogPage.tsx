@@ -585,7 +585,7 @@ export function TestCatalogPage() {
               label: "Add Test",
               onClick: () => navigate("/super-admin/tests/new"),
               icon: Plus,
-              className: "bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs h-9 px-4 rounded-lg",
+              className: "bg-[#0F766E] hover:bg-[#115E59] text-white font-semibold text-xs h-9 px-4 rounded-lg shadow-xs",
             }}
             secondaryAction={
               search || categoryRefId !== "ALL" || status !== "ALL"

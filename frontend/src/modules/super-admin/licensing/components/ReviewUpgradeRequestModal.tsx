@@ -387,7 +387,7 @@ export function ReviewUpgradeRequestModal({
                   size="sm"
                   onClick={() => handleUpdateStatus("CONTACTED")}
                   disabled={updateMutation.isPending}
-                  className="bg-blue-600 hover:bg-blue-700 text-white gap-1"
+                  className="bg-[#0F766E] hover:bg-[#115E59] text-white gap-1 shadow-xs"
                 >
                   {updateMutation.isPending ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -405,7 +405,7 @@ export function ReviewUpgradeRequestModal({
                     size="sm"
                     onClick={() => setActionType("APPROVED")}
                     disabled={updateMutation.isPending}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                    className="bg-[#0F766E] hover:bg-[#115E59] text-white gap-1 shadow-xs"
                   >
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Approve Upgrade
@@ -415,7 +415,7 @@ export function ReviewUpgradeRequestModal({
                     size="sm"
                     onClick={() => handleUpdateStatus("APPROVED")}
                     disabled={updateMutation.isPending}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-1"
+                    className="bg-[#0F766E] hover:bg-[#115E59] text-white font-semibold gap-1 shadow-xs"
                   >
                     {updateMutation.isPending && (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />

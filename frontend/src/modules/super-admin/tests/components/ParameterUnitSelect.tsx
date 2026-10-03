@@ -200,7 +200,7 @@ export function ParameterUnitSelect({
               variant={isSelected ? "default" : "outline"}
               className={`cursor-pointer text-[11px] px-2 py-0.5 transition-all select-none ${
                 isSelected
-                  ? "bg-slate-900 text-white hover:bg-slate-800 font-semibold shadow-xs"
+                  ? "bg-[#0F766E] text-white hover:bg-[#115E59] font-semibold shadow-xs"
                   : "bg-slate-50 hover:bg-slate-100 hover:border-slate-400 text-slate-700"
               }`}
               onClick={() => handleQuickSelect(unit)}
@@ -213,7 +213,7 @@ export function ParameterUnitSelect({
           variant={isEmpty && !isCustomMode ? "default" : "outline"}
           className={`cursor-pointer text-[11px] px-2 py-0.5 transition-all select-none ${
             isEmpty && !isCustomMode
-              ? "bg-slate-700 text-white hover:bg-slate-800 font-semibold"
+              ? "bg-[#0F766E] text-white hover:bg-[#115E59] font-semibold shadow-xs"
               : "bg-slate-50 hover:bg-slate-100 text-slate-500"
           }`}
           onClick={() => {

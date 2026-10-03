@@ -101,7 +101,7 @@ export function OrganizationLicenseCard({
               <div className="pt-2">
                 <Button
                   onClick={onActivateClick}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shadow-xs"
+                  className="bg-[#0F766E] hover:bg-[#115E59] text-white gap-1.5 shadow-xs"
                 >
                   <ShieldCheck className="h-4 w-4" />
                   Activate License
@@ -229,7 +229,7 @@ export function OrganizationLicenseCard({
                   size="sm"
                   onClick={() => setReactivateDialogOpen(true)}
                   disabled={reactivateMutation.isPending}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shadow-xs"
+                  className="bg-[#0F766E] hover:bg-[#115E59] text-white gap-1.5 shadow-xs"
                 >
                   <PlayCircle className="h-3.5 w-3.5" />
                   Reactivate
@@ -274,7 +274,7 @@ export function OrganizationLicenseCard({
                 size="sm"
                 onClick={() => setReactivateDialogOpen(true)}
                 disabled={reactivateMutation.isPending}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 shrink-0 gap-1.5 self-start sm:self-auto"
+                className="bg-[#0F766E] hover:bg-[#115E59] text-white text-xs h-8 shrink-0 gap-1.5 self-start sm:self-auto"
               >
                 <PlayCircle className="h-3.5 w-3.5" />
                 Reactivate License

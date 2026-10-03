@@ -216,7 +216,7 @@ export function ParameterDetailsDialog({
             type="button"
             size="sm"
             onClick={() => onOpenChange(false)}
-            className="bg-slate-900 text-white hover:bg-slate-800"
+            className="bg-[#0F766E] hover:bg-[#115E59] text-white shadow-xs"
           >
             Close
           </Button>

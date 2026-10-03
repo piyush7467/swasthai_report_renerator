@@ -712,7 +712,7 @@ export default function OrganizationProfilePage() {
                             setActionErrorMessage(e instanceof Error ? e.message : "Failed to approve signature.");
                           }
                         }}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 px-3 gap-1 cursor-pointer font-semibold shadow-xs shrink-0"
+                        className="bg-[#0F766E] hover:bg-[#115E59] text-white text-xs h-8 px-3 gap-1 cursor-pointer font-semibold shadow-xs shrink-0"
                       >
                         <Check className="size-3.5" />
                         Re-Approve
@@ -744,7 +744,7 @@ export default function OrganizationProfilePage() {
                               setActionErrorMessage(e instanceof Error ? e.message : "Failed to approve signature.");
                             }
                           }}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 px-3 gap-1 cursor-pointer font-semibold shadow-xs"
+                          className="bg-[#0F766E] hover:bg-[#115E59] text-white text-xs h-8 px-3 gap-1 cursor-pointer font-semibold shadow-xs"
                         >
                           <Check className="size-3.5" />
                           Approve
@@ -1184,7 +1184,7 @@ export default function OrganizationProfilePage() {
               <Button
                 type="submit"
                 disabled={!isDirty || isSubmitting || isSuspendedOrDisabled}
-                className="bg-slate-900 hover:bg-slate-800 text-white min-w-[140px]"
+                className="bg-[#0F766E] hover:bg-[#115E59] text-white min-w-[140px] shadow-xs"
               >
                 {isSubmitting || updateProfileMutation.isPending ? (
                   <>

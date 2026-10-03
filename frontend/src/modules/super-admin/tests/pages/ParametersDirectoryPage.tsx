@@ -156,7 +156,7 @@ export default function ParametersDirectoryPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <Sliders className="h-6 w-6 text-blue-600" />
+            <Sliders className="h-6 w-6 text-teal-600" />
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
               Test Parameters Directory
             </h1>
@@ -184,7 +184,7 @@ export default function ParametersDirectoryPage() {
               onClick={() =>
                 navigate(`/super-admin/tests/${currentTest.refId}/parameters/new`)
               }
-              className="gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-xs"
+              className="gap-1.5 text-xs bg-[#0F766E] hover:bg-[#115E59] text-white font-medium shadow-xs"
             >
               <Plus className="h-3.5 w-3.5" />
               Add Parameter
@@ -202,7 +202,7 @@ export default function ParametersDirectoryPage() {
                 htmlFor="test-select"
                 className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1.5"
               >
-                <FlaskConical className="h-3.5 w-3.5 text-blue-600" />
+                <FlaskConical className="h-3.5 w-3.5 text-teal-600" />
                 Select Master Diagnostic Test
               </label>
               <div className="w-full md:max-w-md">
@@ -256,7 +256,7 @@ export default function ParametersDirectoryPage() {
       {!selectedTestRefId && (
         <Card className="border-dashed border-slate-300 bg-slate-50/50">
           <CardHeader className="text-center py-10">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-600 mb-3">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-teal-50 text-teal-600 mb-3">
               <Layers className="h-6 w-6" />
             </div>
             <CardTitle className="text-lg font-semibold text-slate-900">
@@ -287,7 +287,7 @@ export default function ParametersDirectoryPage() {
                     key={test.refId}
                     type="button"
                     onClick={() => handleSelectTest(test.refId)}
-                    className="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/40 transition-all text-left group shadow-2xs"
+                    className="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-teal-300 hover:bg-teal-50/40 transition-all text-left group shadow-2xs"
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-mono text-[11px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
@@ -295,7 +295,7 @@ export default function ParametersDirectoryPage() {
                       </span>
                       <TestTypeBadge type={test.testType} />
                     </div>
-                    <p className="text-xs font-semibold text-slate-900 group-hover:text-blue-700 truncate">
+                    <p className="text-xs font-semibold text-slate-900 group-hover:text-teal-700 truncate">
                       {test.name}
                     </p>
                     <p className="text-[11px] text-slate-500 mt-0.5 truncate">
@@ -422,7 +422,7 @@ export default function ParametersDirectoryPage() {
                             `/super-admin/tests/${currentTest.refId}/parameters/new`,
                           ),
                         icon: Plus,
-                        className: "bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs h-9 px-4 rounded-lg",
+                        className: "bg-[#0F766E] hover:bg-[#115E59] text-white font-semibold text-xs h-9 px-4 rounded-lg shadow-xs",
                       }
                     : undefined
                 }
@@ -436,7 +436,107 @@ export default function ParametersDirectoryPage() {
                 }
               />
             ) : (
-              <div className="overflow-x-auto">
+            <>
+              {/* Mobile Cards View (< md) */}
+              <div className="md:hidden divide-y divide-slate-100">
+                {filteredParameters.map((param) => (
+                  <div key={param.refId} className="p-4 space-y-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-xs text-slate-400">#{param.displayOrder}</span>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedParamForDetails(param)}
+                            className="font-semibold text-slate-900 hover:text-teal-600 transition-colors text-left text-sm"
+                          >
+                            {param.name}
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="font-mono text-xs text-slate-500 font-medium">
+                            {param.code}
+                          </span>
+                          <ParameterDataTypeBadge dataType={param.dataType} />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <TestStatusBadge status={param.status} />
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-slate-500 hover:text-slate-900"
+                            >
+                              <MoreVertical className="h-3.5 w-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44 text-xs">
+                            <DropdownMenuItem
+                              onClick={() => setSelectedParamForDetails(param)}
+                            >
+                              <Eye className="mr-2 h-3.5 w-3.5 text-slate-500" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                navigate(
+                                  `/super-admin/tests/${selectedTestRefId}/parameters/${param.refId}/edit`,
+                                )
+                              }
+                            >
+                              <Edit className="mr-2 h-3.5 w-3.5 text-slate-500" />
+                              Edit Parameter
+                            </DropdownMenuItem>
+                            {param.status === "ACTIVE" ? (
+                              <DropdownMenuItem
+                                className="text-amber-600 focus:text-amber-700"
+                                onClick={() => setDeactivateParamTarget(param)}
+                              >
+                                <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                Deactivate
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                className="text-emerald-600 focus:text-emerald-700"
+                                onClick={() => void handleReactivateParam(param)}
+                              >
+                                <RotateCcw className="mr-2 h-3.5 w-3.5" />
+                                Reactivate
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+
+                    {param.description && (
+                      <p className="text-xs text-slate-500 line-clamp-2">
+                        {param.description}
+                      </p>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                      <div>
+                        <span className="text-[10px] text-slate-400 uppercase">Unit:</span>{" "}
+                        <span className="font-mono text-slate-700">{param.unit || "—"}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 uppercase">Ref Limits:</span>{" "}
+                        <span className="text-slate-700">
+                          {param.referenceMin != null || param.referenceMax != null
+                            ? `${param.referenceMin ?? 0} – ${param.referenceMax ?? "∞"}`
+                            : "—"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table View (>= md) */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-xs text-slate-700 border-collapse">
                   <thead className="bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider border-b border-slate-200">
                     <tr>
@@ -482,7 +582,7 @@ export default function ParametersDirectoryPage() {
                           <button
                             type="button"
                             onClick={() => setSelectedParamForDetails(param)}
-                            className="font-semibold text-slate-900 hover:text-blue-600 transition-colors text-left block"
+                            className="font-semibold text-slate-900 hover:text-teal-600 transition-colors text-left block"
                           >
                             {param.name}
                           </button>
@@ -578,7 +678,8 @@ export default function ParametersDirectoryPage() {
                   </tbody>
                 </table>
               </div>
-            )}
+            </>
+          )}
 
             {/* Pagination */}
             {paramsData && paramsData.totalPages > 1 && (

@@ -52,7 +52,7 @@ export function TestUsageChart({ data }: TestUsageChartProps) {
             {/* Progress Track */}
             <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
               <div
-                className="h-full rounded-full bg-blue-600 transition-all duration-500 group-hover:bg-blue-700"
+                className="h-full rounded-full bg-teal-600 transition-all duration-500 group-hover:bg-teal-700"
                 style={{ width: `${Math.max(percentage, 2)}%` }}
               />
             </div>

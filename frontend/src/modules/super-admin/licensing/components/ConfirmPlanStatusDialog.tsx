@@ -98,7 +98,7 @@ export function ConfirmPlanStatusDialog({
             disabled={isLoading}
             className={
               !isDeactivating
-                ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                ? "bg-[#0F766E] hover:bg-[#115E59] text-white shadow-xs"
                 : ""
             }
           >

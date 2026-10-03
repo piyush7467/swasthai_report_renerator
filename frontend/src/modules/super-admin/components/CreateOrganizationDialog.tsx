@@ -128,7 +128,7 @@ export function CreateOrganizationDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger ?? (
-          <Button className="bg-slate-900 text-white hover:bg-slate-800">
+          <Button className="bg-[#0F766E] hover:bg-[#115E59] text-white shadow-xs">
             <Plus className="mr-2 h-4 w-4" />
             Create Organization
           </Button>
@@ -219,7 +219,7 @@ export function CreateOrganizationDialog({
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="bg-slate-900 text-white hover:bg-slate-800"
+              className="bg-[#0F766E] hover:bg-[#115E59] text-white shadow-xs"
             >
               {isSubmitting ? (
                 <>

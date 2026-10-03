@@ -483,7 +483,7 @@ export function EditPlanPage() {
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="bg-slate-900 hover:bg-slate-800 text-white gap-1.5 shadow-xs"
+            className="bg-[#0F766E] hover:bg-[#115E59] text-white gap-1.5 shadow-xs"
           >
             {isSubmitting ? (
               <>

@@ -133,7 +133,7 @@ export function CategoriesPage() {
               setCategoryToEdit(null);
               setDialogOpen(true);
             }}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className="bg-[#0F766E] hover:bg-[#115E59] text-white shadow-xs"
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Category
@@ -244,52 +244,22 @@ export function CategoriesPage() {
             <Skeleton className="h-14 w-full" />
           </div>
         ) : categoriesData?.content && categoriesData.content.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-700">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
-                <tr>
-                  <th scope="col" className="px-6 py-3.5">
-                    Category Name
-                  </th>
-                  <th scope="col" className="px-6 py-3.5">
-                    Code
-                  </th>
-                  <th scope="col" className="px-6 py-3.5">
-                    Description
-                  </th>
-                  <th scope="col" className="px-6 py-3.5">
-                    Status
-                  </th>
-                  <th scope="col" className="px-6 py-3.5">
-                    Created
-                  </th>
-                  <th scope="col" className="px-6 py-3.5 text-right">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {categoriesData.content.map((cat) => (
-                  <tr
-                    key={cat.refId}
-                    className="hover:bg-slate-50/80 transition-colors"
-                  >
-                    <td className="px-6 py-4 font-semibold text-slate-900">
-                      {cat.name}
-                    </td>
-                    <td className="px-6 py-4 font-mono text-xs font-medium text-slate-600">
-                      {cat.code}
-                    </td>
-                    <td className="px-6 py-4 text-xs text-slate-600 max-w-sm truncate">
-                      {cat.description || "—"}
-                    </td>
-                    <td className="px-6 py-4">
+          <>
+            {/* Mobile Cards View (< md) */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {categoriesData.content.map((cat) => (
+                <div key={cat.refId} className="p-4 space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h4 className="font-semibold text-slate-900 text-sm">
+                        {cat.name}
+                      </h4>
+                      <span className="font-mono text-xs font-medium text-slate-500">
+                        {cat.code}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <TestStatusBadge status={cat.status} />
-                    </td>
-                    <td className="px-6 py-4 text-xs text-slate-500">
-                      {new Date(cat.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -330,12 +300,116 @@ export function CategoriesPage() {
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </td>
+                    </div>
+                  </div>
+
+                  {cat.description && (
+                    <p className="text-xs text-slate-600 line-clamp-2">
+                      {cat.description}
+                    </p>
+                  )}
+
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+                    <span>Created: {new Date(cat.createdAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-700">
+                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                  <tr>
+                    <th scope="col" className="px-6 py-3.5">
+                      Category Name
+                    </th>
+                    <th scope="col" className="px-6 py-3.5">
+                      Code
+                    </th>
+                    <th scope="col" className="px-6 py-3.5">
+                      Description
+                    </th>
+                    <th scope="col" className="px-6 py-3.5">
+                      Status
+                    </th>
+                    <th scope="col" className="px-6 py-3.5">
+                      Created
+                    </th>
+                    <th scope="col" className="px-6 py-3.5 text-right">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {categoriesData.content.map((cat) => (
+                    <tr
+                      key={cat.refId}
+                      className="hover:bg-slate-50/80 transition-colors"
+                    >
+                      <td className="px-6 py-4 font-semibold text-slate-900">
+                        {cat.name}
+                      </td>
+                      <td className="px-6 py-4 font-mono text-xs font-medium text-slate-600">
+                        {cat.code}
+                      </td>
+                      <td className="px-6 py-4 text-xs text-slate-600 max-w-sm truncate">
+                        {cat.description || "—"}
+                      </td>
+                      <td className="px-6 py-4">
+                        <TestStatusBadge status={cat.status} />
+                      </td>
+                      <td className="px-6 py-4 text-xs text-slate-500">
+                        {new Date(cat.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-slate-500 hover:text-slate-900"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setCategoryToEdit(cat);
+                                setDialogOpen(true);
+                              }}
+                            >
+                              <Edit className="mr-2 h-4 w-4 text-slate-500" />
+                              Edit Category
+                            </DropdownMenuItem>
+
+                            {cat.status === "ACTIVE" ? (
+                              <DropdownMenuItem
+                                className="text-amber-600 focus:text-amber-700"
+                                onClick={() => setDeactivateTarget(cat)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Deactivate
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                className="text-emerald-600 focus:text-emerald-700"
+                                onClick={() => void handleReactivate(cat)}
+                              >
+                                <RotateCcw className="mr-2 h-4 w-4" />
+                                Reactivate
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         ) : (
           <EmptyState
             title={
@@ -355,7 +429,7 @@ export function CategoriesPage() {
                 setDialogOpen(true);
               },
               icon: Plus,
-              className: "bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs h-9 px-4 rounded-lg",
+              className: "bg-[#0F766E] hover:bg-[#115E59] text-white font-semibold text-xs h-9 px-4 rounded-lg shadow-xs",
             }}
             secondaryAction={
               search || status !== "ALL"

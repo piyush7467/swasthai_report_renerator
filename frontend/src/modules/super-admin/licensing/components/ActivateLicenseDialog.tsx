@@ -239,7 +239,7 @@ export function ActivateLicenseDialog({
             <Button
               type="submit"
               disabled={isSubmitting || activePlans.length === 0}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+              className="bg-[#0F766E] hover:bg-[#115E59] text-white gap-1.5 shadow-xs"
             >
               {isSubmitting ? (
                 <>

@@ -221,7 +221,7 @@ export function EditOrganizationDialog({
                 <Button
                   type="submit"
                   disabled={isSubmitting || !isDirty}
-                  className="bg-slate-900 text-white hover:bg-slate-800"
+                  className="bg-[#0F766E] hover:bg-[#115E59] text-white shadow-xs"
                 >
                   {isSubmitting ? (
                     <>
