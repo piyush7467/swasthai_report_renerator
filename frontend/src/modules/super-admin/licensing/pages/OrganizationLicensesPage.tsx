@@ -109,20 +109,21 @@ export function OrganizationLicensesPage() {
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
               Organization Licenses
             </h1>
-            <Badge variant="outline" className="font-mono text-xs">
+            <Badge variant="outline" className="font-mono text-xs bg-slate-50 text-slate-700">
               Tenant Licensing
             </Badge>
           </div>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
             Manage subscription licenses and authorization for individual tenant healthcare organizations.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Action Controls */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
           <Button
             variant="outline"
             size="sm"
@@ -131,25 +132,26 @@ export function OrganizationLicensesPage() {
               void refetchLicense();
             }}
             disabled={isRefreshing}
-            className="text-slate-600 hover:text-slate-900"
+            className="text-slate-600 hover:text-slate-900 text-xs h-8 shrink-0"
+            title="Refresh organizations & license"
           >
             <RefreshCw
               className={`mr-1.5 h-3.5 w-3.5 ${
                 isRefreshing ? "animate-spin" : ""
               }`}
             />
-            Refresh
+            <span>Refresh</span>
           </Button>
 
           <Button
             variant="outline"
             size="sm"
             asChild
-            className="text-slate-700 hover:text-slate-900 gap-1.5"
+            className="text-slate-700 hover:text-slate-900 gap-1.5 border-slate-200 text-xs h-8 shrink-0"
           >
             <Link to="/super-admin/licensing/plans">
-              <CreditCard className="h-4 w-4" />
-              Master Plan Catalog
+              <CreditCard className="h-3.5 w-3.5 text-teal-600" />
+              <span>Plans Catalog</span>
             </Link>
           </Button>
 
@@ -157,11 +159,11 @@ export function OrganizationLicensesPage() {
             variant="outline"
             size="sm"
             asChild
-            className="text-slate-700 hover:text-slate-900 gap-1.5"
+            className="text-slate-700 hover:text-slate-900 gap-1.5 border-slate-200 text-xs h-8 shrink-0"
           >
             <Link to="/super-admin/licensing/upgrade-requests">
-              <Sparkles className="h-4 w-4 text-teal-600" />
-              Upgrade Requests
+              <Sparkles className="h-3.5 w-3.5 text-teal-600" />
+              <span>Upgrade Requests</span>
             </Link>
           </Button>
         </div>

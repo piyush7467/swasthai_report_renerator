@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   Clock,
   KeyRound,
+  MoreVertical,
   PauseCircle,
   PlayCircle,
   RefreshCw,
@@ -14,6 +15,14 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { LicenseResponse } from "../types/licensingTypes";
 import { getLicenseExpiryInfo } from "../types/licensingTypes";
@@ -188,7 +197,7 @@ export function OrganizationLicenseCard({
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
               <LicenseStatusBadge
                 status={license.status}
                 currentlyUsable={license.currentlyUsable}
@@ -197,63 +206,131 @@ export function OrganizationLicenseCard({
                 showDaysLeft
               />
 
-              {onRefresh && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onRefresh}
-                  className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900"
-                  title="Refresh License"
-                >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                </Button>
-              )}
+              {/* Mobile 3-Dot Action Menu */}
+              <div className="sm:hidden">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900 rounded-md"
+                      aria-label="License actions"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52 text-xs shadow-md">
+                    <DropdownMenuLabel className="text-[11px] text-slate-500 font-medium">
+                      License Actions
+                    </DropdownMenuLabel>
+                    {onRefresh && (
+                      <DropdownMenuItem
+                        onClick={onRefresh}
+                        className="cursor-pointer flex items-center gap-2 py-2"
+                      >
+                        <RefreshCw className="h-3.5 w-3.5 text-slate-500" />
+                        <span>Refresh Status</span>
+                      </DropdownMenuItem>
+                    )}
+                    {onRenewClick && (
+                      <DropdownMenuItem
+                        onClick={onRenewClick}
+                        className="cursor-pointer flex items-center gap-2 py-2 font-medium text-teal-700"
+                      >
+                        <RefreshCw className="h-3.5 w-3.5 text-teal-600" />
+                        <span>Renew License (365d)</span>
+                      </DropdownMenuItem>
+                    )}
+                    {license.status === "ACTIVE" && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => setDeactivateDialogOpen(true)}
+                          disabled={deactivateMutation.isPending}
+                          className="cursor-pointer flex items-center gap-2 py-2 text-amber-700 focus:text-amber-800"
+                        >
+                          <PauseCircle className="h-3.5 w-3.5" />
+                          <span>Deactivate License</span>
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {license.status === "DEACTIVATED" && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => setReactivateDialogOpen(true)}
+                          disabled={reactivateMutation.isPending}
+                          className="cursor-pointer flex items-center gap-2 py-2 text-teal-700 focus:text-teal-800 font-medium"
+                        >
+                          <PlayCircle className="h-3.5 w-3.5" />
+                          <span>Reactivate License</span>
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
 
-              {/* Action 1: Deactivate License (when ACTIVE) */}
-              {license.status === "ACTIVE" && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setDeactivateDialogOpen(true)}
-                  disabled={deactivateMutation.isPending}
-                  className="border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800 gap-1.5 shadow-xs"
-                >
-                  <PauseCircle className="h-3.5 w-3.5" />
-                  Deactivate
-                </Button>
-              )}
+              {/* Desktop Direct Buttons */}
+              <div className="hidden sm:flex items-center gap-2">
+                {onRefresh && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onRefresh}
+                    className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900"
+                    title="Refresh License"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  </Button>
+                )}
 
-              {/* Action 2: Reactivate License (when DEACTIVATED) */}
-              {license.status === "DEACTIVATED" && (
-                <Button
-                  size="sm"
-                  onClick={() => setReactivateDialogOpen(true)}
-                  disabled={reactivateMutation.isPending}
-                  className="bg-[#0F766E] hover:bg-[#115E59] text-white gap-1.5 shadow-xs"
-                >
-                  <PlayCircle className="h-3.5 w-3.5" />
-                  Reactivate
-                </Button>
-              )}
+                {/* Action 1: Deactivate License (when ACTIVE) */}
+                {license.status === "ACTIVE" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDeactivateDialogOpen(true)}
+                    disabled={deactivateMutation.isPending}
+                    className="border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800 gap-1.5 shadow-xs text-xs h-8"
+                  >
+                    <PauseCircle className="h-3.5 w-3.5" />
+                    Deactivate
+                  </Button>
+                )}
 
-              {/* Action 3: Renew License */}
-              {onRenewClick && (
-                <Button
-                  variant={isExpired || expiryInfo?.isExpiringSoon ? "default" : "outline"}
-                  size="sm"
-                  onClick={onRenewClick}
-                  className={
-                    isExpired
-                      ? "bg-rose-600 hover:bg-rose-700 text-white gap-1.5 shadow-xs"
-                      : expiryInfo?.isExpiringSoon
-                      ? "bg-amber-600 hover:bg-amber-700 text-white gap-1.5 shadow-xs"
-                      : "text-slate-700 hover:text-slate-900 gap-1.5"
-                  }
-                >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                  Renew License
-                </Button>
-              )}
+                {/* Action 2: Reactivate License (when DEACTIVATED) */}
+                {license.status === "DEACTIVATED" && (
+                  <Button
+                    size="sm"
+                    onClick={() => setReactivateDialogOpen(true)}
+                    disabled={reactivateMutation.isPending}
+                    className="bg-[#0F766E] hover:bg-[#115E59] text-white gap-1.5 shadow-xs text-xs h-8"
+                  >
+                    <PlayCircle className="h-3.5 w-3.5" />
+                    Reactivate
+                  </Button>
+                )}
+
+                {/* Action 3: Renew License */}
+                {onRenewClick && (
+                  <Button
+                    variant={isExpired || expiryInfo?.isExpiringSoon ? "default" : "outline"}
+                    size="sm"
+                    onClick={onRenewClick}
+                    className={`text-xs h-8 gap-1.5 shadow-xs ${
+                      isExpired
+                        ? "bg-rose-600 hover:bg-rose-700 text-white"
+                        : expiryInfo?.isExpiringSoon
+                        ? "bg-amber-600 hover:bg-amber-700 text-white"
+                        : "text-slate-700 hover:text-slate-900 border-slate-200"
+                    }`}
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Renew License
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </CardHeader>

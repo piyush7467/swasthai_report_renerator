@@ -87,63 +87,67 @@ export function PlansPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-              Subscription Plans (Master Catalog)
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+              Subscription Plans
             </h1>
-            <Badge variant="outline" className="font-mono text-xs">
+            <Badge variant="outline" className="font-mono text-xs bg-slate-50 text-slate-700">
               {plans.length} {plans.length === 1 ? "Plan" : "Plans"}
             </Badge>
           </div>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
             Configure global master subscription tiers (e.g. Basic, Standard, Enterprise) available for tenant organizations.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void refetch()}
-            disabled={isFetching || isLoading}
-            className="text-slate-600 hover:text-slate-900"
-          >
-            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
+        {/* Action Controls */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void refetch()}
+              disabled={isFetching || isLoading}
+              className="text-slate-600 hover:text-slate-900 text-xs h-8 shrink-0"
+              title="Refresh plans"
+            >
+              <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
+              <span>Refresh</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="text-slate-700 hover:text-slate-900 gap-1.5 border-slate-200 text-xs h-8 shrink-0"
+            >
+              <Link to="/super-admin/licensing/licenses">
+                <Building2 className="h-3.5 w-3.5 text-teal-600" />
+                <span className="hidden sm:inline">Organization </span>Licenses
+              </Link>
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="text-slate-700 hover:text-slate-900 gap-1.5 border-slate-200 text-xs h-8 shrink-0"
+            >
+              <Link to="/super-admin/licensing/upgrade-requests">
+                <Sparkles className="h-3.5 w-3.5 text-teal-600" />
+                <span className="hidden sm:inline">Upgrade </span>Requests
+              </Link>
+            </Button>
+          </div>
 
           <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className="text-slate-700 hover:text-slate-900 gap-1.5 border-slate-200"
-          >
-            <Link to="/super-admin/licensing/licenses">
-              <Building2 className="h-4 w-4 text-teal-600" />
-              Organization Licenses
-            </Link>
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className="text-slate-700 hover:text-slate-900 gap-1.5 border-slate-200"
-          >
-            <Link to="/super-admin/licensing/upgrade-requests">
-              <Sparkles className="h-4 w-4 text-teal-600" />
-              Upgrade Requests
-            </Link>
-          </Button>
-
-          <Button
             asChild
             size="sm"
-            className="bg-[#0F766E] hover:bg-[#115E59] text-white gap-1.5 shadow-2xs font-semibold"
+            className="bg-[#0F766E] hover:bg-[#115E59] text-white gap-1.5 shadow-2xs font-semibold text-xs h-8 shrink-0 justify-center"
           >
             <Link to="/super-admin/licensing/plans/new">
-              <Plus className="h-4 w-4" />
-              Create Plan
+              <Plus className="h-3.5 w-3.5" />
+              <span>Create Plan</span>
             </Link>
           </Button>
         </div>
@@ -375,87 +379,107 @@ export function PlansPage() {
               <div className="md:hidden divide-y divide-slate-100">
                 {filteredPlans.map((plan) => (
                   <div key={plan.refId} className="p-4 space-y-3 hover:bg-slate-50/50 transition-colors">
+                    {/* Card Header: Name + Code on left, Status + 3-Dot Menu on right */}
                     <div className="flex items-start justify-between gap-2">
-                      <div className="space-y-0.5">
-                        <h4 className="font-bold text-sm text-slate-900">{plan.name}</h4>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded">
+                      <div className="space-y-1 pr-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-bold text-sm text-slate-900">{plan.name}</h4>
+                          <span className="font-mono text-[11px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">
                             {plan.code}
                           </span>
                         </div>
+                        {plan.description && (
+                          <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                            {plan.description}
+                          </p>
+                        )}
                       </div>
-                      <PlanStatusBadge active={plan.active} />
-                    </div>
 
-                    {plan.description && (
-                      <p className="text-xs text-slate-500 line-clamp-2">{plan.description}</p>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100 text-slate-500">
-                      <div>
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Capacity</span>
-                        <span className="font-medium text-slate-700">{plan.maxLabStaff ?? 3} staff · {plan.maxReportsPerMonth ? `${plan.maxReportsPerMonth}/mo` : "Unlimited"}</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Annual Price</span>
-                        <span className="font-bold text-slate-900">{plan.currency} {Number(plan.annualPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}/yr</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
-                      <span>Updated {new Date(plan.updatedAt).toLocaleDateString()}</span>
-
-                      <div className="flex items-center gap-1.5">
-                        <Button
-                          size="sm"
-                          onClick={() => navigate(`/super-admin/licensing/plans/${plan.refId}/edit`)}
-                          className="h-7 px-2.5 text-xs bg-[#0F766E] hover:bg-[#115E59] text-white font-medium"
-                        >
-                          Edit
-                        </Button>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <PlanStatusBadge active={plan.active} />
 
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-7 w-7 p-0 text-slate-500 hover:text-slate-900 rounded-md"
+                              className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900 rounded-md"
+                              aria-label="Plan actions"
                             >
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-40 text-xs">
+                          <DropdownMenuContent align="end" className="w-44 text-xs shadow-md">
+                            <DropdownMenuLabel className="text-[11px] text-slate-500 font-medium">
+                              Plan Actions
+                            </DropdownMenuLabel>
                             <DropdownMenuItem
                               onClick={() => navigate(`/super-admin/licensing/plans/${plan.refId}/edit`)}
-                              className="cursor-pointer flex items-center gap-2"
+                              className="cursor-pointer flex items-center gap-2 py-2"
                             >
                               <Edit className="h-3.5 w-3.5 text-slate-500" />
-                              Edit Plan
+                              <span>Edit Plan</span>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => setPlanToToggle(plan)}
-                              className={`cursor-pointer flex items-center gap-2 ${
+                              className={`cursor-pointer flex items-center gap-2 py-2 ${
                                 plan.active
-                                  ? "text-rose-600 focus:text-rose-700"
-                                  : "text-emerald-600 focus:text-emerald-700"
+                                  ? "text-rose-600 focus:text-rose-700 focus:bg-rose-50"
+                                  : "text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50"
                               }`}
                             >
                               {plan.active ? (
                                 <>
                                   <ToggleLeft className="h-3.5 w-3.5" />
-                                  Deactivate
+                                  <span>Deactivate Plan</span>
                                 </>
                               ) : (
                                 <>
                                   <ToggleRight className="h-3.5 w-3.5" />
-                                  Activate
+                                  <span>Activate Plan</span>
                                 </>
                               )}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
+                    </div>
+
+                    {/* Capacity and Pricing Stats Strip */}
+                    <div className="grid grid-cols-2 gap-2 text-xs p-2.5 rounded-lg bg-slate-50/80 border border-slate-100">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Capacity</span>
+                        <div className="flex items-center gap-1.5 mt-0.5 font-medium text-slate-700 text-xs">
+                          <Users className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                          <span>{plan.maxLabStaff ?? 3} staff seats</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-slate-500 text-[11px] mt-0.5">
+                          <FileText className="h-3 w-3 text-slate-400 shrink-0" />
+                          <span>{plan.maxReportsPerMonth ? `${plan.maxReportsPerMonth}/mo` : "Unlimited reports"}</span>
+                        </div>
+                      </div>
+
+                      <div className="border-l border-slate-200/80 pl-2.5">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Annual Price</span>
+                        <div className="mt-0.5">
+                          <span className="text-xs font-semibold text-slate-500 mr-1">{plan.currency}</span>
+                          <span className="text-sm font-bold text-slate-900">
+                            {Number(plan.annualPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block">per year</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card Footer: Last Updated Date */}
+                    <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+                      <span>Updated {new Date(plan.updatedAt).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}</span>
+                      <span className="font-mono text-[10px] text-slate-400">Ref: {plan.refId.substring(0, 8)}...</span>
                     </div>
                   </div>
                 ))}

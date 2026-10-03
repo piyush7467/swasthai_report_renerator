@@ -206,7 +206,7 @@ export function EditPlanPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <Button
           variant="outline"
           size="sm"
@@ -219,7 +219,7 @@ export function EditPlanPage() {
           </Link>
         </Button>
         <span className="text-slate-300">/</span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <h1 className="text-xl font-bold tracking-tight text-slate-900">
             Edit Plan: {plan.name}
           </h1>

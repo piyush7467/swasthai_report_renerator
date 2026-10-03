@@ -12,6 +12,8 @@ import {
   CreditCard,
   ArrowRight,
   Eye,
+  Mail,
+  MoreVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +27,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAdminUpgradeRequestsQuery } from "../hooks/useLicensing";
@@ -162,42 +172,44 @@ export function AdminUpgradeRequestsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
               Subscription Upgrade Requests
             </h1>
-            <Badge variant="outline" className="font-mono text-xs">
+            <Badge variant="outline" className="font-mono text-xs bg-slate-50 text-slate-700">
               Super Admin Review
             </Badge>
           </div>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
             Review and process manual plan upgrade inquiries submitted by healthcare organization administrators.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Action Controls */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
           <Button
             variant="outline"
             size="sm"
             onClick={() => void refetch()}
             disabled={isFetching || isLoading}
-            className="text-slate-600 hover:text-slate-900"
+            className="text-slate-600 hover:text-slate-900 text-xs h-8 shrink-0"
+            title="Refresh requests"
           >
             <RefreshCw
               className={`mr-1.5 h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`}
             />
-            Refresh
+            <span>Refresh</span>
           </Button>
 
           <Button
             variant="outline"
             size="sm"
             asChild
-            className="text-slate-700 hover:text-slate-900 gap-1.5"
+            className="text-slate-700 hover:text-slate-900 gap-1.5 border-slate-200 text-xs h-8 shrink-0"
           >
             <Link to="/super-admin/licensing/plans">
-              <CreditCard className="h-4 w-4" />
-              Plans Catalog
+              <CreditCard className="h-3.5 w-3.5 text-teal-600" />
+              <span>Plans Catalog</span>
             </Link>
           </Button>
 
@@ -205,64 +217,64 @@ export function AdminUpgradeRequestsPage() {
             variant="outline"
             size="sm"
             asChild
-            className="text-slate-700 hover:text-slate-900 gap-1.5"
+            className="text-slate-700 hover:text-slate-900 gap-1.5 border-slate-200 text-xs h-8 shrink-0"
           >
             <Link to="/super-admin/licensing/licenses">
-              <Building2 className="h-4 w-4" />
-              Org Licenses
+              <Building2 className="h-3.5 w-3.5 text-teal-600" />
+              <span>Org Licenses</span>
             </Link>
           </Button>
         </div>
       </div>
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         <Card className="border-slate-200 shadow-xs">
-          <CardContent className="p-4 flex items-center justify-between">
+          <CardContent className="p-3 sm:p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs text-slate-500 font-medium">Total Requests</p>
-              <p className="text-xl font-bold text-slate-900 mt-0.5">
+              <p className="text-[11px] sm:text-xs text-slate-500 font-medium">Total Requests</p>
+              <p className="text-lg sm:text-xl font-bold text-slate-900 mt-0.5">
                 {pagedData?.totalElements ?? requests.length}
               </p>
             </div>
-            <div className="p-2.5 rounded-lg bg-slate-100 text-slate-600">
-              <Sparkles className="h-5 w-5" />
+            <div className="p-2 sm:p-2.5 rounded-lg bg-slate-100 text-slate-600">
+              <Sparkles className="h-4 sm:h-5 w-4 sm:w-5" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-amber-200 bg-amber-50/30 shadow-xs">
-          <CardContent className="p-4 flex items-center justify-between">
+          <CardContent className="p-3 sm:p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs text-amber-700 font-medium">Pending Review</p>
-              <p className="text-xl font-bold text-amber-900 mt-0.5">{pendingCount}</p>
+              <p className="text-[11px] sm:text-xs text-amber-700 font-medium">Pending Review</p>
+              <p className="text-lg sm:text-xl font-bold text-amber-900 mt-0.5">{pendingCount}</p>
             </div>
-            <div className="p-2.5 rounded-lg bg-amber-100 text-amber-700">
-              <Clock className="h-5 w-5" />
+            <div className="p-2 sm:p-2.5 rounded-lg bg-amber-100 text-amber-700">
+              <Clock className="h-4 sm:h-5 w-4 sm:w-5" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-blue-200 bg-blue-50/30 shadow-xs">
-          <CardContent className="p-4 flex items-center justify-between">
+          <CardContent className="p-3 sm:p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs text-blue-700 font-medium">In Contact</p>
-              <p className="text-xl font-bold text-blue-900 mt-0.5">{contactedCount}</p>
+              <p className="text-[11px] sm:text-xs text-blue-700 font-medium">In Contact</p>
+              <p className="text-lg sm:text-xl font-bold text-blue-900 mt-0.5">{contactedCount}</p>
             </div>
-            <div className="p-2.5 rounded-lg bg-blue-100 text-blue-700">
-              <PhoneCall className="h-5 w-5" />
+            <div className="p-2 sm:p-2.5 rounded-lg bg-blue-100 text-blue-700">
+              <PhoneCall className="h-4 sm:h-5 w-4 sm:w-5" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-emerald-200 bg-emerald-50/30 shadow-xs">
-          <CardContent className="p-4 flex items-center justify-between">
+          <CardContent className="p-3 sm:p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs text-emerald-700 font-medium">Approved Upgrades</p>
-              <p className="text-xl font-bold text-emerald-900 mt-0.5">{approvedCount}</p>
+              <p className="text-[11px] sm:text-xs text-emerald-700 font-medium">Approved</p>
+              <p className="text-lg sm:text-xl font-bold text-emerald-900 mt-0.5">{approvedCount}</p>
             </div>
-            <div className="p-2.5 rounded-lg bg-emerald-100 text-emerald-700">
-              <CheckCircle2 className="h-5 w-5" />
+            <div className="p-2 sm:p-2.5 rounded-lg bg-emerald-100 text-emerald-700">
+              <CheckCircle2 className="h-4 sm:h-5 w-4 sm:w-5" />
             </div>
           </CardContent>
         </Card>
@@ -270,9 +282,9 @@ export function AdminUpgradeRequestsPage() {
 
       {/* Filter and Search Bar */}
       <Card className="border-slate-200 shadow-xs">
-        <CardContent className="p-3.5 space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between gap-4">
-          {/* Status Buttons */}
-          <div className="flex flex-wrap items-center gap-1.5">
+        <CardContent className="p-3 sm:p-3.5 space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between gap-4">
+          {/* Status Buttons Pill Rail (horizontal scrollable on mobile) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 sm:pb-0 w-full sm:w-auto">
             {["ALL", "PENDING", "CONTACTED", "APPROVED", "REJECTED", "CANCELLED"].map(
               (st) => (
                 <Button
@@ -283,10 +295,10 @@ export function AdminUpgradeRequestsPage() {
                     setStatusFilter(st);
                     setPage(0);
                   }}
-                  className={`text-xs h-8 ${
+                  className={`text-xs h-8 whitespace-nowrap shrink-0 ${
                     statusFilter === st
                       ? "bg-[#0F766E] text-white shadow-xs hover:bg-[#115E59]"
-                      : "text-slate-600 hover:text-slate-900"
+                      : "text-slate-600 hover:text-slate-900 border-slate-200"
                   }`}
                 >
                   {st === "ALL" ? "All Requests" : st.charAt(0) + st.slice(1).toLowerCase()}
@@ -296,13 +308,13 @@ export function AdminUpgradeRequestsPage() {
           </div>
 
           {/* Search Box */}
-          <div className="relative w-full sm:w-72">
+          <div className="relative w-full sm:w-72 shrink-0">
             <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
             <Input
               placeholder="Search org, contact, ref..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 text-xs h-8"
+              className="pl-8 text-xs h-8 bg-white"
             />
           </div>
         </CardContent>
@@ -341,20 +353,65 @@ export function AdminUpgradeRequestsPage() {
               {/* Mobile Cards View (< md) */}
               <div className="md:hidden divide-y divide-slate-100">
                 {filteredRequests.map((req) => (
-                  <div key={req.refId} className="p-4 space-y-3">
+                  <div key={req.refId} className="p-4 space-y-3 hover:bg-slate-50/50 transition-colors">
+                    {/* Header: Org Name + Status Badge + 3-Dot Menu */}
                     <div className="flex items-start justify-between gap-2">
-                      <div>
+                      <div className="space-y-0.5 pr-1">
                         <h4 className="font-semibold text-sm text-slate-900 leading-snug">
                           {req.organizationName}
                         </h4>
-                        <span className="font-mono text-[11px] text-slate-400">
+                        <span className="font-mono text-[11px] text-slate-400 block">
                           {req.organizationRefId} &bull; {req.refId}
                         </span>
                       </div>
-                      <div className="shrink-0">{getStatusBadge(req.status)}</div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {getStatusBadge(req.status)}
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900 rounded-md"
+                              aria-label="Request actions"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48 text-xs shadow-md">
+                            <DropdownMenuLabel className="text-[11px] text-slate-500 font-medium">
+                              Request Actions
+                            </DropdownMenuLabel>
+                            <DropdownMenuItem
+                              onClick={() => handleOpenReview(req)}
+                              className="cursor-pointer flex items-center gap-2 py-2"
+                            >
+                              <Eye className="h-3.5 w-3.5 text-slate-500" />
+                              <span>{req.status === "PENDING" || req.status === "CONTACTED" ? "Review & Process" : "View Details"}</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                window.location.href = `mailto:${req.contactEmail}?subject=Regarding your plan upgrade request (${req.refId})`;
+                              }}
+                              className="cursor-pointer flex items-center gap-2 py-2"
+                            >
+                              <Mail className="h-3.5 w-3.5 text-slate-500" />
+                              <span>Email Requester</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild className="cursor-pointer flex items-center gap-2 py-2">
+                              <Link to={`/super-admin/licensing/licenses?org=${req.organizationRefId}`}>
+                                <Building2 className="h-3.5 w-3.5 text-slate-500" />
+                                <span>View Org License</span>
+                              </Link>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
 
-                    <div className="rounded-lg bg-slate-50 p-2.5 text-xs space-y-1.5 border border-slate-100">
+                    <div className="rounded-lg bg-slate-50/80 p-2.5 text-xs space-y-1.5 border border-slate-100">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-slate-500">Transition:</span>
                         <span className="text-slate-700 font-medium">{req.currentPlanName}</span>
@@ -375,7 +432,7 @@ export function AdminUpgradeRequestsPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-1">
+                    <div className="flex items-center justify-between pt-1 text-xs">
                       <span className="text-[11px] text-slate-400">
                         {formatDate(req.createdAt)}
                       </span>
