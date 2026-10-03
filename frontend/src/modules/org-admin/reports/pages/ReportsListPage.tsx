@@ -10,6 +10,7 @@ import {
   FileText,
   FlaskConical,
   Loader2,
+  MoreVertical,
   Plus,
   RefreshCw,
   Share2,
@@ -21,6 +22,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/core/auth/AuthContext";
 
 import { useReportsQuery, useDeleteReportMutation } from "../hooks/useReports";
@@ -341,39 +349,7 @@ export default function ReportsListPage() {
                     </td>
 
                     <td className="py-3 px-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                        {rep.status === "FINALIZED" && (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              title="Share Report"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setReportToShare(rep);
-                              }}
-                              className="h-7 w-7 p-0 text-teal-700 hover:bg-teal-50 border-teal-200"
-                            >
-                              <Share2 className="h-3.5 w-3.5" />
-                            </Button>
-
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              title="Download PDF"
-                              onClick={(e) => handleDownloadPdf(rep.refId, e)}
-                              disabled={downloadingRefId === rep.refId}
-                              className="h-7 w-7 p-0 text-[#0F766E] hover:bg-teal-50 border-teal-200"
-                            >
-                              {downloadingRefId === rep.refId ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <Download className="h-3.5 w-3.5" />
-                              )}
-                            </Button>
-                          </>
-                        )}
-
+                      <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                         <Button
                           asChild
                           variant="ghost"
@@ -386,17 +362,64 @@ export default function ReportsListPage() {
                           </Link>
                         </Button>
 
-                        {user?.role === "ORG_ADMIN" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            title="Delete Report"
-                            onClick={() => setReportToDelete(rep)}
-                            className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50/60"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                              aria-label="Report options"
+                            >
+                              <MoreVertical className="h-3.5 w-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48 text-xs">
+                            <DropdownMenuItem asChild>
+                              <Link to={`${basePath}/${rep.refId}`} className="cursor-pointer flex items-center gap-2">
+                                <Eye className="h-3.5 w-3.5 text-slate-500" />
+                                <span>Open Workspace</span>
+                              </Link>
+                            </DropdownMenuItem>
+
+                            {rep.status === "FINALIZED" && (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={(e) => handleDownloadPdf(rep.refId, e)}
+                                  disabled={downloadingRefId === rep.refId}
+                                  className="cursor-pointer flex items-center gap-2"
+                                >
+                                  {downloadingRefId === rep.refId ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin text-teal-600" />
+                                  ) : (
+                                    <Download className="h-3.5 w-3.5 text-teal-600" />
+                                  )}
+                                  <span>Download PDF</span>
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem
+                                  onClick={() => setReportToShare(rep)}
+                                  className="cursor-pointer flex items-center gap-2"
+                                >
+                                  <Share2 className="h-3.5 w-3.5 text-teal-600" />
+                                  <span>Share Secure Link</span>
+                                </DropdownMenuItem>
+                              </>
+                            )}
+
+                            {user?.role === "ORG_ADMIN" && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => setReportToDelete(rep)}
+                                  className="cursor-pointer text-rose-600 focus:text-rose-600 focus:bg-rose-50 flex items-center gap-2"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  <span>Delete Report</span>
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </td>
                   </tr>

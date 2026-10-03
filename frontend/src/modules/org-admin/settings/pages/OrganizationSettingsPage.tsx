@@ -453,24 +453,26 @@ export default function OrganizationSettingsPage() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-slate-100 p-1 border border-slate-200">
-          <TabsTrigger value="general" className="text-xs font-medium data-[state=active]:bg-white data-[state=active]:text-[#0F766E] data-[state=active]:font-semibold">
-            <Building2 className="size-3.5 mr-1.5" />
-            General & Address
-          </TabsTrigger>
-          <TabsTrigger value="branding" className="text-xs font-medium data-[state=active]:bg-white data-[state=active]:text-[#0F766E] data-[state=active]:font-semibold">
-            <ImageIcon className="size-3.5 mr-1.5" />
-            Logo & Signature
-          </TabsTrigger>
-          <TabsTrigger value="disclaimers" className="text-xs font-medium data-[state=active]:bg-white data-[state=active]:text-[#0F766E] data-[state=active]:font-semibold">
-            <FileText className="size-3.5 mr-1.5" />
-            Report Footers
-          </TabsTrigger>
-          <TabsTrigger value="preview" className="text-xs font-medium data-[state=active]:bg-white data-[state=active]:text-[#0F766E] data-[state=active]:font-semibold">
-            <FileSignature className="size-3.5 mr-1.5" />
-            Letterhead Live Preview
-          </TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+          <TabsList className="inline-flex w-full min-w-max sm:w-auto bg-slate-100 p-1 border border-slate-200">
+            <TabsTrigger value="general" className="text-xs font-medium shrink-0 data-[state=active]:bg-white data-[state=active]:text-[#0F766E] data-[state=active]:font-semibold">
+              <Building2 className="size-3.5 mr-1.5" />
+              General & Address
+            </TabsTrigger>
+            <TabsTrigger value="branding" className="text-xs font-medium shrink-0 data-[state=active]:bg-white data-[state=active]:text-[#0F766E] data-[state=active]:font-semibold">
+              <ImageIcon className="size-3.5 mr-1.5" />
+              Logo & Signature
+            </TabsTrigger>
+            <TabsTrigger value="disclaimers" className="text-xs font-medium shrink-0 data-[state=active]:bg-white data-[state=active]:text-[#0F766E] data-[state=active]:font-semibold">
+              <FileText className="size-3.5 mr-1.5" />
+              Report Footers
+            </TabsTrigger>
+            <TabsTrigger value="preview" className="text-xs font-medium shrink-0 data-[state=active]:bg-white data-[state=active]:text-[#0F766E] data-[state=active]:font-semibold">
+              <FileSignature className="size-3.5 mr-1.5" />
+              Letterhead Live Preview
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* TAB 1: General Information & Physical Address */}
         <TabsContent value="general" className="space-y-6 mt-0">
@@ -636,7 +638,7 @@ export default function OrganizationSettingsPage() {
               <Button
                 type="submit"
                 disabled={isSaving || !isDirty}
-                className="bg-[#0F766E] hover:bg-[#115E59] text-white text-xs h-9 px-5 rounded-lg shadow-xs cursor-pointer font-semibold"
+                className="w-full sm:w-auto bg-[#0F766E] hover:bg-[#115E59] text-white text-xs h-9 px-5 rounded-lg shadow-xs cursor-pointer font-semibold"
               >
                 {isSaving ? (
                   <>
@@ -711,14 +713,14 @@ export default function OrganizationSettingsPage() {
                   className="hidden"
                 />
 
-                <div className="flex items-center justify-between gap-2 pt-1">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-1">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     disabled={isLogoUploading}
                     onClick={() => logoInputRef.current?.click()}
-                    className="text-xs h-9 border-teal-200 text-[#0F766E] hover:bg-teal-50 cursor-pointer"
+                    className="text-xs h-9 border-teal-200 text-[#0F766E] hover:bg-teal-50 cursor-pointer w-full sm:w-auto justify-center"
                   >
                     {isLogoUploading ? (
                       <>
@@ -739,7 +741,7 @@ export default function OrganizationSettingsPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setDeleteDialogType("logo")}
-                      className="text-xs h-9 text-rose-600 hover:text-rose-700 hover:bg-rose-50 cursor-pointer"
+                      className="text-xs h-9 text-rose-600 hover:text-rose-700 hover:bg-rose-50 cursor-pointer w-full sm:w-auto justify-center"
                     >
                       <Trash2 className="size-3.5 mr-1.5" />
                       Remove
@@ -850,14 +852,14 @@ export default function OrganizationSettingsPage() {
                   className="hidden"
                 />
 
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1">
+                  <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
                     <Button
                       type="button"
                       size="sm"
                       disabled={isSignatureUploading}
                       onClick={() => setIsDrawingModalOpen(true)}
-                      className="text-xs h-9 bg-teal-600 hover:bg-teal-700 text-white font-medium cursor-pointer shadow-xs gap-1.5"
+                      className="text-xs h-9 bg-teal-600 hover:bg-teal-700 text-white font-medium cursor-pointer shadow-xs gap-1.5 justify-center"
                     >
                       <PenTool className="size-3.5" />
                       {profile?.signatureConfigured ? "Draw New" : "Draw Signature"}
@@ -869,7 +871,7 @@ export default function OrganizationSettingsPage() {
                       size="sm"
                       disabled={isSignatureUploading}
                       onClick={() => signatureInputRef.current?.click()}
-                      className="text-xs h-9 border-slate-200 text-slate-700 hover:bg-slate-50 cursor-pointer gap-1.5"
+                      className="text-xs h-9 border-slate-200 text-slate-700 hover:bg-slate-50 cursor-pointer gap-1.5 justify-center"
                     >
                       {isSignatureUploading ? (
                         <>
@@ -891,7 +893,7 @@ export default function OrganizationSettingsPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setDeleteDialogType("signature")}
-                      className="text-xs h-9 text-rose-600 hover:text-rose-700 hover:bg-rose-50 cursor-pointer"
+                      className="text-xs h-9 text-rose-600 hover:text-rose-700 hover:bg-rose-50 cursor-pointer w-full sm:w-auto justify-center"
                     >
                       <Trash2 className="size-3.5 mr-1.5" />
                       Remove
@@ -970,7 +972,7 @@ export default function OrganizationSettingsPage() {
               <Button
                 type="submit"
                 disabled={isSaving || !isDirty}
-                className="bg-[#0F766E] hover:bg-[#115E59] text-white text-xs h-9 px-5 rounded-lg shadow-xs cursor-pointer font-semibold"
+                className="w-full sm:w-auto bg-[#0F766E] hover:bg-[#115E59] text-white text-xs h-9 px-5 rounded-lg shadow-xs cursor-pointer font-semibold"
               >
                 {isSaving ? (
                   <>
@@ -992,7 +994,7 @@ export default function OrganizationSettingsPage() {
         <TabsContent value="preview" className="space-y-6 mt-0">
           <Card className="border-slate-200 bg-white shadow-xs overflow-hidden">
             <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <CardTitle className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                     <FileSignature className="size-4 text-teal-600" />
@@ -1002,38 +1004,38 @@ export default function OrganizationSettingsPage() {
                     Real-time simulation of how your header, logo, contact, footer, and signature appear on patient reports.
                   </CardDescription>
                 </div>
-                <Badge variant="outline" className="text-teal-700 bg-teal-50 border-teal-200 text-xs">
+                <Badge variant="outline" className="text-teal-700 bg-teal-50 border-teal-200 text-xs shrink-0 self-start sm:self-auto">
                   A4 Patient Report Format
                 </Badge>
               </div>
             </CardHeader>
 
-            <CardContent className="p-6 sm:p-10 bg-slate-100/60">
+            <CardContent className="p-3 sm:p-6 md:p-10 bg-slate-100/60 overflow-x-auto">
               {/* Mock A4 Paper Container */}
-              <div className="max-w-3xl mx-auto bg-white border border-slate-200 shadow-md rounded-xl p-8 sm:p-12 space-y-8 font-sans">
+              <div className="min-w-[320px] max-w-3xl mx-auto bg-white border border-slate-200 shadow-md rounded-xl p-4 sm:p-8 md:p-12 space-y-6 sm:space-y-8 font-sans">
                 {/* 1. Header Block */}
-                <div className="flex flex-col sm:flex-row items-start justify-between gap-6 border-b-2 border-teal-700 pb-6">
+                <div className="flex flex-col sm:flex-row items-start justify-between gap-4 sm:gap-6 border-b-2 border-teal-700 pb-5 sm:pb-6">
                   {/* Left: Logo + Name */}
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-start sm:items-center gap-3 sm:gap-4">
                     {logoUrl ? (
                       <img
                         src={logoUrl}
                         alt="Lab Logo"
-                        className="size-16 object-contain rounded-md"
+                        className="size-12 sm:size-16 object-contain rounded-md shrink-0"
                       />
                     ) : (
-                      <div className="size-16 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-700 font-bold text-lg">
+                      <div className="size-12 sm:size-16 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-700 font-bold text-base sm:text-lg shrink-0">
                         {profile?.organizationName?.charAt(0) || "L"}
                       </div>
                     )}
                     <div>
-                      <h2 className="text-xl font-bold tracking-tight text-slate-900">
+                      <h2 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 leading-snug">
                         {profile?.organizationName || "Your Diagnostic Laboratory"}
                       </h2>
-                      <p className="text-xs text-teal-700 font-semibold tracking-wide uppercase mt-0.5">
+                      <p className="text-[11px] sm:text-xs text-teal-700 font-semibold tracking-wide uppercase mt-0.5">
                         Clinical & Pathological Laboratory Services
                       </p>
-                      <p className="text-[11px] text-slate-500 mt-1">
+                      <p className="text-[11px] text-slate-500 mt-1 break-words">
                         {[watchedAddress1, watchedAddress2, watchedCity, watchedState, watchedPostal]
                           .filter(Boolean)
                           .join(", ") || "Laboratory Address Line 1, City, State - PIN"}
@@ -1042,33 +1044,33 @@ export default function OrganizationSettingsPage() {
                   </div>
 
                   {/* Right: Contact Block */}
-                  <div className="text-left sm:text-right text-xs text-slate-600 space-y-1 sm:self-start">
+                  <div className="text-left sm:text-right text-xs text-slate-600 space-y-1 sm:self-start w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100">
                     {watchedPhone && (
                       <p className="flex items-center sm:justify-end gap-1.5 font-medium">
-                        <Phone className="size-3 text-slate-400" />
-                        {watchedPhone}
+                        <Phone className="size-3 text-slate-400 shrink-0" />
+                        <span>{watchedPhone}</span>
                       </p>
                     )}
                     {watchedEmail && (
-                      <p className="flex items-center sm:justify-end gap-1.5 text-slate-500">
-                        <Mail className="size-3 text-slate-400" />
-                        {watchedEmail}
+                      <p className="flex items-center sm:justify-end gap-1.5 text-slate-500 break-all">
+                        <Mail className="size-3 text-slate-400 shrink-0" />
+                        <span>{watchedEmail}</span>
                       </p>
                     )}
                     {watchedWebsite && (
-                      <p className="flex items-center sm:justify-end gap-1.5 text-teal-700">
-                        <Globe className="size-3 text-teal-600" />
-                        {watchedWebsite}
+                      <p className="flex items-center sm:justify-end gap-1.5 text-teal-700 break-all">
+                        <Globe className="size-3 text-teal-600 shrink-0" />
+                        <span>{watchedWebsite}</span>
                       </p>
                     )}
                   </div>
                 </div>
 
                 {/* 2. Mock Patient Banner */}
-                <div className="rounded-lg bg-slate-50 p-4 border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-slate-700">
+                <div className="rounded-lg bg-slate-50 p-3 sm:p-4 border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-xs text-slate-700">
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase font-bold block">Patient Name</span>
-                    <span className="font-semibold text-slate-900">John Doe (Sample)</span>
+                    <span className="font-semibold text-slate-900 truncate block">John Doe (Sample)</span>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase font-bold block">Age / Gender</span>
@@ -1085,42 +1087,44 @@ export default function OrganizationSettingsPage() {
                 </div>
 
                 {/* 3. Mock Test Results Area */}
-                <div className="space-y-3 py-4 border-y border-dashed border-slate-200 text-xs">
-                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider pb-1 border-b border-slate-100">
-                    <span>Investigation / Parameter</span>
-                    <span>Observed Value</span>
-                    <span>Biological Reference</span>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-800">
-                    <span className="font-medium">Hemoglobin (Hb)</span>
-                    <span className="font-semibold text-slate-900">14.8 g/dL</span>
-                    <span className="text-slate-500">13.0 - 17.0 g/dL</span>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-800">
-                    <span className="font-medium">Total Leukocyte Count (TLC)</span>
-                    <span className="font-semibold text-slate-900">7,200 /uL</span>
-                    <span className="text-slate-500">4,000 - 11,000 /uL</span>
+                <div className="space-y-3 py-4 border-y border-dashed border-slate-200 text-xs overflow-x-auto">
+                  <div className="min-w-[280px]">
+                    <div className="grid grid-cols-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider pb-1 border-b border-slate-100">
+                      <span>Investigation</span>
+                      <span className="text-center">Observed</span>
+                      <span className="text-right">Reference</span>
+                    </div>
+                    <div className="grid grid-cols-3 py-2 text-slate-800 border-b border-slate-50">
+                      <span className="font-medium truncate">Hemoglobin (Hb)</span>
+                      <span className="font-semibold text-slate-900 text-center">14.8 g/dL</span>
+                      <span className="text-slate-500 text-right">13.0 - 17.0</span>
+                    </div>
+                    <div className="grid grid-cols-3 py-2 text-slate-800">
+                      <span className="font-medium truncate">Total Leukocyte (TLC)</span>
+                      <span className="font-semibold text-slate-900 text-center">7,200 /uL</span>
+                      <span className="text-slate-500 text-right">4k - 11k</span>
+                    </div>
                   </div>
                 </div>
 
                 {/* 4. Footer & Signature Block */}
-                <div className="pt-6 space-y-6">
+                <div className="pt-4 sm:pt-6 space-y-5 sm:space-y-6">
                   {/* Signature Section */}
-                  <div className="flex items-end justify-between">
-                    <div className="text-[11px] text-slate-500 max-w-sm">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
+                    <div className="text-[11px] text-slate-500 max-w-sm order-2 sm:order-1">
                       {watchedFooter ||
                         "This report is digitally generated and electronically signed under the Information Technology Act."}
                     </div>
 
-                    <div className="flex flex-col items-center text-center">
+                    <div className="flex flex-col items-start sm:items-center text-left sm:text-center order-1 sm:order-2 self-end sm:self-auto">
                       {signatureUrl ? (
                         <img
                           src={signatureUrl}
                           alt="Doctor Signature"
-                          className="h-14 object-contain filter contrast-125 mb-1"
+                          className="h-12 sm:h-14 object-contain filter contrast-125 mb-1"
                         />
                       ) : (
-                        <div className="h-14 w-32 border-b border-slate-300 flex items-center justify-center text-slate-300 text-xs italic">
+                        <div className="h-12 sm:h-14 w-28 sm:w-32 border-b border-slate-300 flex items-center justify-center text-slate-300 text-xs italic">
                           Signature Area
                         </div>
                       )}

@@ -7,6 +7,7 @@ import {
   Eye,
   LogIn,
   Mail,
+  MoreVertical,
   Plus,
   PowerOff,
   RefreshCw,
@@ -18,6 +19,13 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -381,7 +389,7 @@ export default function LabStaffPage() {
                     </TableCell>
 
                     <TableCell className="py-3.5 text-right pr-4">
-                      <div className="flex items-center justify-end gap-1.5">
+                      <div className="flex items-center justify-end gap-1">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -393,28 +401,48 @@ export default function LabStaffPage() {
                           Details
                         </Button>
 
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setStaffToDeactivate(staff)}
-                          className={`h-8 px-2.5 text-xs gap-1 ${
-                            staff.status === "ACTIVE"
-                              ? "text-slate-600 hover:text-amber-700 hover:bg-amber-50"
-                              : "text-[#0F766E] hover:text-[#115E59] hover:bg-teal-50 font-medium"
-                          }`}
-                        >
-                          {staff.status === "ACTIVE" ? (
-                            <>
-                              <PowerOff className="h-3.5 w-3.5" />
-                              Deactivate
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                              Reactivate
-                            </>
-                          )}
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md"
+                            >
+                              <span className="sr-only">Staff actions</span>
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44 text-xs">
+                            <DropdownMenuItem
+                              onClick={() => setDetailsRefId(staff.refId)}
+                              className="cursor-pointer flex items-center gap-2"
+                            >
+                              <Eye className="h-3.5 w-3.5 text-slate-500" />
+                              <span>View Details</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => setStaffToDeactivate(staff)}
+                              className={`cursor-pointer flex items-center gap-2 ${
+                                staff.status === "ACTIVE"
+                                  ? "text-amber-700 focus:text-amber-800 focus:bg-amber-50"
+                                  : "text-teal-700 focus:text-teal-800 focus:bg-teal-50 font-medium"
+                              }`}
+                            >
+                              {staff.status === "ACTIVE" ? (
+                                <>
+                                  <PowerOff className="h-3.5 w-3.5" />
+                                  <span>Deactivate Staff</span>
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                  <span>Reactivate Staff</span>
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -501,38 +529,65 @@ export default function LabStaffPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setDetailsRefId(staff.refId)}
-                    className="h-8 text-xs text-slate-600"
-                  >
-                    <Eye className="h-3.5 w-3.5 mr-1" />
-                    Details
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setStaffToDeactivate(staff)}
-                    className={`h-8 text-xs ${
-                      staff.status === "ACTIVE"
-                        ? "text-amber-700 hover:bg-amber-50"
-                        : "text-[#0F766E] hover:bg-teal-50"
-                    }`}
-                  >
-                    {staff.status === "ACTIVE" ? (
-                      <>
-                        <PowerOff className="h-3.5 w-3.5 mr-1" />
-                        Deactivate
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                        Reactivate
-                      </>
-                    )}
-                  </Button>
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <span className="text-[11px] text-slate-400">
+                    {staff.status === "ACTIVE" ? "Operational" : "Deactivated"}
+                  </span>
+
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDetailsRefId(staff.refId)}
+                      className="h-7 px-2.5 text-xs text-slate-700 hover:text-teal-700 border-slate-200"
+                    >
+                      <Eye className="h-3.5 w-3.5 mr-1" />
+                      Details
+                    </Button>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md"
+                        >
+                          <span className="sr-only">Staff actions</span>
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44 text-xs">
+                        <DropdownMenuItem
+                          onClick={() => setDetailsRefId(staff.refId)}
+                          className="cursor-pointer flex items-center gap-2"
+                        >
+                          <Eye className="h-3.5 w-3.5 text-slate-500" />
+                          <span>View Details</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => setStaffToDeactivate(staff)}
+                          className={`cursor-pointer flex items-center gap-2 ${
+                            staff.status === "ACTIVE"
+                              ? "text-amber-700 focus:text-amber-800 focus:bg-amber-50"
+                              : "text-teal-700 focus:text-teal-800 focus:bg-teal-50 font-medium"
+                          }`}
+                        >
+                          {staff.status === "ACTIVE" ? (
+                            <>
+                              <PowerOff className="h-3.5 w-3.5" />
+                              <span>Deactivate Staff</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              <span>Reactivate Staff</span>
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </Card>
             ))}
