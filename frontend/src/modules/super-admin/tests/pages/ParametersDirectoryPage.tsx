@@ -74,9 +74,10 @@ export default function ParametersDirectoryPage() {
     isLoading: isTestsLoading,
     isError: isTestsError,
     error: testsError,
+    refetch: refetchTests,
   } = useTestsQuery({
     page: 0,
-    size: 150,
+    size: 100,
     sort: "name",
     direction: "asc",
   });
@@ -273,13 +274,25 @@ export default function ParametersDirectoryPage() {
                 ))}
               </div>
             ) : isTestsError ? (
-              <Alert variant="destructive" className="max-w-md mx-auto mt-4 text-left">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Failed to load catalog</AlertTitle>
-                <AlertDescription className="text-xs">
-                  {testsError?.message || "Could not fetch tests list."}
-                </AlertDescription>
-              </Alert>
+              <div className="max-w-md mx-auto mt-4 text-left">
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Failed to load catalog</AlertTitle>
+                  <AlertDescription className="text-xs">
+                    {testsError?.message || "Could not fetch tests list."}
+                  </AlertDescription>
+                </Alert>
+                <div className="text-center mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void refetchTests()}
+                    className="text-xs text-slate-700"
+                  >
+                    Retry Loading
+                  </Button>
+                </div>
+              </div>
             ) : testsList.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-3xl mx-auto mt-6 text-left">
                 {testsList.slice(0, 6).map((test) => (
