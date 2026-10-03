@@ -18,6 +18,7 @@ import { useSharedReportQuery } from "@/modules/org-admin/reports/hooks/useRepor
 import { reportApi } from "@/modules/org-admin/reports/api/reportApi";
 import { formatDisplayUnit } from "@/modules/org-admin/reports/utils/unitFormatter";
 import { ParameterResultFlagBadge } from "@/modules/org-admin/reports/components/ParameterResultFlagBadge";
+import logoImg from "@/assets/logo.png";
 
 export default function SharedReportViewerPage() {
   const { shareToken } = useParams<{ shareToken: string }>();
@@ -354,8 +355,11 @@ export default function SharedReportViewerPage() {
         </div>
 
         {/* Access Notice */}
-        <div className="bg-slate-100/80 px-6 py-2.5 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500">
-          <span>Protected by SwasthAI Medical Verification System</span>
+        <div className="bg-slate-100/80 px-6 py-2.5 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-[10px] text-slate-500">
+          <div className="flex items-center gap-1.5">
+            <img src={logoImg} alt="SwasthAI" className="h-3.5 w-3.5 object-contain" />
+            <span>Protected by SwasthAI Medical Verification System</span>
+          </div>
           <span>Access Token Expiring in 7 Days</span>
         </div>
       </div>

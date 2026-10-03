@@ -29,54 +29,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import loginBg from "@/assets/reportloginpage.png";
-
-/**
- * Modern healthcare emblem SVG representing SwasthAI
- * Features caring hands, health figure, and vibrant cyan-to-emerald gradient
- */
-function SwasthAiBrandIcon({ className = "size-10" }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 64 64"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-      aria-hidden="true"
-    >
-      <defs>
-        <linearGradient id="swasthCyanTeal" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#06b6d4" />
-          <stop offset="100%" stopColor="#0d9488" />
-        </linearGradient>
-        <linearGradient id="swasthTealEmerald" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#0d9488" />
-          <stop offset="100%" stopColor="#10b981" />
-        </linearGradient>
-      </defs>
-
-      {/* Head / Core Sphere */}
-      <circle cx="32" cy="14" r="5.5" fill="url(#swasthCyanTeal)" />
-
-      {/* Upper Caring Wings / Torso */}
-      <path
-        d="M19 25C23 20 28 22 32 24C36 22 41 20 45 25C42 29.5 37 32 32 31C27 32 22 29.5 19 25Z"
-        fill="url(#swasthCyanTeal)"
-      />
-
-      {/* Lower Health Leaves / Cupped Hands */}
-      <path
-        d="M14 30C14 41 23 48 32 48C41 48 50 41 50 30C45 37 38 40.5 32 40C26 40.5 19 37 14 30Z"
-        fill="url(#swasthTealEmerald)"
-      />
-
-      {/* Central Stem Pillar */}
-      <path
-        d="M29.5 28H34.5V44C34.5 44.8 33.8 45.5 33 45.5H31C30.2 45.5 29.5 44.8 29.5 44V28Z"
-        fill="url(#swasthTealEmerald)"
-      />
-    </svg>
-  );
-}
+import logoImg from "@/assets/logo.png";
 
 const loginSchema = z.object({
   email: z
@@ -295,8 +248,8 @@ export function LoginPage() {
           <div className="rounded-3xl border border-white/80 bg-white/95 p-6 sm:p-9 shadow-2xl shadow-teal-950/10 backdrop-blur-md transition-all">
             {/* Branding Header */}
             <div className="flex flex-col items-center text-center">
-              <div className="flex size-14 items-center justify-center rounded-2xl bg-teal-50/90 border border-teal-100 shadow-xs transition-transform hover:scale-105 duration-200">
-                <SwasthAiBrandIcon className="size-10" />
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-teal-50/90 border border-teal-100 shadow-xs transition-transform hover:scale-105 duration-200 p-2">
+                <img src={logoImg} alt="SwasthAI Logo" className="size-10 object-contain" />
               </div>
               <div className="mt-3 flex items-center justify-center gap-1">
                 <span className="text-2xl font-bold tracking-tight text-slate-900">

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { useAuth } from "../auth/AuthContext";
+import logoImg from "@/assets/logo.png";
 
 interface AppTopbarProps {
   onMenuClick: () => void;
@@ -43,20 +44,30 @@ export function AppTopbar({
 
   return (
     <header className="flex h-16 items-center justify-between border-b border-slate-100 bg-white px-4 sm:px-6">
-      {/* Mobile menu button */}
-      <button
-        type="button"
-        onClick={onMenuClick}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 lg:hidden"
-        aria-label="Open navigation"
-      >
-        <Menu className="h-5 w-5" />
-      </button>
+      {/* Mobile brand header */}
+      <div className="flex items-center gap-2 lg:hidden">
+        <button
+          type="button"
+          onClick={onMenuClick}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+          aria-label="Open navigation"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <div className="flex items-center gap-1.5">
+          <img src={logoImg} alt="SwasthAI Logo" className="h-6 w-6 object-contain" />
+          <span className="text-sm font-bold text-slate-900 tracking-tight">
+            Swasth<span className="text-teal-600">AI</span>
+          </span>
+        </div>
+      </div>
 
       {/* Desktop title & tenant indicator */}
-      <div className="hidden items-center gap-3 lg:flex">
-        <p className="text-sm font-semibold text-slate-900">
-          SwasthAI Report Generator
+      <div className="hidden items-center gap-2.5 lg:flex">
+        <img src={logoImg} alt="SwasthAI Logo" className="h-6 w-6 object-contain" />
+        <p className="text-sm font-bold tracking-tight text-slate-900">
+          Swasth<span className="text-teal-600">AI</span>{" "}
+          <span className="font-normal text-slate-500 text-xs">| Report Generator</span>
         </p>
 
         {user.organizationRefId && (

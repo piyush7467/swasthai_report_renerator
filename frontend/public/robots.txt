@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /shared/
+Disallow: /api/
+Disallow: /super-admin/
+Disallow: /org-admin/
+Disallow: /lab-staff/
+
+Sitemap: https://swasthai-report-renerator.vercel.app/sitemap.xml

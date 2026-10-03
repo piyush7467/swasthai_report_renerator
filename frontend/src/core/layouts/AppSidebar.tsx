@@ -1,6 +1,7 @@
-import { Activity, ChevronDown, ChevronRight, LogOut, User } from "lucide-react";
+import { ChevronDown, ChevronRight, LogOut, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
+import logoImg from "@/assets/logo.png";
 
 import { useAuth } from "../auth/AuthContext";
 import {
@@ -54,12 +55,12 @@ export function AppSidebar({
     <aside className="flex h-full w-60 flex-col border-r border-slate-100 bg-white select-none">
       {/* Brand Header */}
       <div className="flex items-center gap-3 px-6 py-5">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600 shadow-2xs">
-          <Activity className="h-5 w-5 stroke-[2.2]" />
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 border border-teal-100/70 p-1 shadow-2xs">
+          <img src={logoImg} alt="SwasthAI Logo" className="h-full w-full object-contain" />
         </div>
         <div>
           <div className="text-base font-bold tracking-tight text-slate-900 leading-none">
-            SwasthAI
+            Swasth<span className="text-teal-600">AI</span>
           </div>
           <div className="text-[11px] text-slate-400 font-medium mt-1">
             Report Generator
