@@ -100,3 +100,10 @@ staff:
     time-zone: ${STAFF_CLEANUP_TIME_ZONE:Asia/Kolkata}
     retention-days: ${STAFF_CLEANUP_RETENTION_DAYS:10}
     batch-size: ${STAFF_CLEANUP_BATCH_SIZE:50}
+
+master-data:
+  seed:
+    enabled: ${MASTER_DATA_SEED_ENABLED:false}
+    audit-on-startup: ${MASTER_DATA_AUDIT_ON_STARTUP:false}
+    fail-on-conflict: ${MASTER_DATA_SEED_FAIL_ON_CONFLICT:false}
+    resource-path: ${MASTER_DATA_SEED_RESOURCE_PATH:classpath:master-data}
