@@ -130,10 +130,24 @@ public class ExistingMasterDataAuditor {
         Set<String> seenTestCodes = new HashSet<>();
         Set<String> seenTestRefIds = new HashSet<>();
 
+        String cbcInvestigationResult = null;
+
         for (Test test : tests) {
             boolean valid = true;
             String code = test.getCode();
             String refId = test.getRefId();
+
+            if ("TEST-XaQM6zvpyclH".equals(refId) || "CBC".equalsIgnoreCase(code)) {
+                String catInfo = test.getCategory() != null
+                        ? String.format("UUID=%s, refId=%s, code=%s, name='%s'",
+                            test.getCategory().getId(), test.getCategory().getRefId(), test.getCategory().getCode(), test.getCategory().getName())
+                        : "null (ORPHAN - category_id does not reference an existing category)";
+                cbcInvestigationResult = String.format("Found Test [refId='%s', code='%s', name='%s', UUID=%s] -> category_id references Category: [%s]",
+                        refId, code, test.getName(), test.getId(), catInfo);
+                log.info("=== CBC INVESTIGATION TARGET ===");
+                log.info(cbcInvestigationResult);
+                log.info("=================================");
+            }
 
             if (code == null || code.isBlank()) {
                 testsMissingCode++;
@@ -218,6 +232,12 @@ public class ExistingMasterDataAuditor {
             if (valid) {
                 testsValid++;
             }
+        }
+
+        if (cbcInvestigationResult == null) {
+            cbcInvestigationResult = (testsTotal > 0)
+                    ? "Target record TEST-XaQM6zvpyclH / CBC was not found among " + testsTotal + " existing tests in the database."
+                    : "No tests present in database.";
         }
 
         // 3. Audit Parameters
@@ -410,6 +430,7 @@ public class ExistingMasterDataAuditor {
                 .parametersMissingDependency(parametersMissingDependency)
                 .parametersCircularDependency(parametersCircularDependency)
                 .parametersConflicts(parametersConflicts)
+                .cbcInvestigationResult(cbcInvestigationResult)
                 .issues(issues)
                 .build();
 

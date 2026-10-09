@@ -105,5 +105,7 @@ master-data:
   seed:
     enabled: ${MASTER_DATA_SEED_ENABLED:false}
     audit-on-startup: ${MASTER_DATA_AUDIT_ON_STARTUP:false}
+    export-on-startup: ${MASTER_DATA_EXPORT_ON_STARTUP:false}
+    export-path: ${MASTER_DATA_EXPORT_PATH:target/exported-master-data}
     fail-on-conflict: ${MASTER_DATA_SEED_FAIL_ON_CONFLICT:false}
     resource-path: ${MASTER_DATA_SEED_RESOURCE_PATH:classpath:master-data}

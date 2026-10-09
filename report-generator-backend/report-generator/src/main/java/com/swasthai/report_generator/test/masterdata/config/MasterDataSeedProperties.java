@@ -33,6 +33,18 @@ public class MasterDataSeedProperties {
     private boolean auditOnStartup = false;
 
     /**
+     * Whether valid database master data should be automatically exported as JSON on startup.
+     * Default is false.
+     */
+    private boolean exportOnStartup = false;
+
+    /**
+     * Directory path where exported JSON files will be written.
+     * Default is "target/exported-master-data".
+     */
+    private String exportPath = "target/exported-master-data";
+
+    /**
      * Base resource path where seed JSON files are stored.
      */
     private String resourcePath = "classpath:master-data";

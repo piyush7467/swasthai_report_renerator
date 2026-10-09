@@ -866,4 +866,37 @@ class ExistingMasterDataAuditTest {
         assertThat(tempDir.resolve("tests.json")).exists();
         assertThat(tempDir.resolve("test-parameters").resolve("cbc.json")).exists();
     }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("Audit specifically investigates CBC record (TEST-XaQM6zvpyclH) and resolves its referenced category")
+    void testExistingTest_CbcRecordInvestigation_CapturesCategoryReference() {
+        TestCategory hemCategory = TestCategory.builder()
+                .id(UUID.randomUUID())
+                .code("HEM")
+                .name("Hematology")
+                .refId("TC-123456789012")
+                .status(TestCategoryStatus.ACTIVE)
+                .build();
+
+        Test cbcTest = Test.builder()
+                .id(UUID.randomUUID())
+                .refId("TEST-XaQM6zvpyclH")
+                .code("CBC")
+                .name("Complete Blood Count")
+                .category(hemCategory)
+                .sampleType(SampleType.WHOLE_BLOOD)
+                .status(TestStatus.ACTIVE)
+                .build();
+
+        when(testCategoryRepository.findAll()).thenReturn(List.of(hemCategory));
+        when(testRepository.findAll()).thenReturn(List.of(cbcTest));
+        when(testParameterRepository.findAll()).thenReturn(Collections.emptyList());
+
+        ExistingMasterDataAuditReport report = auditor.audit();
+
+        assertThat(report.cbcInvestigationResult()).isNotNull();
+        assertThat(report.cbcInvestigationResult()).contains("TEST-XaQM6zvpyclH");
+        assertThat(report.cbcInvestigationResult()).contains("Hematology");
+        assertThat(report.cbcInvestigationResult()).contains("HEM");
+    }
 }

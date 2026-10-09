@@ -38,6 +38,7 @@ public record ExistingMasterDataAuditReport(
         int parametersCircularDependency,
         int parametersConflicts,
 
+        String cbcInvestigationResult,
         List<MasterDataAuditIssue> issues
 ) {
     public List<MasterDataAuditIssue> getIssues() {
@@ -81,6 +82,12 @@ public record ExistingMasterDataAuditReport(
         sb.append(String.format("   Circular Dependency:          %d\n", parametersCircularDependency));
         sb.append(String.format("   Conflicts:                    %d\n", parametersConflicts));
         sb.append("==================================================\n");
+
+        if (cbcInvestigationResult != null && !cbcInvestigationResult.isBlank()) {
+            sb.append("\nCBC RECORD INVESTIGATION (TEST-XaQM6zvpyclH):\n");
+            sb.append(String.format("   %s\n", cbcInvestigationResult));
+            sb.append("==================================================\n");
+        }
 
         if (hasIssues()) {
             sb.append("\nISSUES REQUIRING MANUAL MIGRATION / RESOLUTION:\n");
