@@ -1,1 +1,29 @@
-[]
+[
+  {
+    "code": "CBC",
+    "name": "Complete Blood Count",
+    "shortName": "CBC",
+    "categoryCode": "HEM",
+    "testType": "PANEL",
+    "description": "Complete Blood Count (CBC) measuring cellular elements of peripheral blood including red blood cells, white blood cells, platelets, red cell indices, and differential leukocyte count.",
+    "sampleType": "WHOLE_BLOOD",
+    "specimenContainer": "EDTA Vacutainer (Lavender Top)",
+    "sampleVolume": 2.00,
+    "sampleVolumeUnit": "mL",
+    "fastingRequired": false,
+    "patientPreparation": "No special fasting required under standard conditions.",
+    "collectionInstructions": "Collect whole blood in EDTA tube. Invert tube gently 8-10 times to prevent microclots. Do not shake.",
+    "turnaroundTimeHours": 4,
+    "prioritySupported": true,
+    "outsourced": false,
+    "laboratoryInstructions": "Analyze on automated hematology analyzer within 6 hours of collection. Examine blood film if automated flags are present.",
+    "reportSection": "HEMATOLOGY",
+    "displayOrder": 1,
+    "reportDescription": "Complete Blood Count providing quantitative evaluation of erythrocyte, leukocyte, and thrombocyte parameters.",
+    "interpretationGuidance": "Clinical correlation is recommended. Values outside normal reference intervals may indicate anemia, infection, inflammation, or hematologic disorders.",
+    "basePrice": 350.00,
+    "currency": "INR",
+    "billingCode": "CBC-001",
+    "status": "ACTIVE"
+  }
+]

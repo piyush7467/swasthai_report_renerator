@@ -1,1 +1,8 @@
-[]
+[
+  {
+    "code": "HEM",
+    "name": "Hematology",
+    "description": "Diagnostic hematology tests including Complete Blood Count (CBC) and related blood indices",
+    "status": "ACTIVE"
+  }
+]
