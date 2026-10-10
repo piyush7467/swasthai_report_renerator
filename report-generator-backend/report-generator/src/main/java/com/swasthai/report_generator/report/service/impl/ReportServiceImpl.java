@@ -38,6 +38,7 @@ import com.swasthai.report_generator.report.service.ReportDeletionBatchExecutor;
 import com.swasthai.report_generator.report.service.ReportPurgeBatchExecutor;
 import com.swasthai.report_generator.report.service.ReportService;
 import com.swasthai.report_generator.security.audit.service.AuditLogService;
+import com.swasthai.report_generator.test.calculation.CbcDifferentialValidator;
 import com.swasthai.report_generator.test.calculation.CalculationEngine;
 import com.swasthai.report_generator.test.calculation.CalculationException;
 import com.swasthai.report_generator.test.dto.request.TestParameterResultInput;
@@ -115,6 +116,8 @@ public class ReportServiceImpl implements ReportService {
     private final OrganizationTestService organizationTestService;
 
     private final CalculationEngine calculationEngine;
+
+    private final CbcDifferentialValidator cbcDifferentialValidator;
 
     private final ReportRetentionProperties retentionProperties;
 
@@ -1578,6 +1581,54 @@ public class ReportServiceImpl implements ReportService {
                                 .trim()
                                 .toUpperCase(),
                         result.getNumericValue());
+            }
+        }
+
+        /*
+         * Validate & calculate CBC differential leukocyte counts if applicable.
+         */
+        CbcDifferentialValidator.DifferentialCalculationResult diffResult =
+                cbcDifferentialValidator.processDifferentialForTest(reportTest.getTestCode(), numericValues);
+
+        if (diffResult.applied()) {
+            numericValues.put(CbcDifferentialValidator.PARAM_MONO, diffResult.mono());
+            numericValues.put(CbcDifferentialValidator.PARAM_BASO, diffResult.baso());
+
+            for (TestParameterResult result : reportTest.getParameterResults()) {
+                if (result == null || result.getParameterCode() == null) {
+                    continue;
+                }
+                String code = result.getParameterCode().trim().toUpperCase();
+                if (CbcDifferentialValidator.PARAM_MONO.equalsIgnoreCase(code)) {
+                    result.setValue(diffResult.mono().stripTrailingZeros().toPlainString());
+                    result.setNumericValue(diffResult.mono());
+                    result.setFlag(classifyFlag(result, diffResult.mono()));
+                } else if (CbcDifferentialValidator.PARAM_BASO.equalsIgnoreCase(code)) {
+                    result.setValue(diffResult.baso().stripTrailingZeros().toPlainString());
+                    result.setNumericValue(diffResult.baso());
+                    result.setFlag(classifyFlag(result, diffResult.baso()));
+                }
+            }
+        } else if (cbcDifferentialValidator.isCbcTest(reportTest.getTestCode())) {
+            boolean hasAnyManualDiff = false;
+            for (String code : CbcDifferentialValidator.MANUAL_DIFFERENTIAL_PARAMETERS) {
+                if (numericValues.containsKey(code)) {
+                    hasAnyManualDiff = true;
+                    break;
+                }
+            }
+            if (!hasAnyManualDiff) {
+                for (TestParameterResult result : reportTest.getParameterResults()) {
+                    if (result != null && result.getParameterCode() != null) {
+                        String code = result.getParameterCode().trim().toUpperCase();
+                        if (CbcDifferentialValidator.PARAM_MONO.equalsIgnoreCase(code)
+                                || CbcDifferentialValidator.PARAM_BASO.equalsIgnoreCase(code)) {
+                            result.setValue(null);
+                            result.setNumericValue(null);
+                            result.setFlag(null);
+                        }
+                    }
+                }
             }
         }
 

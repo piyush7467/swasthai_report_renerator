@@ -8,6 +8,7 @@ import com.swasthai.report_generator.test.calculation.CalculationContext;
 import com.swasthai.report_generator.test.calculation.CalculationDependencyResolver;
 import com.swasthai.report_generator.test.calculation.CalculationEngine;
 import com.swasthai.report_generator.test.calculation.CalculationException;
+import com.swasthai.report_generator.test.calculation.CbcDifferentialValidator;
 import com.swasthai.report_generator.test.dto.request.CalculateTestRequest;
 import com.swasthai.report_generator.test.dto.request.ParameterValueInput;
 import com.swasthai.report_generator.test.dto.response.CalculatedParameterItemResponse;
@@ -31,13 +32,36 @@ import java.math.BigDecimal;
 import java.util.*;
 
 @Service
-@RequiredArgsConstructor
 public class TestCalculationServiceImpl implements TestCalculationService {
 
     private final TestRepository testRepository;
     private final TestParameterRepository testParameterRepository;
     private final OrganizationTestService organizationTestService;
     private final CalculationEngine calculationEngine;
+    private final CbcDifferentialValidator cbcDifferentialValidator;
+
+    public TestCalculationServiceImpl(
+            TestRepository testRepository,
+            TestParameterRepository testParameterRepository,
+            OrganizationTestService organizationTestService,
+            CalculationEngine calculationEngine
+    ) {
+        this(testRepository, testParameterRepository, organizationTestService, calculationEngine, new CbcDifferentialValidator());
+    }
+
+    public TestCalculationServiceImpl(
+            TestRepository testRepository,
+            TestParameterRepository testParameterRepository,
+            OrganizationTestService organizationTestService,
+            CalculationEngine calculationEngine,
+            CbcDifferentialValidator cbcDifferentialValidator
+    ) {
+        this.testRepository = testRepository;
+        this.testParameterRepository = testParameterRepository;
+        this.organizationTestService = organizationTestService;
+        this.calculationEngine = calculationEngine;
+        this.cbcDifferentialValidator = cbcDifferentialValidator != null ? cbcDifferentialValidator : new CbcDifferentialValidator();
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -133,6 +157,17 @@ public class TestCalculationServiceImpl implements TestCalculationService {
                     }
                 }
             }
+        }
+
+        // Validate and calculate CBC differential counts if applicable
+        CbcDifferentialValidator.DifferentialCalculationResult diffResult =
+                cbcDifferentialValidator.processDifferentialForTest(test.getCode(), numericValues);
+
+        if (diffResult.applied()) {
+            numericValues.put(CbcDifferentialValidator.PARAM_MONO, diffResult.mono());
+            numericValues.put(CbcDifferentialValidator.PARAM_BASO, diffResult.baso());
+            stringValues.put(CbcDifferentialValidator.PARAM_MONO, diffResult.mono().stripTrailingZeros().toPlainString());
+            stringValues.put(CbcDifferentialValidator.PARAM_BASO, diffResult.baso().stripTrailingZeros().toPlainString());
         }
 
         // 6. Perform backend calculations for all CALCULATED parameters in topological order

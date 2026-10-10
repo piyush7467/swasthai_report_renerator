@@ -81,7 +81,8 @@ public class SecurityConfig {
                                                                 "/api/v1/plans/**",
                                                                 "/api/v1/admin/analytics/**",
                                                                 "/api/v1/admin/audit/**",
-                                                                "/api/v1/admin/license/**")
+                                                                "/api/v1/admin/license/**",
+                                                                "/api/v1/admin/master-data/**")
                                                 .hasRole("SUPER_ADMIN")
 
                                                 .requestMatchers(

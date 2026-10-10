@@ -26,6 +26,12 @@ public final class ClinicalParameterAliases {
         registerAliases("HCT", "HCT", "PCV", "HEMATOCRIT", "HAEMATOCRIT");
         registerAliases("RBC", "RBC", "RBC_COUNT", "ERYTHROCYTES", "TOTAL_RBC");
 
+        registerAliases("NEUT", "NEUT", "NEUTROPHILS", "NEUTROPHIL", "NEUTS", "POLYS", "SEGS");
+        registerAliases("LYMPH", "LYMPH", "LYMPHOCYTES", "LYMPHOCYTE", "LYMPHS");
+        registerAliases("MONO", "MONO", "MONOCYTES", "MONOCYTE", "MONOS");
+        registerAliases("EOS", "EOS", "EOSINOPHILS", "EOSINOPHIL");
+        registerAliases("BASO", "BASO", "BASOPHILS", "BASOPHIL");
+
         registerAliases("TC", "TC", "CHOLESTEROL", "TOTAL_CHOLESTEROL", "CHOL", "SERUM_CHOLESTEROL");
         registerAliases("TG", "TG", "TRIGLYCERIDES", "TRIGLYCERIDE", "TRIG", "SERUM_TRIGLYCERIDES");
         registerAliases("HDL", "HDL", "HDL_C", "HDL_CHOLESTEROL", "SERUM_HDL");

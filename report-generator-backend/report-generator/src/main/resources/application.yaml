@@ -109,3 +109,10 @@ master-data:
     export-path: ${MASTER_DATA_EXPORT_PATH:target/exported-master-data}
     fail-on-conflict: ${MASTER_DATA_SEED_FAIL_ON_CONFLICT:false}
     resource-path: ${MASTER_DATA_SEED_RESOURCE_PATH:classpath:master-data}
+
+clinical:
+  validation:
+    cbc-differential:
+      enabled: ${CBC_DIFFERENTIAL_VALIDATION_ENABLED:true}
+      tolerance: ${CBC_DIFFERENTIAL_TOLERANCE:1.0}
+      require-all-five-when-started: ${CBC_DIFFERENTIAL_REQUIRE_ALL_FIVE:true}

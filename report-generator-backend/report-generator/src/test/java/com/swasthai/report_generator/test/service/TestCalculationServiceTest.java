@@ -4,6 +4,7 @@ import com.swasthai.report_generator.common.exception.ResourceNotFoundException;
 import com.swasthai.report_generator.organization.entity.Organization;
 import com.swasthai.report_generator.organization.entity.OrganizationStatus;
 import com.swasthai.report_generator.test.calculation.CalculationException;
+import com.swasthai.report_generator.test.calculation.CbcDifferentialValidationException;
 import com.swasthai.report_generator.test.calculation.calculators.MCHCalculator;
 import com.swasthai.report_generator.test.calculation.calculators.MCHCCalculator;
 import com.swasthai.report_generator.test.calculation.calculators.MCVCalculator;
@@ -65,6 +66,11 @@ class TestCalculationServiceTest {
     private TestParameter mcvParam;
     private TestParameter mchParam;
     private TestParameter mchcParam;
+    private TestParameter neutParam;
+    private TestParameter lymphParam;
+    private TestParameter monoParam;
+    private TestParameter eosParam;
+    private TestParameter basoParam;
 
     @BeforeEach
     void setUp() {
@@ -217,6 +223,91 @@ class TestCalculationServiceTest {
                 .referenceMax(new BigDecimal("36.0"))
                 .status(TestParameterStatus.ACTIVE)
                 .displayOrder(6)
+                .build();
+
+        neutParam = TestParameter.builder()
+                .id(UUID.randomUUID())
+                .refId("PARAM-NEUT01")
+                .test(cbcTest)
+                .code("NEUT")
+                .name("Neutrophils")
+                .dataType(TestParameterDataType.DECIMAL)
+                .inputType(ParameterInputType.MANUAL)
+                .calculationType(CalculationType.NONE)
+                .unit("%")
+                .required(false)
+                .referenceMin(new BigDecimal("40.0"))
+                .referenceMax(new BigDecimal("75.0"))
+                .status(TestParameterStatus.ACTIVE)
+                .displayOrder(9)
+                .build();
+
+        lymphParam = TestParameter.builder()
+                .id(UUID.randomUUID())
+                .refId("PARAM-LYMPH01")
+                .test(cbcTest)
+                .code("LYMPH")
+                .name("Lymphocytes")
+                .dataType(TestParameterDataType.DECIMAL)
+                .inputType(ParameterInputType.MANUAL)
+                .calculationType(CalculationType.NONE)
+                .unit("%")
+                .required(false)
+                .referenceMin(new BigDecimal("20.0"))
+                .referenceMax(new BigDecimal("45.0"))
+                .status(TestParameterStatus.ACTIVE)
+                .displayOrder(10)
+                .build();
+
+        monoParam = TestParameter.builder()
+                .id(UUID.randomUUID())
+                .refId("PARAM-MONO01")
+                .test(cbcTest)
+                .code("MONO")
+                .name("Monocytes")
+                .dataType(TestParameterDataType.DECIMAL)
+                .inputType(ParameterInputType.MANUAL)
+                .calculationType(CalculationType.NONE)
+                .unit("%")
+                .required(false)
+                .referenceMin(new BigDecimal("2.0"))
+                .referenceMax(new BigDecimal("10.0"))
+                .status(TestParameterStatus.ACTIVE)
+                .displayOrder(11)
+                .build();
+
+        eosParam = TestParameter.builder()
+                .id(UUID.randomUUID())
+                .refId("PARAM-EOS01")
+                .test(cbcTest)
+                .code("EOS")
+                .name("Eosinophils")
+                .dataType(TestParameterDataType.DECIMAL)
+                .inputType(ParameterInputType.MANUAL)
+                .calculationType(CalculationType.NONE)
+                .unit("%")
+                .required(false)
+                .referenceMin(new BigDecimal("1.0"))
+                .referenceMax(new BigDecimal("6.0"))
+                .status(TestParameterStatus.ACTIVE)
+                .displayOrder(12)
+                .build();
+
+        basoParam = TestParameter.builder()
+                .id(UUID.randomUUID())
+                .refId("PARAM-BASO01")
+                .test(cbcTest)
+                .code("BASO")
+                .name("Basophils")
+                .dataType(TestParameterDataType.DECIMAL)
+                .inputType(ParameterInputType.MANUAL)
+                .calculationType(CalculationType.NONE)
+                .unit("%")
+                .required(false)
+                .referenceMin(new BigDecimal("0.0"))
+                .referenceMax(new BigDecimal("2.0"))
+                .status(TestParameterStatus.ACTIVE)
+                .displayOrder(13)
                 .build();
     }
 
@@ -475,5 +566,115 @@ class TestCalculationServiceTest {
 
         assertThat(response).isNotNull();
         assertThat(response.testCode()).isEqualTo("CBC");
+    }
+
+    @Test
+    @DisplayName("CBC Differential: Automatically calculates MONO and sets BASO to 0 when NEUT, LYMPH, EOS are provided")
+    void testCalculate_CbcDifferential_AutoCalculatesMonoAndBaso() {
+        when(organizationTestService.hasTestAccess("TEST-CBC123")).thenReturn(true);
+        when(testRepository.findByRefId("TEST-CBC123")).thenReturn(Optional.of(cbcTest));
+        when(testParameterRepository.findAllByTest_IdAndStatusOrderByDisplayOrderAsc(cbcTest.getId(), TestParameterStatus.ACTIVE))
+                .thenReturn(List.of(hgbParam, rbcParam, hctParam, mcvParam, neutParam, lymphParam, monoParam, eosParam, basoParam));
+
+        // NEUT: 68, LYMPH: 12, EOS: 8
+        // Derived: MONO: 12, BASO: 0
+        CalculateTestRequest request = new CalculateTestRequest(List.of(
+                new ParameterValueInput("HGB", null, "15"),
+                new ParameterValueInput("RBC", null, "5"),
+                new ParameterValueInput("HCT", null, "45"),
+                new ParameterValueInput("NEUT", null, "68"),
+                new ParameterValueInput("LYMPH", null, "12"),
+                new ParameterValueInput("EOS", null, "8")
+        ));
+
+        CalculatedTestResponse response = testCalculationService.calculateParameters("TEST-CBC123", request);
+
+        assertThat(response).isNotNull();
+
+        CalculatedParameterItemResponse monoItem = response.parameters().stream()
+                .filter(p -> "MONO".equals(p.parameterCode()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(monoItem.numericValue()).isEqualByComparingTo("12");
+        assertThat(monoItem.value()).isEqualTo("12");
+        assertThat(monoItem.flag()).isEqualTo(ResultFlag.HIGH); // 12 > refMax 10.0
+
+        CalculatedParameterItemResponse basoItem = response.parameters().stream()
+                .filter(p -> "BASO".equals(p.parameterCode()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(basoItem.numericValue()).isEqualByComparingTo("0");
+        assertThat(basoItem.value()).isEqualTo("0");
+        assertThat(basoItem.flag()).isEqualTo(ResultFlag.NORMAL); // 0 within [0.0, 2.0]
+    }
+
+    @Test
+    @DisplayName("CBC Differential: Incomplete manual differential throws CbcDifferentialValidationException")
+    void testCalculate_CbcDifferential_Incomplete_ThrowsException() {
+        when(organizationTestService.hasTestAccess("TEST-CBC123")).thenReturn(true);
+        when(testRepository.findByRefId("TEST-CBC123")).thenReturn(Optional.of(cbcTest));
+        when(testParameterRepository.findAllByTest_IdAndStatusOrderByDisplayOrderAsc(cbcTest.getId(), TestParameterStatus.ACTIVE))
+                .thenReturn(List.of(hgbParam, rbcParam, hctParam, neutParam, lymphParam, monoParam, eosParam, basoParam));
+
+        // Missing EOS
+        CalculateTestRequest request = new CalculateTestRequest(List.of(
+                new ParameterValueInput("HGB", null, "15"),
+                new ParameterValueInput("RBC", null, "5"),
+                new ParameterValueInput("HCT", null, "45"),
+                new ParameterValueInput("NEUT", null, "68"),
+                new ParameterValueInput("LYMPH", null, "12")
+        ));
+
+        assertThatThrownBy(() -> testCalculationService.calculateParameters("TEST-CBC123", request))
+                .isInstanceOf(CbcDifferentialValidationException.class)
+                .hasMessageContaining("Differential leukocyte count requires manual entry")
+                .hasMessageContaining("EOS");
+    }
+
+    @Test
+    @DisplayName("CBC Differential: Conflicting MONO provided by client throws CbcDifferentialValidationException")
+    void testCalculate_CbcDifferential_ConflictingMono_ThrowsException() {
+        when(organizationTestService.hasTestAccess("TEST-CBC123")).thenReturn(true);
+        when(testRepository.findByRefId("TEST-CBC123")).thenReturn(Optional.of(cbcTest));
+        when(testParameterRepository.findAllByTest_IdAndStatusOrderByDisplayOrderAsc(cbcTest.getId(), TestParameterStatus.ACTIVE))
+                .thenReturn(List.of(hgbParam, rbcParam, hctParam, neutParam, lymphParam, monoParam, eosParam, basoParam));
+
+        // Client supplies MONO=15 when formula yields 12
+        CalculateTestRequest request = new CalculateTestRequest(List.of(
+                new ParameterValueInput("HGB", null, "15"),
+                new ParameterValueInput("RBC", null, "5"),
+                new ParameterValueInput("HCT", null, "45"),
+                new ParameterValueInput("NEUT", null, "68"),
+                new ParameterValueInput("LYMPH", null, "12"),
+                new ParameterValueInput("EOS", null, "8"),
+                new ParameterValueInput("MONO", null, "15")
+        ));
+
+        assertThatThrownBy(() -> testCalculationService.calculateParameters("TEST-CBC123", request))
+                .isInstanceOf(CbcDifferentialValidationException.class)
+                .hasMessageContaining("Conflicting value supplied for calculated parameter MONO");
+    }
+
+    @Test
+    @DisplayName("CBC Differential: Sum of manual percentages exceeding 100% throws CbcDifferentialValidationException")
+    void testCalculate_CbcDifferential_SumExceedingHundred_ThrowsException() {
+        when(organizationTestService.hasTestAccess("TEST-CBC123")).thenReturn(true);
+        when(testRepository.findByRefId("TEST-CBC123")).thenReturn(Optional.of(cbcTest));
+        when(testParameterRepository.findAllByTest_IdAndStatusOrderByDisplayOrderAsc(cbcTest.getId(), TestParameterStatus.ACTIVE))
+                .thenReturn(List.of(hgbParam, rbcParam, hctParam, neutParam, lymphParam, monoParam, eosParam, basoParam));
+
+        // NEUT: 70, LYMPH: 25, EOS: 10 -> Sum = 105 -> MONO = -5
+        CalculateTestRequest request = new CalculateTestRequest(List.of(
+                new ParameterValueInput("HGB", null, "15"),
+                new ParameterValueInput("RBC", null, "5"),
+                new ParameterValueInput("HCT", null, "45"),
+                new ParameterValueInput("NEUT", null, "70"),
+                new ParameterValueInput("LYMPH", null, "25"),
+                new ParameterValueInput("EOS", null, "10")
+        ));
+
+        assertThatThrownBy(() -> testCalculationService.calculateParameters("TEST-CBC123", request))
+                .isInstanceOf(CbcDifferentialValidationException.class)
+                .hasMessageContaining("Calculated Monocytes percentage is negative (-5%)");
     }
 }

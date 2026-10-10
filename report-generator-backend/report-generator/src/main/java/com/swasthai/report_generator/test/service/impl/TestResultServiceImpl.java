@@ -2,6 +2,7 @@ package com.swasthai.report_generator.test.service.impl;
 
 import com.swasthai.report_generator.test.calculation.CalculationEngine;
 import com.swasthai.report_generator.test.calculation.CalculationException;
+import com.swasthai.report_generator.test.calculation.CbcDifferentialValidator;
 import com.swasthai.report_generator.test.dto.request.CreateTestResultRequest;
 import com.swasthai.report_generator.test.dto.request.TestParameterResultInput;
 import com.swasthai.report_generator.test.dto.response.TestParameterResultResponse;
@@ -46,6 +47,7 @@ public class TestResultServiceImpl implements TestResultService {
     private final TestParameterRepository testParameterRepository;
     private final OrganizationTestService organizationTestService;
     private final CalculationEngine calculationEngine;
+    private final CbcDifferentialValidator cbcDifferentialValidator;
 
     @Override
     public TestResultResponse createResult(
@@ -84,6 +86,31 @@ public class TestResultServiceImpl implements TestResultService {
 
         Map<String, BigDecimal> numericValues =
                 extractManualNumericValues(parameters, inputs);
+
+        CbcDifferentialValidator.DifferentialCalculationResult diffResult =
+                cbcDifferentialValidator.processDifferentialForTest(test.getCode(), numericValues);
+
+        if (diffResult.applied()) {
+            numericValues.put(CbcDifferentialValidator.PARAM_MONO, diffResult.mono());
+            numericValues.put(CbcDifferentialValidator.PARAM_BASO, diffResult.baso());
+
+            for (TestParameter parameter : parameters) {
+                String code = parameter.getCode();
+                if (CbcDifferentialValidator.PARAM_MONO.equalsIgnoreCase(code) && !inputs.containsKey(parameter.getRefId())) {
+                    inputs.put(parameter.getRefId(), new TestParameterResultInput(
+                            parameter.getRefId(),
+                            code,
+                            diffResult.mono().stripTrailingZeros().toPlainString()
+                    ));
+                } else if (CbcDifferentialValidator.PARAM_BASO.equalsIgnoreCase(code) && !inputs.containsKey(parameter.getRefId())) {
+                    inputs.put(parameter.getRefId(), new TestParameterResultInput(
+                            parameter.getRefId(),
+                            code,
+                            diffResult.baso().stripTrailingZeros().toPlainString()
+                    ));
+                }
+            }
+        }
 
         PatientTestResult result = PatientTestResult.builder()
                 .organization(organization)
@@ -306,6 +333,15 @@ public class TestResultServiceImpl implements TestResultService {
                 inputs.get(parameter.getRefId());
 
         if (input == null) {
+            if (!parameter.isRequired()) {
+                return createParameterResult(
+                        parameter,
+                        null,
+                        null,
+                        null,
+                        null
+                );
+            }
             throw new IllegalArgumentException(
                     "Required parameter value is missing: "
                             + parameter.getCode()
