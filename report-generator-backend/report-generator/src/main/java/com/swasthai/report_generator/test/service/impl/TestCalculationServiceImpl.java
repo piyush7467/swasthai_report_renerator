@@ -21,7 +21,7 @@ import com.swasthai.report_generator.test.service.TestCalculationService;
 import com.swasthai.report_generator.user.entity.Role;
 import com.swasthai.report_generator.user.entity.User;
 import com.swasthai.report_generator.user.entity.UserStatus;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -49,6 +49,7 @@ public class TestCalculationServiceImpl implements TestCalculationService {
         this(testRepository, testParameterRepository, organizationTestService, calculationEngine, new CbcDifferentialValidator());
     }
 
+    @Autowired
     public TestCalculationServiceImpl(
             TestRepository testRepository,
             TestParameterRepository testParameterRepository,
