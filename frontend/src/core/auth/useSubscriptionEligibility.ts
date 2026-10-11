@@ -103,7 +103,7 @@ export function useSubscriptionEligibility(): SubscriptionEligibility {
         license: null,
         daysRemaining: 0,
         reasonMessage:
-          "An active subscription plan is required to register patients, assign tests, or create diagnostic reports. Please choose and activate a plan.",
+          "No plan active. Please contact Super Admin to activate a plan.",
         canManageSubscription: true,
         subscriptionManagementPath: "/org-admin/license",
         isSuperAdmin: false,
@@ -214,7 +214,7 @@ export function useSubscriptionEligibility(): SubscriptionEligibility {
         license: null,
         daysRemaining: 0,
         reasonMessage:
-          "Your laboratory does not have an active subscription plan assigned. Please notify your organization administrator to activate a plan.",
+          "No plan active. Please contact Super Admin to activate a plan.",
         canManageSubscription: false,
         subscriptionManagementPath: "/lab-staff/dashboard",
         isSuperAdmin: false,

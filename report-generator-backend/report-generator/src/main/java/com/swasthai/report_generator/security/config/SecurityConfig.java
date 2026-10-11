@@ -93,6 +93,12 @@ public class SecurityConfig {
                                                                 "LAB_STAFF")
 
                                                 .requestMatchers(
+                                                                "/api/v1/organization/analytics/**")
+                                                .hasAnyRole(
+                                                                "ORG_ADMIN",
+                                                                "LAB_STAFF")
+
+                                                .requestMatchers(
                                                                 "/api/v1/organization-profile/organizations/**")
                                                 .hasRole("SUPER_ADMIN")
 

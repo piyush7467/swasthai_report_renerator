@@ -36,7 +36,7 @@ export function LicenseOverviewCard({
           <div className="flex items-center gap-2">
             <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
             <span>
-              <strong>No Active Subscription:</strong> Diagnostic reports and patient operations require an active subscription plan.
+              <strong>No Plan Active:</strong> Please contact Super Admin to activate a subscription plan.
             </span>
           </div>
           <Button
@@ -44,7 +44,7 @@ export function LicenseOverviewCard({
             onClick={onRequestUpgrade}
             className="h-6 text-xs bg-rose-700 hover:bg-rose-800 text-white"
           >
-            Select Plan
+            Request Plan
           </Button>
         </div>
       ) : expiryStatus === "EXPIRED" ? (
@@ -108,7 +108,7 @@ export function LicenseOverviewCard({
             className="bg-[#0F766E] hover:bg-[#0d655e] text-white shadow-2xs gap-1.5 cursor-pointer shrink-0"
           >
             <Sparkles className="h-4 w-4" />
-            {expiryStatus === "NO_PLAN" ? "Choose Subscription Plan" : "Request Plan Upgrade"}
+            {expiryStatus === "NO_PLAN" ? "Request Plan Activation" : "Request Plan Upgrade"}
             <ArrowUpRight className="h-3.5 w-3.5 ml-0.5 opacity-80" />
           </Button>
         </div>

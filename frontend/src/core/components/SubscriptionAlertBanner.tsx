@@ -69,14 +69,16 @@ export function SubscriptionAlertBanner({
   // Inactive / Expired / Deactivated / No Plan banner (rose destructive alert)
   const title =
     expiryStatus === "NO_PLAN"
-      ? "Subscription Plan Required"
+      ? "No Plan Active"
       : expiryStatus === "DEACTIVATED"
       ? "Subscription Deactivated"
       : "Subscription Expired";
 
   const message =
     reasonMessage ||
-    "An active subscription is required to perform operational actions such as registering patients, assigning tests, and generating clinical reports.";
+    (expiryStatus === "NO_PLAN"
+      ? "No plan active. Please contact Super Admin to activate a plan."
+      : "An active subscription is required to perform operational actions such as registering patients, assigning tests, and generating clinical reports.");
 
   return (
     <div
@@ -105,13 +107,13 @@ export function SubscriptionAlertBanner({
             className="bg-rose-700 hover:bg-rose-800 text-white text-xs h-8 shadow-xs"
           >
             <Link to={subscriptionManagementPath}>
-              {expiryStatus === "NO_PLAN" ? "Subscribe Now" : "Renew / Reactivate"}
+              {expiryStatus === "NO_PLAN" ? "View Plans / Request Plan" : "Renew / Reactivate"}
               <ArrowRight className="size-3.5 ml-1.5" />
             </Link>
           </Button>
         ) : (
           <span className="text-xs font-medium text-rose-700 italic">
-            Contact Organization Admin
+            Contact Super Admin to activate plan
           </span>
         )}
       </div>

@@ -15,7 +15,7 @@ export function PlanDetailsCard({ license }: PlanDetailsCardProps) {
             Subscription Plan Specifications
           </h3>
           <p className="text-xs text-slate-500 mt-1">
-            No active subscription plan assigned. Select and activate an eligible plan to enable laboratory workflows, report quotas, and staff seats.
+            No plan active. Please contact Super Admin to activate a subscription plan.
           </p>
         </div>
       </Card>

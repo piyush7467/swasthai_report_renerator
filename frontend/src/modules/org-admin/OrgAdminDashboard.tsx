@@ -62,35 +62,35 @@ export function OrgAdminDashboard() {
     data: overviewStats,
     isLoading: isStatsLoading,
     refetch: refetchStats,
-  } = useOrgOverviewStats();
+  } = useOrgOverviewStats({ enabled: isEligible });
 
   // 2. Trend Analytics
   const {
     data: trendData,
     isLoading: isTrendLoading,
     refetch: refetchTrend,
-  } = useOrgReportTrend(trendDays);
+  } = useOrgReportTrend(trendDays, { enabled: isEligible });
 
   // 3. Category Usage
   const {
     data: categoryUsageData,
     isLoading: isCategoryLoading,
     refetch: refetchCategory,
-  } = useOrgCategoryUsage(6);
+  } = useOrgCategoryUsage(6, { enabled: isEligible });
 
   // 4. Patient Trend
   const {
     data: patientTrendData,
     isLoading: isPatientTrendLoading,
     refetch: refetchPatientTrend,
-  } = useOrgPatientTrend(30);
+  } = useOrgPatientTrend(30, { enabled: isEligible });
 
   // 5. Recent Activity Feed
   const {
     data: activityFeed,
     isLoading: isActivityLoading,
     refetch: refetchActivity,
-  } = useOrgRecentActivity();
+  } = useOrgRecentActivity({ enabled: isEligible });
 
   // 6. Reports Query
   const {
@@ -866,12 +866,24 @@ export function OrgAdminDashboard() {
                 Staff Capacity & Plan
               </h3>
               <Badge variant="outline" className="border-slate-200 text-slate-700 text-[10px] font-mono">
-                {licenseData?.license?.planName || staffSummary?.planName || "Standard Lab"}
+                {isEligible
+                  ? (licenseData?.license?.planName || staffSummary?.planName || "Active Plan")
+                  : "No Active Plan"}
               </Badge>
             </div>
 
             <div className="mt-4 space-y-3">
-              {isStaffLoading ? (
+              {!isEligible ? (
+                <div className="rounded-lg bg-rose-50 border border-rose-100 p-3.5 space-y-1.5 text-xs text-rose-800">
+                  <p className="font-semibold text-rose-950 flex items-center gap-1.5">
+                    <ShieldCheck className="size-4 text-rose-600" />
+                    No Plan Active
+                  </p>
+                  <p className="text-[11px] text-rose-800 leading-relaxed">
+                    Please contact Super Admin to activate a subscription plan for your organization.
+                  </p>
+                </div>
+              ) : isStaffLoading ? (
                 <Skeleton className="h-14 w-full" />
               ) : (
                 <div>
@@ -907,7 +919,7 @@ export function OrgAdminDashboard() {
                 className="w-full text-xs text-slate-600 hover:text-slate-900 justify-between h-8 px-1 pt-2 border-t border-slate-100"
               >
                 <Link to="/org-admin/license">
-                  View License & Upgrade
+                  {isEligible ? "View License & Upgrade" : "Contact Super Admin / View Plans"}
                   <ArrowRight className="size-3.5" />
                 </Link>
               </Button>
