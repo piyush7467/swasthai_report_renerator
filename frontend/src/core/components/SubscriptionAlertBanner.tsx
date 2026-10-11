@@ -3,7 +3,6 @@ import { AlertCircle, AlertTriangle, ArrowRight, ShieldAlert } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import {
   useSubscriptionEligibility,
-  type ExpiryStatusType,
 } from "../auth/useSubscriptionEligibility";
 
 interface SubscriptionAlertBannerProps {
@@ -16,7 +15,6 @@ export function SubscriptionAlertBanner({
   showWhenExpiringSoon = true,
 }: SubscriptionAlertBannerProps) {
   const {
-    isEligible,
     isLoading,
     expiryStatus,
     reasonMessage,
