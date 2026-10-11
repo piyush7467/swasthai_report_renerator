@@ -4,5 +4,11 @@
     "name": "Hematology",
     "description": "Diagnostic hematology tests including Complete Blood Count (CBC) and related blood indices",
     "status": "ACTIVE"
+  },
+  {
+    "code": "BIO",
+    "name": "Biochemistry",
+    "description": "Clinical biochemistry tests including liver function, kidney function, lipid profiles, and metabolic panels",
+    "status": "ACTIVE"
   }
 ]

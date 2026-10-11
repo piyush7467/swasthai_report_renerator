@@ -25,5 +25,32 @@
     "currency": "INR",
     "billingCode": "CBC-001",
     "status": "ACTIVE"
+  },
+  {
+    "code": "LFT",
+    "name": "Liver Function Test",
+    "shortName": "LFT",
+    "categoryCode": "BIO",
+    "testType": "PANEL",
+    "description": "Liver Function Test (LFT) panel evaluating hepatic cellular integrity, excretory function, and synthetic capacity through serum bilirubin, transaminases, alkaline phosphatase, and total proteins.",
+    "sampleType": "SERUM",
+    "specimenContainer": "SST Vacutainer (Gold/Yellow Top) or Plain Clot Activator (Red Top)",
+    "sampleVolume": 2.00,
+    "sampleVolumeUnit": "mL",
+    "fastingRequired": true,
+    "patientPreparation": "Overnight fasting of 10-12 hours is recommended. Avoid alcohol consumption for 24 hours prior to blood collection.",
+    "collectionInstructions": "Collect venous blood in SST or plain tube. Allow blood to clot for 30 minutes at room temperature before centrifugation. Centrifuge at 3000 rpm for 10 minutes to separate serum. Avoid hemolysis.",
+    "turnaroundTimeHours": 4,
+    "prioritySupported": true,
+    "outsourced": false,
+    "laboratoryInstructions": "Serum must be free from hemolysis, icterus, and lipemia. Analyze on automated clinical chemistry analyzer. Store serum refrigerated at 2-8°C if analysis is delayed.",
+    "reportSection": "BIOCHEMISTRY",
+    "displayOrder": 2,
+    "reportDescription": "Liver Function Panel assessing liver enzyme activities and protein synthesis.",
+    "interpretationGuidance": "Elevated transaminases (AST, ALT) indicate hepatocellular injury. Elevated ALP and bilirubin indicate cholestasis or biliary obstruction. Alterations in total protein and albumin reflect hepatic synthetic capacity.",
+    "basePrice": 650.00,
+    "currency": "INR",
+    "billingCode": "LFT-001",
+    "status": "ACTIVE"
   }
 ]

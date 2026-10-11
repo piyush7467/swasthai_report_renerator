@@ -67,7 +67,10 @@ class CbcMasterDataValidationTest {
         calculationEngine = new CalculationEngineImpl(List.of(
                 new MCVCalculator(),
                 new MCHCalculator(),
-                new MCHCCalculator()
+                new MCHCCalculator(),
+                new com.swasthai.report_generator.test.calculation.calculators.IndirectBilirubinCalculator(),
+                new com.swasthai.report_generator.test.calculation.calculators.GlobulinCalculator(),
+                new com.swasthai.report_generator.test.calculation.calculators.AGRatioCalculator()
         ));
 
         Validator jpaValidator = Validation.buildDefaultValidatorFactory().getValidator();
@@ -88,27 +91,31 @@ class CbcMasterDataValidationTest {
         MasterDataPayload payload = loader.load();
 
         assertThat(payload).isNotNull();
-        assertThat(payload.categories()).hasSize(1);
-        assertThat(payload.tests()).hasSize(1);
-        assertThat(payload.parameters()).hasSize(15);
+        assertThat(payload.categories()).isNotEmpty();
+        assertThat(payload.tests()).isNotEmpty();
 
-        // Verify Category
-        MasterCategorySeedDto cat = payload.categories().get(0);
-        assertThat(cat.code()).isEqualTo("HEM");
+        // Verify CBC Category
+        MasterCategorySeedDto cat = payload.categories().stream()
+                .filter(c -> "HEM".equalsIgnoreCase(c.code())).findFirst().orElseThrow();
         assertThat(cat.name()).isEqualTo("Hematology");
         assertThat(cat.status()).isEqualTo(TestCategoryStatus.ACTIVE);
 
-        // Verify Test
-        MasterTestSeedDto test = payload.tests().get(0);
-        assertThat(test.code()).isEqualTo("CBC");
+        // Verify CBC Test
+        MasterTestSeedDto test = payload.tests().stream()
+                .filter(t -> "CBC".equalsIgnoreCase(t.code())).findFirst().orElseThrow();
         assertThat(test.name()).isEqualTo("Complete Blood Count");
         assertThat(test.categoryCode()).isEqualTo("HEM");
         assertThat(test.sampleType()).isEqualTo(SampleType.WHOLE_BLOOD);
         assertThat(test.status()).isEqualTo(TestStatus.ACTIVE);
 
-        // Verify Parameters
+        // Verify Parameters for CBC
+        List<MasterParameterSeedDto> cbcParameters = payload.parameters().stream()
+                .filter(p -> "CBC".equalsIgnoreCase(p.testCode()))
+                .toList();
+        assertThat(cbcParameters).hasSize(15);
+
         Set<String> paramCodes = new HashSet<>();
-        for (MasterParameterSeedDto param : payload.parameters()) {
+        for (MasterParameterSeedDto param : cbcParameters) {
             assertThat(param.testCode()).isEqualTo("CBC");
             assertThat(param.code()).isNotBlank();
             assertThat(param.name()).isNotBlank();
@@ -119,23 +126,23 @@ class CbcMasterDataValidationTest {
 
         // Verify calculated parameters
         assertThat(paramCodes).contains("MCV", "MCH", "MCHC");
-        MasterParameterSeedDto mcv = payload.parameters().stream().filter(p -> p.code().equals("MCV")).findFirst().orElseThrow();
+        MasterParameterSeedDto mcv = cbcParameters.stream().filter(p -> p.code().equals("MCV")).findFirst().orElseThrow();
         assertThat(mcv.inputType()).isEqualTo(ParameterInputType.CALCULATED);
         assertThat(mcv.calculationType()).isEqualTo(CalculationType.MCV);
         assertThat(mcv.unit()).isEqualTo("fL");
 
-        MasterParameterSeedDto mch = payload.parameters().stream().filter(p -> p.code().equals("MCH")).findFirst().orElseThrow();
+        MasterParameterSeedDto mch = cbcParameters.stream().filter(p -> p.code().equals("MCH")).findFirst().orElseThrow();
         assertThat(mch.inputType()).isEqualTo(ParameterInputType.CALCULATED);
         assertThat(mch.calculationType()).isEqualTo(CalculationType.MCH);
         assertThat(mch.unit()).isEqualTo("pg");
 
-        MasterParameterSeedDto mchc = payload.parameters().stream().filter(p -> p.code().equals("MCHC")).findFirst().orElseThrow();
+        MasterParameterSeedDto mchc = cbcParameters.stream().filter(p -> p.code().equals("MCHC")).findFirst().orElseThrow();
         assertThat(mchc.inputType()).isEqualTo(ParameterInputType.CALCULATED);
         assertThat(mchc.calculationType()).isEqualTo(CalculationType.MCHC);
         assertThat(mchc.unit()).isEqualTo("g/dL");
 
         // Verify manual input parameters
-        for (MasterParameterSeedDto p : payload.parameters()) {
+        for (MasterParameterSeedDto p : cbcParameters) {
             if (!List.of("MCV", "MCH", "MCHC").contains(p.code())) {
                 assertThat(p.inputType()).isEqualTo(ParameterInputType.MANUAL);
                 assertThat(p.calculationType()).isEqualTo(CalculationType.NONE);
@@ -167,40 +174,48 @@ class CbcMasterDataValidationTest {
         );
 
         // Setup mock behavior for first run (empty DB)
-        when(testCategoryRepository.findByCode("HEM")).thenReturn(Optional.empty());
-        when(testRepository.findByCode("CBC")).thenReturn(Optional.empty());
+        when(testCategoryRepository.findByCode(anyString())).thenReturn(Optional.empty());
+        when(testRepository.findByCode(anyString())).thenReturn(Optional.empty());
 
-        TestCategory savedCat = TestCategory.builder().id(UUID.randomUUID()).code("HEM").name("Hematology").build();
-        com.swasthai.report_generator.test.entity.Test savedTest = com.swasthai.report_generator.test.entity.Test.builder()
-                .id(UUID.randomUUID()).code("CBC").name("Complete Blood Count").category(savedCat).build();
-
-        when(testCategoryRepository.save(any(TestCategory.class))).thenReturn(savedCat);
-        when(testRepository.save(any(com.swasthai.report_generator.test.entity.Test.class))).thenReturn(savedTest);
+        when(testCategoryRepository.save(any(TestCategory.class)))
+                .thenAnswer(inv -> {
+                    TestCategory c = inv.getArgument(0);
+                    c.setId(UUID.randomUUID());
+                    return c;
+                });
+        when(testRepository.save(any(com.swasthai.report_generator.test.entity.Test.class)))
+                .thenAnswer(inv -> {
+                    com.swasthai.report_generator.test.entity.Test t = inv.getArgument(0);
+                    t.setId(UUID.randomUUID());
+                    return t;
+                });
         when(testParameterRepository.findByTest_IdAndCode(any(), any())).thenReturn(Optional.empty());
         when(testParameterRepository.save(any(TestParameter.class))).thenAnswer(inv -> inv.getArgument(0));
 
         MasterDataSeedSummary firstRun = seeder.seed();
 
-        assertThat(firstRun.categoriesInserted()).isEqualTo(1);
-        assertThat(firstRun.testsInserted()).isEqualTo(1);
-        assertThat(firstRun.parametersInserted()).isEqualTo(15);
+        assertThat(firstRun.categoriesInserted()).isEqualTo(2);
+        assertThat(firstRun.testsInserted()).isEqualTo(2);
+        assertThat(firstRun.parametersInserted()).isEqualTo(25);
         assertThat(firstRun.categoriesSkipped()).isEqualTo(0);
         assertThat(firstRun.testsSkipped()).isEqualTo(0);
         assertThat(firstRun.parametersSkipped()).isEqualTo(0);
 
         // Setup mock behavior for second run (existing DB records)
-        when(testCategoryRepository.findByCode("HEM")).thenReturn(Optional.of(savedCat));
-        when(testRepository.findByCode("CBC")).thenReturn(Optional.of(savedTest));
-        when(testParameterRepository.findByTest_IdAndCode(eq(savedTest.getId()), anyString()))
-                .thenAnswer(inv -> Optional.of(TestParameter.builder().code(inv.getArgument(1)).test(savedTest).build()));
+        when(testCategoryRepository.findByCode(anyString()))
+                .thenAnswer(inv -> Optional.of(TestCategory.builder().id(UUID.randomUUID()).code(inv.getArgument(0)).name("Existing").build()));
+        when(testRepository.findByCode(anyString()))
+                .thenAnswer(inv -> Optional.of(com.swasthai.report_generator.test.entity.Test.builder().id(UUID.randomUUID()).code(inv.getArgument(0)).name("Existing").build()));
+        when(testParameterRepository.findByTest_IdAndCode(any(), anyString()))
+                .thenAnswer(inv -> Optional.of(TestParameter.builder().code(inv.getArgument(1)).build()));
 
         MasterDataSeedSummary secondRun = seeder.seed();
 
         assertThat(secondRun.categoriesInserted()).isEqualTo(0);
         assertThat(secondRun.testsInserted()).isEqualTo(0);
         assertThat(secondRun.parametersInserted()).isEqualTo(0);
-        assertThat(secondRun.categoriesSkipped()).isEqualTo(1);
-        assertThat(secondRun.testsSkipped()).isEqualTo(1);
-        assertThat(secondRun.parametersSkipped()).isEqualTo(15);
+        assertThat(secondRun.categoriesSkipped()).isEqualTo(2);
+        assertThat(secondRun.testsSkipped()).isEqualTo(2);
+        assertThat(secondRun.parametersSkipped()).isEqualTo(25);
     }
 }

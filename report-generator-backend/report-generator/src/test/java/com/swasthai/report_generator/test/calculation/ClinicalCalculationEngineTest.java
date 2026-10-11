@@ -251,6 +251,93 @@ class ClinicalCalculationEngineTest {
             );
             assertTrue(ex.getMessage().contains("Globulin is zero"));
         }
+
+        @Test
+        @DisplayName("Audit Spec Example 1: Indirect Bilirubin = 1.00 - 0.34 = 0.66 mg/dL")
+        void shouldCalculateIndirectBilirubin_UserExample() {
+            Map<String, BigDecimal> values = Map.of(
+                    "TBIL", new BigDecimal("1.00"),
+                    "DBIL", new BigDecimal("0.34")
+            );
+            BigDecimal indirect = calculationEngine.calculate(CalculationType.INDIRECT_BILIRUBIN, values);
+            assertEquals(new BigDecimal("0.66"), indirect);
+        }
+
+        @Test
+        @DisplayName("Audit Spec Example 2: Globulin = 7.03 - 4.10 = 2.93 g/dL")
+        void shouldCalculateGlobulin_UserExample() {
+            Map<String, BigDecimal> values = Map.of(
+                    "TP", new BigDecimal("7.03"),
+                    "ALB", new BigDecimal("4.10")
+            );
+            BigDecimal globulin = calculationEngine.calculate(CalculationType.GLOBULIN, values);
+            assertEquals(new BigDecimal("2.93"), globulin);
+        }
+
+        @Test
+        @DisplayName("Audit Spec Example 3: A/G Ratio = 4.10 / 2.93 = 1.40 (half-up rounding)")
+        void shouldCalculateAGRatio_UserExample() {
+            Map<String, BigDecimal> values = Map.of(
+                    "ALB", new BigDecimal("4.10"),
+                    "GLOB", new BigDecimal("2.93")
+            );
+            BigDecimal agRatio = calculationEngine.calculate(CalculationType.AG_RATIO, values);
+            assertEquals(new BigDecimal("1.40"), agRatio);
+        }
+
+        @Test
+        @DisplayName("Indirect Bilirubin: rejects missing inputs (missing TBIL or missing DBIL)")
+        void shouldRejectIndirectBilirubin_MissingInputs() {
+            assertThrows(CalculationException.class, () ->
+                    calculationEngine.calculate(CalculationType.INDIRECT_BILIRUBIN, Map.of("DBIL", new BigDecimal("0.34"))));
+            assertThrows(CalculationException.class, () ->
+                    calculationEngine.calculate(CalculationType.INDIRECT_BILIRUBIN, Map.of("TBIL", new BigDecimal("1.00"))));
+        }
+
+        @Test
+        @DisplayName("Indirect Bilirubin: rejects negative inputs")
+        void shouldRejectIndirectBilirubin_NegativeInputs() {
+            assertThrows(CalculationException.class, () ->
+                    calculationEngine.calculate(CalculationType.INDIRECT_BILIRUBIN, Map.of("TBIL", new BigDecimal("-1.00"), "DBIL", new BigDecimal("0.34"))));
+            assertThrows(CalculationException.class, () ->
+                    calculationEngine.calculate(CalculationType.INDIRECT_BILIRUBIN, Map.of("TBIL", new BigDecimal("1.00"), "DBIL", new BigDecimal("-0.34"))));
+        }
+
+        @Test
+        @DisplayName("Globulin: rejects missing inputs (missing TP or missing ALB)")
+        void shouldRejectGlobulin_MissingInputs() {
+            assertThrows(CalculationException.class, () ->
+                    calculationEngine.calculate(CalculationType.GLOBULIN, Map.of("ALB", new BigDecimal("4.10"))));
+            assertThrows(CalculationException.class, () ->
+                    calculationEngine.calculate(CalculationType.GLOBULIN, Map.of("TP", new BigDecimal("7.03"))));
+        }
+
+        @Test
+        @DisplayName("Globulin: rejects negative inputs")
+        void shouldRejectGlobulin_NegativeInputs() {
+            assertThrows(CalculationException.class, () ->
+                    calculationEngine.calculate(CalculationType.GLOBULIN, Map.of("TP", new BigDecimal("-7.03"), "ALB", new BigDecimal("4.10"))));
+            assertThrows(CalculationException.class, () ->
+                    calculationEngine.calculate(CalculationType.GLOBULIN, Map.of("TP", new BigDecimal("7.03"), "ALB", new BigDecimal("-4.10"))));
+        }
+
+        @Test
+        @DisplayName("A/G Ratio: rejects missing inputs (missing ALB or missing GLOB when TP absent)")
+        void shouldRejectAGRatio_MissingInputs() {
+            assertThrows(CalculationException.class, () ->
+                    calculationEngine.calculate(CalculationType.AG_RATIO, Map.of("GLOB", new BigDecimal("2.93"))));
+            assertThrows(CalculationException.class, () ->
+                    calculationEngine.calculate(CalculationType.AG_RATIO, Map.of("ALB", new BigDecimal("4.10"))));
+        }
+
+        @Test
+        @DisplayName("A/G Ratio: rejects negative inputs")
+        void shouldRejectAGRatio_NegativeInputs() {
+            assertThrows(CalculationException.class, () ->
+                    calculationEngine.calculate(CalculationType.AG_RATIO, Map.of("ALB", new BigDecimal("-4.10"), "GLOB", new BigDecimal("2.93"))));
+            assertThrows(CalculationException.class, () ->
+                    calculationEngine.calculate(CalculationType.AG_RATIO, Map.of("ALB", new BigDecimal("4.10"), "GLOB", new BigDecimal("-2.93"))));
+        }
     }
 
     @Nested
