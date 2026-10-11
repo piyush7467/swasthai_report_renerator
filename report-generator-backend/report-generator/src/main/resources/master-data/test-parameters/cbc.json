@@ -72,7 +72,7 @@
     "criticalLow": 60.0,
     "criticalHigh": 120.0,
     "reportDescription": "Calculated erythrocyte index: PCV (%) × 10 / RBC (10^6/µL)",
-    "interpretationGuidance": "Microcytic (<80 fL) indicates iron deficiency, thalassemia; macrocytic (>100 fL) indicates B12/folate deficiency.",
+    "interpretationGuidance": "Microcytic (<80 fL) indicates iron deficiency or thalassemia; macrocytic (>100 fL) may indicate B12/folate deficiency.",
     "status": "ACTIVE"
   },
   {
@@ -91,14 +91,14 @@
     "criticalLow": 18.0,
     "criticalHigh": 40.0,
     "reportDescription": "Calculated erythrocyte index: Hemoglobin (g/dL) × 10 / RBC (10^6/µL)",
-    "interpretationGuidance": "Correlates directly with MCV; hypochromic red cells exhibit decreased MCH.",
+    "interpretationGuidance": "Correlates with MCV; hypochromic red cells may exhibit decreased MCH.",
     "status": "ACTIVE"
   },
   {
     "code": "MCHC",
     "testCode": "CBC",
     "name": "Mean Corpuscular Hemoglobin Concentration",
-    "description": "Average concentration of hemoglobin in a volume of packed red blood cells",
+    "description": "Average concentration of hemoglobin in packed red blood cells",
     "dataType": "DECIMAL",
     "inputType": "CALCULATED",
     "calculationType": "MCHC",
@@ -110,7 +110,7 @@
     "criticalLow": 26.0,
     "criticalHigh": 39.0,
     "reportDescription": "Calculated erythrocyte index: Hemoglobin (g/dL) × 100 / PCV (%)",
-    "interpretationGuidance": "Decreased in hypochromic anemias; increased in hereditary spherocytosis or cold agglutinins.",
+    "interpretationGuidance": "Decreased in hypochromic anemias; increased values require clinical correlation.",
     "status": "ACTIVE"
   },
   {
@@ -127,7 +127,7 @@
     "referenceMin": 11.5,
     "referenceMax": 14.5,
     "reportDescription": "Coefficient of variation of red cell volume distribution",
-    "interpretationGuidance": "Elevated RDW indicates anisocytosis, useful in differentiating iron deficiency anemia from thalassemia trait.",
+    "interpretationGuidance": "Elevated RDW indicates anisocytosis and may help differentiate types of anemia.",
     "status": "ACTIVE"
   },
   {
@@ -146,7 +146,7 @@
     "criticalLow": 2.0,
     "criticalHigh": 30.0,
     "reportDescription": "Total circulating leukocyte concentration in peripheral blood",
-    "interpretationGuidance": "Leukocytosis indicates bacterial infection, inflammation, or leukemia; leukopenia indicates marrow suppression or severe viral infection.",
+    "interpretationGuidance": "Abnormal WBC counts require clinical correlation.",
     "status": "ACTIVE"
   },
   {
@@ -163,7 +163,7 @@
     "referenceMin": 40.0,
     "referenceMax": 75.0,
     "reportDescription": "Relative frequency of segmented and band neutrophils",
-    "interpretationGuidance": "Neutrophilia seen in acute bacterial infection, tissue damage, or systemic inflammation.",
+    "interpretationGuidance": "Interpret with the total WBC count and clinical findings.",
     "status": "ACTIVE"
   },
   {
@@ -180,24 +180,7 @@
     "referenceMin": 20.0,
     "referenceMax": 45.0,
     "reportDescription": "Relative frequency of lymphocytes in peripheral blood",
-    "interpretationGuidance": "Lymphocytosis seen in viral infections, chronic lymphocytic leukemia, or infectious mononucleosis.",
-    "status": "ACTIVE"
-  },
-  {
-    "code": "MONO",
-    "testCode": "CBC",
-    "name": "Monocytes",
-    "description": "Percentage of monocytes in differential leukocyte count",
-    "dataType": "DECIMAL",
-    "inputType": "MANUAL",
-    "calculationType": "NONE",
-    "unit": "%",
-    "required": false,
-    "displayOrder": 11,
-    "referenceMin": 2.0,
-    "referenceMax": 10.0,
-    "reportDescription": "Relative frequency of monocytes in peripheral blood",
-    "interpretationGuidance": "Monocytosis seen in chronic intracellular infections (e.g. tuberculosis), recovery phase of infections, or autoimmune disease.",
+    "interpretationGuidance": "Interpret with the total WBC count and clinical findings.",
     "status": "ACTIVE"
   },
   {
@@ -210,28 +193,45 @@
     "calculationType": "NONE",
     "unit": "%",
     "required": false,
-    "displayOrder": 12,
+    "displayOrder": 11,
     "referenceMin": 1.0,
     "referenceMax": 6.0,
     "reportDescription": "Relative frequency of eosinophils in peripheral blood",
-    "interpretationGuidance": "Eosinophilia commonly associated with allergic responses, parasitic infections, or drug hypersensitivity.",
+    "interpretationGuidance": "Interpret with clinical findings and the laboratory's approved reference intervals.",
+    "status": "ACTIVE"
+  },
+  {
+    "code": "MONO",
+    "testCode": "CBC",
+    "name": "Monocytes",
+    "description": "Percentage derived under the lab-approved CBC differential reporting rule",
+    "dataType": "DECIMAL",
+    "inputType": "CALCULATED",
+    "calculationType": "NONE",
+    "unit": "%",
+    "required": false,
+    "displayOrder": 12,
+    "referenceMin": 2.0,
+    "referenceMax": 10.0,
+    "reportDescription": "Calculated as 100 minus NEUT%, LYMPH% and EOS% under the configured lab-specific rule",
+    "interpretationGuidance": "This value is inferred under a lab-specific reporting rule and must be interpreted according to the laboratory's approved procedure.",
     "status": "ACTIVE"
   },
   {
     "code": "BASO",
     "testCode": "CBC",
     "name": "Basophils",
-    "description": "Percentage of basophils in differential leukocyte count",
+    "description": "Automatically assigned zero under the lab-approved CBC differential reporting rule",
     "dataType": "DECIMAL",
-    "inputType": "MANUAL",
+    "inputType": "CALCULATED",
     "calculationType": "NONE",
     "unit": "%",
     "required": false,
     "displayOrder": 13,
     "referenceMin": 0.0,
     "referenceMax": 2.0,
-    "reportDescription": "Relative frequency of basophils in peripheral blood",
-    "interpretationGuidance": "Basophilia seen in myeloproliferative disorders including chronic myeloid leukemia.",
+    "reportDescription": "Automatically assigned 0% under the configured lab-specific rule",
+    "interpretationGuidance": "This is a configured reporting value, not an independently measured basophil percentage.",
     "status": "ACTIVE"
   },
   {
@@ -250,7 +250,7 @@
     "criticalLow": 50.0,
     "criticalHigh": 1000.0,
     "reportDescription": "Total circulating thrombocyte concentration in peripheral blood",
-    "interpretationGuidance": "Thrombocytopenia increases hemorrhagic risk; thrombocytosis seen in reactive conditions or essential thrombocythemia.",
+    "interpretationGuidance": "Interpret with clinical findings and the laboratory's approved reference intervals.",
     "status": "ACTIVE"
   },
   {
@@ -267,7 +267,7 @@
     "referenceMin": 7.5,
     "referenceMax": 11.5,
     "reportDescription": "Automated thrombocyte index indicating average platelet size",
-    "interpretationGuidance": "High MPV reflects increased platelet turnover with younger, larger platelets released into circulation.",
+    "interpretationGuidance": "Interpret with platelet count and clinical findings.",
     "status": "ACTIVE"
   }
 ]
