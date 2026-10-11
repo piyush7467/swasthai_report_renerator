@@ -3,6 +3,7 @@ package com.swasthai.report_generator.report.pdf;
 import com.swasthai.report_generator.report.entity.Report;
 import com.swasthai.report_generator.report.entity.ReportStatus;
 import com.swasthai.report_generator.report.entity.ReportTestResult;
+import com.swasthai.report_generator.test.entity.ParameterInputType;
 import com.swasthai.report_generator.test.entity.TestParameterResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -325,7 +326,7 @@ public class ReportPdfDataBuilder {
                         paramResult.getDataType()
                 )
                 .inputType(
-                        paramResult.getInputType()
+                        resolveEffectiveInputType(paramResult)
                 )
                 .calculationType(
                         paramResult.getCalculationType()
@@ -469,5 +470,19 @@ public class ReportPdfDataBuilder {
     private boolean isBlank(String value) {
 
         return value == null || value.isBlank();
+    }
+
+    private ParameterInputType resolveEffectiveInputType(TestParameterResult paramResult) {
+        if (paramResult == null) {
+            return null;
+        }
+        ParameterInputType effectiveInputType = paramResult.getInputType();
+        if (paramResult.getReportTestResult() != null
+                && "CBC".equalsIgnoreCase(paramResult.getReportTestResult().getTestCode())
+                && ("MONO".equalsIgnoreCase(paramResult.getParameterCode())
+                        || "BASO".equalsIgnoreCase(paramResult.getParameterCode()))) {
+            return ParameterInputType.CALCULATED;
+        }
+        return effectiveInputType;
     }
 }

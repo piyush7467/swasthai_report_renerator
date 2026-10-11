@@ -402,9 +402,6 @@ public class ReportServiceImpl implements ReportService {
             }
 
             ParameterInputType inputType = param.getInputType();
-            if (isCbcTest(test.getCode()) && isCbcCalculatedDifferential(param.getCode())) {
-                inputType = ParameterInputType.CALCULATED;
-            }
 
             TestParameterResult paramResult =
                     TestParameterResult.builder()
@@ -518,9 +515,6 @@ public class ReportServiceImpl implements ReportService {
                         : null;
 
                 ParameterInputType inputType = param.getInputType();
-                if (isCbcTest(test.getCode()) && isCbcCalculatedDifferential(param.getCode())) {
-                    inputType = ParameterInputType.CALCULATED;
-                }
 
                 TestParameterResult paramResult = TestParameterResult.builder()
                         .testParameter(param)
@@ -1047,8 +1041,9 @@ public class ReportServiceImpl implements ReportService {
                             "Report contains an invalid parameter result");
                 }
 
-                if (paramResult.getInputType()
-                        == ParameterInputType.MANUAL) {
+                boolean isCbcDiff = isCbcTest(reportTest.getTestCode())
+                        && isCbcCalculatedDifferential(paramResult.getParameterCode());
+                if (paramResult.getInputType() == ParameterInputType.MANUAL && !isCbcDiff) {
 
                     /*
                      * At finalization the original TestParameter must
@@ -1647,12 +1642,10 @@ public class ReportServiceImpl implements ReportService {
                 if (CbcDifferentialValidator.PARAM_MONO.equalsIgnoreCase(code)) {
                     result.setValue(diffResult.mono().stripTrailingZeros().toPlainString());
                     result.setNumericValue(diffResult.mono());
-                    result.setInputType(ParameterInputType.CALCULATED);
                     result.setFlag(classifyFlag(result, diffResult.mono()));
                 } else if (CbcDifferentialValidator.PARAM_BASO.equalsIgnoreCase(code)) {
                     result.setValue(diffResult.baso().stripTrailingZeros().toPlainString());
                     result.setNumericValue(diffResult.baso());
-                    result.setInputType(ParameterInputType.CALCULATED);
                     result.setFlag(classifyFlag(result, diffResult.baso()));
                 }
             }
@@ -1671,7 +1664,6 @@ public class ReportServiceImpl implements ReportService {
                         if (isCbcCalculatedDifferential(code)) {
                             result.setValue(null);
                             result.setNumericValue(null);
-                            result.setInputType(ParameterInputType.CALCULATED);
                             result.setFlag(null);
                         }
                     }

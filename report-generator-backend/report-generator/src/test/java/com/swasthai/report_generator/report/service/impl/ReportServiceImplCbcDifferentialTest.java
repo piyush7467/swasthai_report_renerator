@@ -452,10 +452,21 @@ class ReportServiceImplCbcDifferentialTest {
         // New calculation: 100 - 70 - 12 - 8 = 10
         assertThat(monoResult.getValue()).isEqualTo("10");
         assertThat(monoResult.getNumericValue()).isEqualByComparingTo("10");
-        assertThat(monoResult.getInputType()).isEqualTo(ParameterInputType.CALCULATED);
+        // Entity inputType remains MANUAL so it complies with DB check constraint chk_tpr_calculation_consistency
+        assertThat(monoResult.getInputType()).isEqualTo(ParameterInputType.MANUAL);
+        assertThat(monoResult.getCalculationType()).isEqualTo(CalculationType.NONE);
         assertThat(basoResult.getValue()).isEqualTo("0");
         assertThat(basoResult.getNumericValue()).isEqualByComparingTo("0");
-        assertThat(basoResult.getInputType()).isEqualTo(ParameterInputType.CALCULATED);
+        assertThat(basoResult.getInputType()).isEqualTo(ParameterInputType.MANUAL);
+        assertThat(basoResult.getCalculationType()).isEqualTo(CalculationType.NONE);
+
+        // Response DTO exposes CALCULATED to frontend
+        com.swasthai.report_generator.report.dto.response.ReportParameterItemResponse respMono = response.tests().get(0).parameters().stream()
+                .filter(p -> "MONO".equals(p.parameterCode())).findFirst().orElseThrow();
+        com.swasthai.report_generator.report.dto.response.ReportParameterItemResponse respBaso = response.tests().get(0).parameters().stream()
+                .filter(p -> "BASO".equals(p.parameterCode())).findFirst().orElseThrow();
+        assertThat(respMono.inputType()).isEqualTo(ParameterInputType.CALCULATED);
+        assertThat(respBaso.inputType()).isEqualTo(ParameterInputType.CALCULATED);
     }
 
     @Test
@@ -577,9 +588,124 @@ class ReportServiceImplCbcDifferentialTest {
         TestParameterResult addedNeut = addedTest.getParameterResults().stream()
                 .filter(p -> "NEUT".equals(p.getParameterCode())).findFirst().orElseThrow();
 
+        // Entities must have inputType MANUAL and calculationType NONE to satisfy DB check constraint chk_tpr_calculation_consistency
         assertThat(addedNeut.getInputType()).isEqualTo(ParameterInputType.MANUAL);
-        assertThat(addedMono.getInputType()).isEqualTo(ParameterInputType.CALCULATED);
-        assertThat(addedBaso.getInputType()).isEqualTo(ParameterInputType.CALCULATED);
+        assertThat(addedMono.getInputType()).isEqualTo(ParameterInputType.MANUAL);
+        assertThat(addedMono.getCalculationType()).isEqualTo(CalculationType.NONE);
+        assertThat(addedBaso.getInputType()).isEqualTo(ParameterInputType.MANUAL);
+        assertThat(addedBaso.getCalculationType()).isEqualTo(CalculationType.NONE);
+
+        // Response DTO exposes CALCULATED to client
+        com.swasthai.report_generator.report.dto.response.ReportParameterItemResponse respMono = response.tests().get(0).parameters().stream()
+                .filter(p -> "MONO".equals(p.parameterCode())).findFirst().orElseThrow();
+        com.swasthai.report_generator.report.dto.response.ReportParameterItemResponse respBaso = response.tests().get(0).parameters().stream()
+                .filter(p -> "BASO".equals(p.parameterCode())).findFirst().orElseThrow();
+        com.swasthai.report_generator.report.dto.response.ReportParameterItemResponse respNeut = response.tests().get(0).parameters().stream()
+                .filter(p -> "NEUT".equals(p.parameterCode())).findFirst().orElseThrow();
+
+        assertThat(respNeut.inputType()).isEqualTo(ParameterInputType.MANUAL);
+        assertThat(respMono.inputType()).isEqualTo(ParameterInputType.CALCULATED);
+        assertThat(respBaso.inputType()).isEqualTo(ParameterInputType.CALCULATED);
+    }
+
+    @Test
+    @DisplayName("Regression Test: All parameter results created by addTestsBulk satisfy DB check constraint chk_tpr_calculation_consistency")
+    void testAddTestsBulk_CbcTestParameterResults_SatisfyCheckConstraint_chk_tpr_calculation_consistency() {
+        Report emptyReport = Report.builder()
+                .id(UUID.randomUUID())
+                .refId("REP-REG")
+                .organization(testOrg)
+                .status(ReportStatus.DRAFT)
+                .reportVersion(1)
+                .lockVersion(0L)
+                .tests(new ArrayList<>())
+                .build();
+
+        when(reportRepository.findByRefIdAndOrganization_IdAndDeletedAtIsNull("REP-REG", testOrg.getId()))
+                .thenReturn(Optional.of(emptyReport));
+        when(reportRepository.save(any(Report.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        com.swasthai.report_generator.test.entity.Test cbcEntity =
+                com.swasthai.report_generator.test.entity.Test.builder()
+                        .id(UUID.randomUUID())
+                        .refId("TEST-9zlU0ZjoaQx5")
+                        .code("CBC")
+                        .name("Complete Blood Count")
+                        .status(TestStatus.ACTIVE)
+                        .build();
+
+        when(organizationTestService.hasTestAccess("TEST-9zlU0ZjoaQx5")).thenReturn(true);
+        when(testRepository.findByRefId("TEST-9zlU0ZjoaQx5")).thenReturn(Optional.of(cbcEntity));
+
+        List<TestParameter> cbcParams = List.of(
+                TestParameter.builder().code("HGB").name("Hemoglobin").inputType(ParameterInputType.MANUAL).calculationType(CalculationType.NONE).displayOrder(1).build(),
+                TestParameter.builder().code("RBC").name("Red Blood Cells").inputType(ParameterInputType.MANUAL).calculationType(CalculationType.NONE).displayOrder(2).build(),
+                TestParameter.builder().code("HCT").name("Hematocrit").inputType(ParameterInputType.MANUAL).calculationType(CalculationType.NONE).displayOrder(3).build(),
+                TestParameter.builder().code("MCV").name("Mean Corpuscular Volume").inputType(ParameterInputType.CALCULATED).calculationType(CalculationType.MCV).displayOrder(4).build(),
+                TestParameter.builder().code("MCH").name("Mean Corpuscular Hemoglobin").inputType(ParameterInputType.CALCULATED).calculationType(CalculationType.MCH).displayOrder(5).build(),
+                TestParameter.builder().code("MCHC").name("Mean Corpuscular Hemoglobin Concentration").inputType(ParameterInputType.CALCULATED).calculationType(CalculationType.MCHC).displayOrder(6).build(),
+                TestParameter.builder().code("NEUT").name("Neutrophils").inputType(ParameterInputType.MANUAL).calculationType(CalculationType.NONE).displayOrder(7).build(),
+                TestParameter.builder().code("LYMPH").name("Lymphocytes").inputType(ParameterInputType.MANUAL).calculationType(CalculationType.NONE).displayOrder(8).build(),
+                TestParameter.builder().code("MONO").name("Monocytes").inputType(ParameterInputType.MANUAL).calculationType(CalculationType.NONE).displayOrder(9).build(),
+                TestParameter.builder().code("EOS").name("Eosinophils").inputType(ParameterInputType.MANUAL).calculationType(CalculationType.NONE).displayOrder(10).build(),
+                TestParameter.builder().code("BASO").name("Basophils").inputType(ParameterInputType.MANUAL).calculationType(CalculationType.NONE).displayOrder(11).build()
+        );
+
+        when(testParameterRepository.findAllByTest_IdAndStatusOrderByDisplayOrderAsc(cbcEntity.getId(), TestParameterStatus.ACTIVE))
+                .thenReturn(cbcParams);
+
+        AddReportTestsBulkRequest request = new AddReportTestsBulkRequest(List.of("TEST-9zlU0ZjoaQx5"), 0L);
+        ReportResponse response = reportService.addTestsBulk("REP-REG", request);
+
+        assertThat(response).isNotNull();
+        assertThat(emptyReport.getTests()).hasSize(1);
+        ReportTestResult reportTest = emptyReport.getTests().get(0);
+
+        // Allowed calculation types in constraint chk_tpr_calculation_consistency
+        Set<CalculationType> allowedCalculatedTypes = Set.of(
+                CalculationType.MCV, CalculationType.MCH, CalculationType.MCHC,
+                CalculationType.VLDL, CalculationType.LDL_FRIEDEWALD, CalculationType.NON_HDL_CHOLESTEROL,
+                CalculationType.CHOL_HDL_RATIO, CalculationType.LDL_HDL_RATIO, CalculationType.INDIRECT_BILIRUBIN,
+                CalculationType.GLOBULIN, CalculationType.AG_RATIO, CalculationType.BUN_CREATININE_RATIO,
+                CalculationType.UREA_CREATININE_RATIO, CalculationType.EGFR_CKD_EPI_2021,
+                CalculationType.ANION_GAP, CalculationType.ANION_GAP_K
+        );
+
+        // Verify that EVERY persisted TestParameterResult strictly satisfies chk_tpr_calculation_consistency
+        for (TestParameterResult result : reportTest.getParameterResults()) {
+            boolean isManualConsistency = result.getInputType() == ParameterInputType.MANUAL
+                    && result.getCalculationType() == CalculationType.NONE;
+
+            boolean isCalculatedConsistency = result.getInputType() == ParameterInputType.CALCULATED
+                    && allowedCalculatedTypes.contains(result.getCalculationType());
+
+            assertThat(isManualConsistency || isCalculatedConsistency)
+                    .withFailMessage("Parameter %s violates chk_tpr_calculation_consistency with inputType=%s and calculationType=%s",
+                            result.getParameterCode(), result.getInputType(), result.getCalculationType())
+                    .isTrue();
+        }
+
+        // Specifically verify MONO and BASO: entity complies with DB constraint, while response displays CALCULATED
+        TestParameterResult monoEntity = reportTest.getParameterResults().stream()
+                .filter(p -> "MONO".equals(p.getParameterCode())).findFirst().orElseThrow();
+        TestParameterResult basoEntity = reportTest.getParameterResults().stream()
+                .filter(p -> "BASO".equals(p.getParameterCode())).findFirst().orElseThrow();
+
+        assertThat(monoEntity.getInputType()).isEqualTo(ParameterInputType.MANUAL);
+        assertThat(monoEntity.getCalculationType()).isEqualTo(CalculationType.NONE);
+        assertThat(basoEntity.getInputType()).isEqualTo(ParameterInputType.MANUAL);
+        assertThat(basoEntity.getCalculationType()).isEqualTo(CalculationType.NONE);
+
+        com.swasthai.report_generator.report.dto.response.ReportParameterItemResponse monoDto =
+                response.tests().get(0).parameters().stream()
+                        .filter(p -> "MONO".equals(p.parameterCode())).findFirst().orElseThrow();
+        com.swasthai.report_generator.report.dto.response.ReportParameterItemResponse basoDto =
+                response.tests().get(0).parameters().stream()
+                        .filter(p -> "BASO".equals(p.parameterCode())).findFirst().orElseThrow();
+
+        assertThat(monoDto.inputType()).isEqualTo(ParameterInputType.CALCULATED);
+        assertThat(basoDto.inputType()).isEqualTo(ParameterInputType.CALCULATED);
     }
 
     @Test
