@@ -32,7 +32,11 @@ import { ParameterResultFlagBadge } from "../ParameterResultFlagBadge";
 import { ReportStatusBadge } from "../ReportStatusBadge";
 import { AddTestModal } from "../AddTestModal";
 import { formatDisplayUnit } from "../../utils/unitFormatter";
-import { computeAllCalculatedValues } from "../../utils/clinicalCalculations";
+import {
+  computeAllCalculatedValues,
+  isCalculatedParameter,
+  validateCbcDifferential,
+} from "../../utils/clinicalCalculations";
 import { testApi } from "@/modules/super-admin/tests/api/testApi";
 import type {
   ReportParameterItemResponse,
@@ -95,6 +99,7 @@ export function Step4EnterResults({
   // Delete test confirmation state
   const [testToDelete, setTestToDelete] = useState<ReportTestItemResponse | null>(null);
   const [isDeletingTest, setIsDeletingTest] = useState(false);
+  const [cbcValidationError, setCbcValidationError] = useState<string | null>(null);
 
   // Active focused parameter tracker for row highlight & guidance bar
   const [activeParam, setActiveParam] = useState<{
@@ -151,7 +156,7 @@ export function Step4EnterResults({
 
     report.tests.forEach((test) => {
       test.parameters.forEach((param) => {
-        if (param.inputType === "MANUAL") {
+        if (!isCalculatedParameter(param, test.testCode)) {
           list.push({
             key: `${test.refId}_${param.parameterRefId}`,
             reportTestRefId: test.refId,
@@ -242,7 +247,7 @@ export function Step4EnterResults({
       if (!currentTest) return;
 
       const manualParameters = currentTest.parameters
-        .filter((p) => p.inputType === "MANUAL")
+        .filter((p) => !isCalculatedParameter(p, currentTest.testCode))
         .map((p) => ({
           parameterRefId: p.parameterRefId,
           value:
@@ -374,6 +379,18 @@ export function Step4EnterResults({
 
   // Flush pending saves before advancing to review
   const handleProceedToReview = async () => {
+    // Validate CBC differential counts across all CBC tests in this report
+    for (const test of report.tests) {
+      if (test.testCode?.trim().toUpperCase() === "CBC") {
+        const val = validateCbcDifferential(test, localParamValues[test.refId] ?? {});
+        if (val && !val.isValid) {
+          setCbcValidationError(val.errorMessage || "Please fix CBC differential validation errors before proceeding.");
+          return;
+        }
+      }
+    }
+    setCbcValidationError(null);
+
     const pendingTests = Object.keys(pendingSaveTimeoutRef.current);
     for (const testRefId of pendingTests) {
       if (pendingSaveTimeoutRef.current[testRefId]) {
@@ -586,6 +603,34 @@ export function Step4EnterResults({
               </div>
             </div>
 
+            {/* CBC Differential leukocyte status or error alert */}
+            {(() => {
+              const cbcDiff =
+                test.testCode?.trim().toUpperCase() === "CBC"
+                  ? validateCbcDifferential(test, localParamValues[test.refId] ?? {})
+                  : null;
+              if (!cbcDiff) return null;
+              if (!cbcDiff.isValid && cbcDiff.errorMessage) {
+                return (
+                  <div className="bg-rose-50 border-b border-rose-200 px-4 sm:px-6 py-2.5 flex items-center gap-2 text-xs text-rose-800 font-medium">
+                    <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+                    <span>{cbcDiff.errorMessage}</span>
+                  </div>
+                );
+              }
+              if (cbcDiff.hasDifferential && cbcDiff.mono !== null) {
+                return (
+                  <div className="bg-emerald-50/70 border-b border-emerald-200/80 px-4 sm:px-6 py-2 flex items-center gap-2 text-xs text-emerald-800 font-medium">
+                    <Check className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                    <span>
+                      Differential count balanced: 100% total (MONO: {cbcDiff.mono}%, BASO: 0%)
+                    </span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
             {/* DESKTOP TABLE VIEW (sm and up) */}
             <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[700px]">
@@ -601,7 +646,7 @@ export function Step4EnterResults({
                 <tbody className="divide-y divide-slate-100">
                   {test.parameters.map((param) => {
                     const key = `${test.refId}_${param.parameterRefId}`;
-                    const isCalculated = param.inputType === "CALCULATED";
+                    const isCalculated = isCalculatedParameter(param, test.testCode);
                     const isActive =
                       activeParam?.reportTestRefId === test.refId &&
                       activeParam?.param.parameterRefId === param.parameterRefId;
@@ -613,6 +658,7 @@ export function Step4EnterResults({
                       : (localParamValues[test.refId]?.[param.parameterRefId] ??
                         param.value ??
                         "");
+                    const isNegative = isCalculated && parseFloat(displayVal) < 0;
 
                     return (
                       <tr
@@ -644,7 +690,9 @@ export function Step4EnterResults({
                             <div className="flex items-center gap-2">
                               <div
                                 className={`h-11 px-3.5 rounded-lg border flex items-center justify-center font-mono font-bold text-[15px] min-w-[85px] shadow-2xs select-none transition-colors ${
-                                  displayVal
+                                  isNegative
+                                    ? "bg-rose-50 border-rose-300 text-rose-700"
+                                    : displayVal
                                     ? "bg-emerald-50/70 border-emerald-300 text-emerald-900"
                                     : "bg-slate-100/90 border-slate-200 text-slate-400"
                                 }`}
@@ -652,16 +700,26 @@ export function Step4EnterResults({
                                 {displayVal || "—"}
                               </div>
                               <Badge
-                                variant="outline"
+                                variant={isNegative ? "destructive" : "outline"}
                                 className={`text-[11px] font-medium flex items-center gap-1 shrink-0 select-none py-1 transition-colors ${
-                                  displayVal
+                                  isNegative
+                                    ? "bg-rose-100 text-rose-800 border-rose-300"
+                                    : displayVal
                                     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                     : "bg-slate-100 text-slate-600 border-slate-300"
                                 }`}
-                                title="Calculated automatically by clinical formula"
+                                title={
+                                  isNegative
+                                    ? "Calculated percentage is negative"
+                                    : "Calculated automatically by clinical formula"
+                                }
                               >
-                                <Lock className="h-3 w-3 text-slate-500" />
-                                {displayVal ? "Auto calculated" : "Calculated"}
+                                {isNegative ? (
+                                  <AlertCircle className="h-3 w-3 text-rose-600" />
+                                ) : (
+                                  <Lock className="h-3 w-3 text-slate-500" />
+                                )}
+                                {isNegative ? "Invalid (< 0)" : displayVal ? "Auto calculated" : "Calculated"}
                               </Badge>
                             </div>
                           ) : (
@@ -739,7 +797,7 @@ export function Step4EnterResults({
             <div className="sm:hidden divide-y divide-slate-100 p-4 space-y-4">
               {test.parameters.map((param) => {
                 const key = `${test.refId}_${param.parameterRefId}`;
-                const isCalculated = param.inputType === "CALCULATED";
+                const isCalculated = isCalculatedParameter(param, test.testCode);
                 const calculatedVal =
                   calculatedValuesByTest[test.refId]?.[param.parameterRefId];
                 const displayVal = isCalculated
@@ -747,6 +805,7 @@ export function Step4EnterResults({
                   : (localParamValues[test.refId]?.[param.parameterRefId] ??
                     param.value ??
                     "");
+                const isNegative = isCalculated && parseFloat(displayVal) < 0;
 
                 return (
                   <div
@@ -774,7 +833,9 @@ export function Step4EnterResults({
                         <div className="flex items-center gap-2">
                           <div
                             className={`h-11 px-3.5 rounded-lg border flex-1 flex items-center font-mono font-bold text-base transition-colors ${
-                              displayVal
+                              isNegative
+                                ? "bg-rose-50 border-rose-300 text-rose-700"
+                                : displayVal
                                 ? "bg-emerald-50/70 border-emerald-300 text-emerald-900"
                                 : "bg-slate-100 border-slate-200 text-slate-400"
                             }`}
@@ -782,16 +843,26 @@ export function Step4EnterResults({
                             {displayVal || "—"}
                           </div>
                           <Badge
-                            variant="outline"
+                            variant={isNegative ? "destructive" : "outline"}
                             className={`text-xs font-medium flex items-center gap-1 shrink-0 h-11 px-3 transition-colors ${
-                              displayVal
+                              isNegative
+                                ? "bg-rose-100 text-rose-800 border-rose-300"
+                                : displayVal
                                 ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                 : "bg-slate-100 text-slate-600 border-slate-300"
                             }`}
-                            title="Calculated automatically by clinical formula"
+                            title={
+                              isNegative
+                                ? "Calculated percentage is negative"
+                                : "Calculated automatically by clinical formula"
+                            }
                           >
-                            <Lock className="h-3.5 w-3.5 text-slate-500" />
-                            {displayVal ? "Auto calculated" : "Calculated"}
+                            {isNegative ? (
+                              <AlertCircle className="h-3.5 w-3.5 text-rose-600" />
+                            ) : (
+                              <Lock className="h-3.5 w-3.5 text-slate-500" />
+                            )}
+                            {isNegative ? "Invalid (< 0)" : displayVal ? "Auto calculated" : "Calculated"}
                           </Badge>
                         </div>
                       ) : (
@@ -898,6 +969,16 @@ export function Step4EnterResults({
             )}
           </Card>
         ))
+      )}
+
+      {cbcValidationError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Differential Count Validation Error</AlertTitle>
+          <AlertDescription className="text-xs mt-1">
+            {cbcValidationError}
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* ======================================================== */}

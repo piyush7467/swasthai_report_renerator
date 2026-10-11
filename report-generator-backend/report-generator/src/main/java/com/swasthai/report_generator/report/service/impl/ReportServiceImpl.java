@@ -402,6 +402,11 @@ public class ReportServiceImpl implements ReportService {
                                 : null;
             }
 
+            ParameterInputType inputType = param.getInputType();
+            if (isCbcTest(test.getCode()) && isCbcCalculatedDifferential(param.getCode())) {
+                inputType = ParameterInputType.CALCULATED;
+            }
+
             TestParameterResult paramResult =
                     TestParameterResult.builder()
                             .testParameter(param)
@@ -409,7 +414,7 @@ public class ReportServiceImpl implements ReportService {
                             .parameterCode(param.getCode())
                             .parameterName(param.getName())
                             .dataType(param.getDataType())
-                            .inputType(param.getInputType())
+                            .inputType(inputType)
                             .calculationType(calculationType)
                             .calculationVersion(calculationVersion)
                             .unit(param.getUnit())
@@ -508,13 +513,18 @@ public class ReportServiceImpl implements ReportService {
                         ? (calculationType != CalculationType.NONE ? calculationType.name() + ":v1" : null)
                         : null;
 
+                ParameterInputType inputType = param.getInputType();
+                if (isCbcTest(test.getCode()) && isCbcCalculatedDifferential(param.getCode())) {
+                    inputType = ParameterInputType.CALCULATED;
+                }
+
                 TestParameterResult paramResult = TestParameterResult.builder()
                         .testParameter(param)
                         .reportTestResult(reportTest)
                         .parameterCode(param.getCode())
                         .parameterName(param.getName())
                         .dataType(param.getDataType())
-                        .inputType(param.getInputType())
+                        .inputType(inputType)
                         .calculationType(calculationType)
                         .calculationVersion(calculationVersion)
                         .unit(param.getUnit())
@@ -710,6 +720,9 @@ public class ReportServiceImpl implements ReportService {
         Set<String> seenCodes =
                 new HashSet<>();
 
+        Map<String, BigDecimal> clientSuppliedDiffValues =
+                new HashMap<>();
+
         for (TestParameterResultInput input :
                 request.parameters()) {
 
@@ -735,21 +748,29 @@ public class ReportServiceImpl implements ReportService {
                                 + code);
             }
 
+            boolean isCbc = isCbcTest(reportTest.getTestCode());
+            boolean isCbcDiffCalc = isCbc && isCbcCalculatedDifferential(code);
+
             /*
              * Calculated parameters are always backend controlled.
+             * For CBC differential parameters (MONO, BASO), client-supplied values are accepted
+             * only for validation consistency and checked authoritatively by CbcDifferentialValidator.
              */
-            if (matched.getInputType()
-                    == ParameterInputType.CALCULATED) {
-
-                if (input.value() != null
-                        && !input.value().isBlank()) {
-
-                    throw new IllegalArgumentException(
-                            "Calculated parameters cannot be manually provided: "
-                                    + code);
+            if (matched.getInputType() == ParameterInputType.CALCULATED || isCbcDiffCalc) {
+                if (!isCbcDiffCalc) {
+                    if (input.value() != null && !input.value().isBlank()) {
+                        throw new IllegalArgumentException(
+                                "Calculated parameters cannot be manually provided: "
+                                        + code);
+                    }
+                    continue;
+                } else {
+                    if (input.value() != null && !input.value().isBlank()) {
+                        BigDecimal parsedDiff = parseStrictNumeric(code, input.value().trim());
+                        clientSuppliedDiffValues.put(code, parsedDiff);
+                    }
+                    continue;
                 }
-
-                continue;
             }
 
             String rawValue =
@@ -794,7 +815,8 @@ public class ReportServiceImpl implements ReportService {
          * have been applied.
          */
         executeCalculationsForTest(
-                reportTest);
+                reportTest,
+                clientSuppliedDiffValues);
 
         Report saved =
                 reportRepository.save(report);
@@ -1545,6 +1567,12 @@ public class ReportServiceImpl implements ReportService {
 
     private void executeCalculationsForTest(
             ReportTestResult reportTest) {
+        executeCalculationsForTest(reportTest, Collections.emptyMap());
+    }
+
+    private void executeCalculationsForTest(
+            ReportTestResult reportTest,
+            Map<String, BigDecimal> clientSuppliedDiffValues) {
 
         if (reportTest == null) {
 
@@ -1562,7 +1590,10 @@ public class ReportServiceImpl implements ReportService {
 
         /*
          * First collect manual values.
+         * For CBC tests, MONO and BASO are calculated differential parameters,
+         * NOT manual inputs for calculation. Stale persisted values must be ignored.
          */
+        boolean isCbc = isCbcTest(reportTest.getTestCode());
 
         for (TestParameterResult result :
                 reportTest.getParameterResults()) {
@@ -1572,16 +1603,26 @@ public class ReportServiceImpl implements ReportService {
                 continue;
             }
 
+            String code = result.getParameterCode()
+                    .trim()
+                    .toUpperCase();
+
+            if (isCbc && isCbcCalculatedDifferential(code)) {
+                continue;
+            }
+
             if (result.getInputType()
                     == ParameterInputType.MANUAL
                     && result.getNumericValue() != null) {
 
                 numericValues.put(
-                        result.getParameterCode()
-                                .trim()
-                                .toUpperCase(),
+                        code,
                         result.getNumericValue());
             }
+        }
+
+        if (clientSuppliedDiffValues != null && !clientSuppliedDiffValues.isEmpty()) {
+            numericValues.putAll(clientSuppliedDiffValues);
         }
 
         /*
@@ -1602,14 +1643,16 @@ public class ReportServiceImpl implements ReportService {
                 if (CbcDifferentialValidator.PARAM_MONO.equalsIgnoreCase(code)) {
                     result.setValue(diffResult.mono().stripTrailingZeros().toPlainString());
                     result.setNumericValue(diffResult.mono());
+                    result.setInputType(ParameterInputType.CALCULATED);
                     result.setFlag(classifyFlag(result, diffResult.mono()));
                 } else if (CbcDifferentialValidator.PARAM_BASO.equalsIgnoreCase(code)) {
                     result.setValue(diffResult.baso().stripTrailingZeros().toPlainString());
                     result.setNumericValue(diffResult.baso());
+                    result.setInputType(ParameterInputType.CALCULATED);
                     result.setFlag(classifyFlag(result, diffResult.baso()));
                 }
             }
-        } else if (cbcDifferentialValidator.isCbcTest(reportTest.getTestCode())) {
+        } else if (isCbc) {
             boolean hasAnyManualDiff = false;
             for (String code : CbcDifferentialValidator.MANUAL_DIFFERENTIAL_PARAMETERS) {
                 if (numericValues.containsKey(code)) {
@@ -1621,10 +1664,10 @@ public class ReportServiceImpl implements ReportService {
                 for (TestParameterResult result : reportTest.getParameterResults()) {
                     if (result != null && result.getParameterCode() != null) {
                         String code = result.getParameterCode().trim().toUpperCase();
-                        if (CbcDifferentialValidator.PARAM_MONO.equalsIgnoreCase(code)
-                                || CbcDifferentialValidator.PARAM_BASO.equalsIgnoreCase(code)) {
+                        if (isCbcCalculatedDifferential(code)) {
                             result.setValue(null);
                             result.setNumericValue(null);
+                            result.setInputType(ParameterInputType.CALCULATED);
                             result.setFlag(null);
                         }
                     }
@@ -2477,6 +2520,13 @@ public class ReportServiceImpl implements ReportService {
     private ReportParameterItemResponse mapParameterItem(
             TestParameterResult result) {
 
+        ParameterInputType effectiveInputType = result.getInputType();
+        if (result.getReportTestResult() != null
+                && isCbcTest(result.getReportTestResult().getTestCode())
+                && isCbcCalculatedDifferential(result.getParameterCode())) {
+            effectiveInputType = ParameterInputType.CALCULATED;
+        }
+
         return ReportParameterItemResponse.builder()
                 .refId(
                         result.getRefId())
@@ -2491,7 +2541,7 @@ public class ReportServiceImpl implements ReportService {
                 .dataType(
                         result.getDataType())
                 .inputType(
-                        result.getInputType())
+                        effectiveInputType)
                 .calculationType(
                         result.getCalculationType())
                 .calculationVersion(
@@ -2515,6 +2565,19 @@ public class ReportServiceImpl implements ReportService {
                 .displayOrder(
                         result.getDisplayOrder())
                 .build();
+    }
+
+    private boolean isCbcTest(String testCode) {
+        return cbcDifferentialValidator.isCbcTest(testCode);
+    }
+
+    private boolean isCbcCalculatedDifferential(String paramCode) {
+        if (paramCode == null) {
+            return false;
+        }
+        String upper = paramCode.trim().toUpperCase();
+        return CbcDifferentialValidator.PARAM_MONO.equalsIgnoreCase(upper)
+                || CbcDifferentialValidator.PARAM_BASO.equalsIgnoreCase(upper);
     }
 
 

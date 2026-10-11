@@ -413,4 +413,113 @@ class ReportServiceImplCbcDifferentialTest {
         assertThat(altParam.getValue()).isEqualTo("25");
         assertThat(altParam.getNumericValue()).isEqualByComparingTo("25");
     }
+
+    @Test
+    @DisplayName("Report Update: Subsequent edit of NEUT recalculates MONO properly without throwing conflict exception")
+    void testUpdateReportParameters_SubsequentEdit_RecalculatesProperlyWithoutConflict() {
+        when(reportRepository.findByRefIdAndOrganization_IdAndDeletedAtIsNull("REP-001", testOrg.getId()))
+                .thenReturn(Optional.of(draftReport));
+        when(reportRepository.save(any(Report.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        // Initial save: NEUT=68, LYMPH=12, EOS=8 -> MONO=12, BASO=0
+        UpdateReportParametersRequest req1 = new UpdateReportParametersRequest(
+                0L,
+                List.of(
+                        new TestParameterResultInput(null, "NEUT", "68"),
+                        new TestParameterResultInput(null, "LYMPH", "12"),
+                        new TestParameterResultInput(null, "EOS", "8")
+                )
+        );
+        reportService.updateParameterValues("REP-001", "RTR-CBC01", req1);
+        assertThat(monoResult.getValue()).isEqualTo("12");
+
+        // Subsequent edit: user edits NEUT from 68 to 70 (omitting MONO and BASO)
+        UpdateReportParametersRequest req2 = new UpdateReportParametersRequest(
+                0L,
+                List.of(
+                        new TestParameterResultInput(null, "NEUT", "70"),
+                        new TestParameterResultInput(null, "LYMPH", "12"),
+                        new TestParameterResultInput(null, "EOS", "8")
+                )
+        );
+
+        ReportResponse response = reportService.updateParameterValues("REP-001", "RTR-CBC01", req2);
+
+        assertThat(response).isNotNull();
+        // New calculation: 100 - 70 - 12 - 8 = 10
+        assertThat(monoResult.getValue()).isEqualTo("10");
+        assertThat(monoResult.getNumericValue()).isEqualByComparingTo("10");
+        assertThat(monoResult.getInputType()).isEqualTo(ParameterInputType.CALCULATED);
+        assertThat(basoResult.getValue()).isEqualTo("0");
+        assertThat(basoResult.getNumericValue()).isEqualByComparingTo("0");
+        assertThat(basoResult.getInputType()).isEqualTo(ParameterInputType.CALCULATED);
+    }
+
+    @Test
+    @DisplayName("Report Update: Client explicitly sending matching MONO and BASO is accepted")
+    void testUpdateReportParameters_MatchingMonoAndBaso_Accepted() {
+        when(reportRepository.findByRefIdAndOrganization_IdAndDeletedAtIsNull("REP-001", testOrg.getId()))
+                .thenReturn(Optional.of(draftReport));
+        when(reportRepository.save(any(Report.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        UpdateReportParametersRequest request = new UpdateReportParametersRequest(
+                0L,
+                List.of(
+                        new TestParameterResultInput(null, "NEUT", "68"),
+                        new TestParameterResultInput(null, "LYMPH", "12"),
+                        new TestParameterResultInput(null, "EOS", "8"),
+                        new TestParameterResultInput(null, "MONO", "12"),
+                        new TestParameterResultInput(null, "BASO", "0")
+                )
+        );
+
+        ReportResponse response = reportService.updateParameterValues("REP-001", "RTR-CBC01", request);
+
+        assertThat(response).isNotNull();
+        assertThat(monoResult.getValue()).isEqualTo("12");
+        assertThat(basoResult.getValue()).isEqualTo("0");
+    }
+
+    @Test
+    @DisplayName("Report Update: Clearing manual differential inputs clears calculated MONO and BASO")
+    void testUpdateReportParameters_ClearDifferential_ClearsMonoAndBaso() {
+        when(reportRepository.findByRefIdAndOrganization_IdAndDeletedAtIsNull("REP-001", testOrg.getId()))
+                .thenReturn(Optional.of(draftReport));
+        when(reportRepository.save(any(Report.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        // Initial save
+        UpdateReportParametersRequest req1 = new UpdateReportParametersRequest(
+                0L,
+                List.of(
+                        new TestParameterResultInput(null, "NEUT", "68"),
+                        new TestParameterResultInput(null, "LYMPH", "12"),
+                        new TestParameterResultInput(null, "EOS", "8")
+                )
+        );
+        reportService.updateParameterValues("REP-001", "RTR-CBC01", req1);
+        assertThat(monoResult.getValue()).isEqualTo("12");
+
+        // Clear all three
+        UpdateReportParametersRequest req2 = new UpdateReportParametersRequest(
+                0L,
+                List.of(
+                        new TestParameterResultInput(null, "NEUT", ""),
+                        new TestParameterResultInput(null, "LYMPH", ""),
+                        new TestParameterResultInput(null, "EOS", "")
+                )
+        );
+
+        ReportResponse response = reportService.updateParameterValues("REP-001", "RTR-CBC01", req2);
+
+        assertThat(response).isNotNull();
+        assertThat(monoResult.getValue()).isNull();
+        assertThat(monoResult.getNumericValue()).isNull();
+        assertThat(monoResult.getFlag()).isNull();
+        assertThat(basoResult.getValue()).isNull();
+        assertThat(basoResult.getNumericValue()).isNull();
+        assertThat(basoResult.getFlag()).isNull();
+    }
 }

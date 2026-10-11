@@ -18,6 +18,7 @@ import { FinalizeReportDialog } from "../FinalizeReportDialog";
 import { ShareReportModal } from "../ShareReportModal";
 import { reportApi } from "../../api/reportApi";
 import { formatDisplayUnit } from "../../utils/unitFormatter";
+import { isCalculatedParameter } from "../../utils/clinicalCalculations";
 import type { ReportResponse } from "../../types/reportTypes";
 import type { PatientResponse } from "@/modules/org-admin/patients/types/patientTypes";
 import { useMyOrganizationProfileQuery } from "@/modules/org-admin/settings/hooks/useOrgProfile";
@@ -354,7 +355,7 @@ export function Step5ReviewReport({
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {test.parameters.map((param) => {
-                        const isCalculated = param.inputType === "CALCULATED";
+                        const isCalculated = isCalculatedParameter(param, test.testCode);
                         const refRange =
                           param.referenceMin != null && param.referenceMax != null
                             ? `${param.referenceMin} – ${param.referenceMax}`

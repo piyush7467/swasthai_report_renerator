@@ -60,6 +60,12 @@ const PARAMETER_ALIASES: Record<string, string[]> = {
   K: ["K", "POTASSIUM", "SERUM_POTASSIUM"],
   CL: ["CL", "CHLORIDE", "SERUM_CHLORIDE"],
   HCO3: ["HCO3", "BICARBONATE", "SERUM_BICARBONATE", "CO2", "TOTAL_CO2"],
+
+  NEUT: ["NEUT", "NEUTROPHILS", "NEUTROPHIL", "POLYMORPHS", "SEGS"],
+  LYMPH: ["LYMPH", "LYMPHOCYTES", "LYMPHOCYTE"],
+  MONO: ["MONO", "MONOCYTES", "MONOCYTE"],
+  EOS: ["EOS", "EOSINOPHILS", "EOSINOPHIL"],
+  BASO: ["BASO", "BASOPHILS", "BASOPHIL"],
 };
 
 // Build reverse lookup: Alias -> Canonical Code
@@ -642,7 +648,181 @@ export function computeCalculationsForTest(
     derivedValues[param.parameterRefId] = calcResult;
   }
 
+  // Differential leukocyte count calculation for CBC profile
+  if (test.testCode?.trim().toUpperCase() === "CBC") {
+    const neutRes = resolveNumericValue("NEUT", paramsByCanonical, currentValues, derivedValues);
+    const lymphRes = resolveNumericValue("LYMPH", paramsByCanonical, currentValues, derivedValues);
+    const eosRes = resolveNumericValue("EOS", paramsByCanonical, currentValues, derivedValues);
+
+    const monoParam = paramsByCanonical.get("MONO");
+    const basoParam = paramsByCanonical.get("BASO");
+
+    if (neutRes != null && lymphRes != null && eosRes != null) {
+      const sum = neutRes.val + lymphRes.val + eosRes.val;
+      const mono = 100 - sum;
+      const monoStr = Number.isInteger(mono)
+        ? mono.toString()
+        : mono.toFixed(2).replace(/\.?0+$/, "");
+      const basoStr = "0";
+
+      if (monoParam) {
+        derivedValues[monoParam.parameterRefId] = monoStr;
+      }
+      if (basoParam) {
+        derivedValues[basoParam.parameterRefId] = basoStr;
+      }
+    } else {
+      if (monoParam) {
+        derivedValues[monoParam.parameterRefId] = "";
+      }
+      if (basoParam) {
+        derivedValues[basoParam.parameterRefId] = "";
+      }
+    }
+  }
+
   return derivedValues;
+}
+
+/**
+ * Checks if a parameter is calculated (either by metadata or by CBC differential profile).
+ */
+export function isCalculatedParameter(
+  param: { inputType?: string; parameterCode?: string; calculationType?: string },
+  testCode?: string | null
+): boolean {
+  if (param.inputType === "CALCULATED") return true;
+  const isCbc = testCode?.trim().toUpperCase() === "CBC";
+  const norm = normalizeCode(param.parameterCode);
+  if (isCbc && (norm === "MONO" || norm === "BASO")) {
+    return true;
+  }
+  return false;
+}
+
+export interface CbcDifferentialValidation {
+  isValid: boolean;
+  hasDifferential: boolean;
+  missingParams: string[];
+  rangeErrors: { param: string; value: number; message: string }[];
+  sum: number;
+  mono: number | null;
+  isNegativeMono: boolean;
+  errorMessage?: string;
+}
+
+/**
+ * Validates CBC differential leukocyte count inputs according to the lab-owner-approved rules.
+ */
+export function validateCbcDifferential(
+  test: ReportTestItemResponse,
+  currentValues: Record<string, string>
+): CbcDifferentialValidation | null {
+  if (test.testCode?.trim().toUpperCase() !== "CBC") {
+    return null;
+  }
+
+  const paramsByCode = new Map<string, ReportParameterItemResponse>();
+  for (const p of test.parameters) {
+    paramsByCode.set(p.parameterCode.trim().toUpperCase(), p);
+  }
+
+  const neutParam = paramsByCode.get("NEUT");
+  const lymphParam = paramsByCode.get("LYMPH");
+  const eosParam = paramsByCode.get("EOS");
+
+  const neutValStr = neutParam ? (currentValues[neutParam.parameterRefId] ?? neutParam.value ?? "").trim() : "";
+  const lymphValStr = lymphParam ? (currentValues[lymphParam.parameterRefId] ?? lymphParam.value ?? "").trim() : "";
+  const eosValStr = eosParam ? (currentValues[eosParam.parameterRefId] ?? eosParam.value ?? "").trim() : "";
+
+  const hasAny = neutValStr !== "" || lymphValStr !== "" || eosValStr !== "";
+  if (!hasAny) {
+    return {
+      isValid: true,
+      hasDifferential: false,
+      missingParams: [],
+      rangeErrors: [],
+      sum: 0,
+      mono: null,
+      isNegativeMono: false,
+    };
+  }
+
+  const missing: string[] = [];
+  if (neutValStr === "") missing.push("NEUT");
+  if (lymphValStr === "") missing.push("LYMPH");
+  if (eosValStr === "") missing.push("EOS");
+
+  const rangeErrors: { param: string; value: number; message: string }[] = [];
+  const parseVal = (str: string, name: string) => {
+    if (str === "") return null;
+    const n = parseFloat(str);
+    if (isNaN(n) || !isFinite(n)) {
+      rangeErrors.push({ param: name, value: NaN, message: `${name} must be a valid number` });
+      return null;
+    }
+    if (n < 0 || n > 100) {
+      rangeErrors.push({ param: name, value: n, message: `${name} must be between 0 and 100% (entered ${n}%)` });
+    }
+    return n;
+  };
+
+  const neut = parseVal(neutValStr, "NEUT");
+  const lymph = parseVal(lymphValStr, "LYMPH");
+  const eos = parseVal(eosValStr, "EOS");
+
+  if (missing.length > 0) {
+    return {
+      isValid: false,
+      hasDifferential: true,
+      missingParams: missing,
+      rangeErrors,
+      sum: (neut ?? 0) + (lymph ?? 0) + (eos ?? 0),
+      mono: null,
+      isNegativeMono: false,
+      errorMessage: `Differential leukocyte count requires manual entry of Neutrophils (NEUT), Lymphocytes (LYMPH), and Eosinophils (EOS). Missing: ${missing.join(", ")}.`,
+    };
+  }
+
+  if (rangeErrors.length > 0) {
+    return {
+      isValid: false,
+      hasDifferential: true,
+      missingParams: [],
+      rangeErrors,
+      sum: (neut ?? 0) + (lymph ?? 0) + (eos ?? 0),
+      mono: null,
+      isNegativeMono: false,
+      errorMessage: rangeErrors.map((e) => e.message).join(". "),
+    };
+  }
+
+  const sum = (neut ?? 0) + (lymph ?? 0) + (eos ?? 0);
+  const mono = 100 - sum;
+  const isNegativeMono = mono < 0;
+
+  if (isNegativeMono) {
+    return {
+      isValid: false,
+      hasDifferential: true,
+      missingParams: [],
+      rangeErrors: [],
+      sum,
+      mono,
+      isNegativeMono: true,
+      errorMessage: `Calculated Monocytes percentage is negative (${mono}%). Sum of manual differential percentages (${sum}%) exceeds 100.0%.`,
+    };
+  }
+
+  return {
+    isValid: true,
+    hasDifferential: true,
+    missingParams: [],
+    rangeErrors: [],
+    sum,
+    mono,
+    isNegativeMono: false,
+  };
 }
 
 /**

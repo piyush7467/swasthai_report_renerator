@@ -1,4 +1,8 @@
-import { computeCalculationsForTest } from "../clinicalCalculations";
+import {
+  computeCalculationsForTest,
+  isCalculatedParameter,
+  validateCbcDifferential,
+} from "../clinicalCalculations";
 import type { ReportTestItemResponse } from "../../types/reportTypes";
 
 function assert(condition: boolean, message: string) {
@@ -653,7 +657,146 @@ function runTests() {
 
   console.log("  ✓ Anti-collision verified: MCV=79.8, MCH=28.0, MCHC=35.09 are all distinct and correctly computed!");
 
-  console.log("\nALL 6 TEST SUITES PASSED 100% SUCCESSFULLY!");
+  // 7. CBC Differential Leukocyte Counts Panel
+  console.log("7. Testing CBC Differential Leukocyte Count Calculations & Rules...");
+  const cbcDiffTest: ReportTestItemResponse = {
+    refId: "test_cbc_diff_1",
+    testRefId: "master_cbc_diff",
+    testCode: "CBC",
+    testName: "Complete Blood Count",
+    displayOrder: 1,
+    testVersion: 1,
+    parameters: [
+      {
+        refId: "p_neut",
+        parameterRefId: "param_neut",
+        parameterCode: "NEUT",
+        parameterName: "Neutrophils",
+        dataType: "DECIMAL",
+        inputType: "MANUAL",
+        calculationType: "NONE",
+        unit: "%",
+        displayOrder: 9,
+      },
+      {
+        refId: "p_lymph",
+        parameterRefId: "param_lymph",
+        parameterCode: "LYMPH",
+        parameterName: "Lymphocytes",
+        dataType: "DECIMAL",
+        inputType: "MANUAL",
+        calculationType: "NONE",
+        unit: "%",
+        displayOrder: 10,
+      },
+      {
+        refId: "p_mono",
+        parameterRefId: "param_mono",
+        parameterCode: "MONO",
+        parameterName: "Monocytes",
+        dataType: "DECIMAL",
+        inputType: "CALCULATED",
+        calculationType: "NONE",
+        unit: "%",
+        displayOrder: 11,
+      },
+      {
+        refId: "p_eos",
+        parameterRefId: "param_eos",
+        parameterCode: "EOS",
+        parameterName: "Eosinophils",
+        dataType: "DECIMAL",
+        inputType: "MANUAL",
+        calculationType: "NONE",
+        unit: "%",
+        displayOrder: 12,
+      },
+      {
+        refId: "p_baso",
+        parameterRefId: "param_baso",
+        parameterCode: "BASO",
+        parameterName: "Basophils",
+        dataType: "DECIMAL",
+        inputType: "CALCULATED",
+        calculationType: "NONE",
+        unit: "%",
+        displayOrder: 13,
+      },
+    ],
+  };
+
+  // 7a. Complete valid differential: NEUT=68, LYMPH=12, EOS=8
+  let diffResults = computeCalculationsForTest(cbcDiffTest, {
+    param_neut: "68",
+    param_lymph: "12",
+    param_eos: "8",
+  });
+  // MONO = 100 - (68 + 12 + 8) = 12
+  assert(diffResults["param_mono"] === "12", `MONO expected 12, got ${diffResults["param_mono"]}`);
+  assert(diffResults["param_baso"] === "0", `BASO expected 0, got ${diffResults["param_baso"]}`);
+
+  let diffValidation = validateCbcDifferential(cbcDiffTest, {
+    param_neut: "68",
+    param_lymph: "12",
+    param_eos: "8",
+  });
+  assert(diffValidation !== null && diffValidation.isValid === true, "Validation should be valid");
+  assert(diffValidation?.mono === 12, "Validation mono should be 12");
+  assert(diffValidation?.sum === 88, "Validation sum of manuals should be 88");
+  console.log("  ✓ Auto-derives MONO=12, BASO=0 for complete differential (total 100%)");
+
+  // 7b. Incomplete differential: missing EOS
+  diffResults = computeCalculationsForTest(cbcDiffTest, {
+    param_neut: "68",
+    param_lymph: "12",
+  });
+  assert(diffResults["param_mono"] === "", "MONO should be empty when EOS missing");
+  assert(diffResults["param_baso"] === "", "BASO should be empty when EOS missing");
+
+  diffValidation = validateCbcDifferential(cbcDiffTest, {
+    param_neut: "68",
+    param_lymph: "12",
+  });
+  assert(diffValidation !== null && diffValidation.isValid === false, "Incomplete differential should be invalid");
+  assert(diffValidation?.missingParams.includes("EOS"), "Should flag missing EOS");
+  console.log("  ✓ Incomplete differential leaves MONO/BASO empty and flags missing EOS");
+
+  // 7c. Cleared inputs
+  diffResults = computeCalculationsForTest(cbcDiffTest, {});
+  assert(diffResults["param_mono"] === "", "MONO should be empty when inputs cleared");
+  assert(diffResults["param_baso"] === "", "BASO should be empty when inputs cleared");
+  diffValidation = validateCbcDifferential(cbcDiffTest, {});
+  assert(diffValidation !== null && diffValidation.isValid === true && !diffValidation.hasDifferential, "Cleared inputs should be valid with hasDifferential: false");
+  console.log("  ✓ Cleared inputs clear MONO and BASO without error");
+
+  // 7d. Sum exceeding 100%: NEUT=70, LYMPH=25, EOS=10 (sum = 105)
+  diffResults = computeCalculationsForTest(cbcDiffTest, {
+    param_neut: "70",
+    param_lymph: "25",
+    param_eos: "10",
+  });
+  // Do NOT clamp negative to 0! MONO must be -5
+  assert(diffResults["param_mono"] === "-5", `MONO expected -5 (not clamped to 0), got ${diffResults["param_mono"]}`);
+  assert(diffResults["param_baso"] === "0", `BASO expected 0, got ${diffResults["param_baso"]}`);
+  diffValidation = validateCbcDifferential(cbcDiffTest, {
+    param_neut: "70",
+    param_lymph: "25",
+    param_eos: "10",
+  });
+  assert(diffValidation !== null && diffValidation.isValid === false, "Sum > 100 must be invalid");
+  assert(diffValidation?.isNegativeMono === true, "Must flag negative MONO");
+  console.log("  ✓ Negative MONO (-5%) preserved without clamping to zero; flagged as validation error");
+
+  // 7e. isCalculatedParameter helper
+  const neutParam = cbcDiffTest.parameters.find((p) => p.parameterCode === "NEUT")!;
+  const monoParam = cbcDiffTest.parameters.find((p) => p.parameterCode === "MONO")!;
+  const basoParam = cbcDiffTest.parameters.find((p) => p.parameterCode === "BASO")!;
+  assert(!isCalculatedParameter(neutParam, "CBC"), "NEUT is manual");
+  assert(isCalculatedParameter(monoParam, "CBC"), "MONO is calculated in CBC");
+  assert(isCalculatedParameter(basoParam, "CBC"), "BASO is calculated in CBC");
+  console.log("  ✓ isCalculatedParameter correctly identifies CBC MONO/BASO as calculated");
+
+  console.log("\nALL 7 TEST SUITES PASSED 100% SUCCESSFULLY!");
 }
 
 runTests();
