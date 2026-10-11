@@ -13,10 +13,12 @@ import com.swasthai.report_generator.organization.entity.Organization;
 import com.swasthai.report_generator.organization.entity.OrganizationStatus;
 import com.swasthai.report_generator.organization.repository.OrganizationRepository;
 import com.swasthai.report_generator.common.exception.ConflictException;
+import com.swasthai.report_generator.patient.dto.request.CreatePatientRequest;
 import com.swasthai.report_generator.patient.entity.Gender;
 import com.swasthai.report_generator.patient.entity.Patient;
 import com.swasthai.report_generator.patient.entity.Salutation;
 import com.swasthai.report_generator.patient.repository.PatientRepository;
+import com.swasthai.report_generator.patient.service.PatientService;
 import com.swasthai.report_generator.report.dto.request.AddReportTestRequest;
 import com.swasthai.report_generator.report.dto.request.CreateReportRequest;
 import com.swasthai.report_generator.report.dto.response.ReportResponse;
@@ -61,6 +63,9 @@ class LicenseSecurityTest {
 
     @Autowired
     private ReportService reportService;
+
+    @Autowired
+    private PatientService patientService;
 
     @Autowired
     private OrganizationRepository organizationRepository;
@@ -411,5 +416,68 @@ class LicenseSecurityTest {
             ReportResponse r = reportService.createReport(new CreateReportRequest(licensedPatient.getRefId()));
             assertThat(r).isNotNull();
         }
+    }
+
+    @Test
+    @DisplayName("SEC-LIC-005: Unlicensed organization cannot create patients and no patient is persisted")
+    void testUnlicensedOrganization_PatientCreationBlocked() {
+        auth(unlicensedStaff);
+
+        CreatePatientRequest req = CreatePatientRequest.builder()
+                .name("Unlicensed Patient")
+                .salutation(Salutation.MR)
+                .gender(Gender.MALE)
+                .phone("9998887776")
+                .dateOfBirthKnown(true)
+                .dateOfBirth(LocalDate.of(1990, 1, 1))
+                .build();
+
+        long countBefore = patientRepository.countByOrganization_IdAndDeletedAtIsNull(unlicensedOrg.getId());
+
+        assertThatThrownBy(() -> patientService.createPatient(req))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("An active license is required");
+
+        long countAfter = patientRepository.countByOrganization_IdAndDeletedAtIsNull(unlicensedOrg.getId());
+        assertThat(countAfter).isEqualTo(countBefore);
+    }
+
+    @Test
+    @DisplayName("SEC-LIC-006: Expired organization cannot create patients")
+    void testExpiredOrganization_PatientCreationBlocked() {
+        auth(expiredStaff);
+
+        CreatePatientRequest req = CreatePatientRequest.builder()
+                .name("Expired Patient")
+                .salutation(Salutation.MRS)
+                .gender(Gender.FEMALE)
+                .phone("9998887775")
+                .dateOfBirthKnown(true)
+                .dateOfBirth(LocalDate.of(1991, 2, 2))
+                .build();
+
+        assertThatThrownBy(() -> patientService.createPatient(req))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("license has expired");
+    }
+
+    @Test
+    @DisplayName("SEC-LIC-007: Active licensed organization creates patient successfully")
+    void testActiveLicense_PatientCreationAllowed() {
+        auth(licensedStaff);
+
+        CreatePatientRequest req = CreatePatientRequest.builder()
+                .name("Active Patient")
+                .salutation(Salutation.MR)
+                .gender(Gender.MALE)
+                .phone("9998887774")
+                .dateOfBirthKnown(true)
+                .dateOfBirth(LocalDate.of(1992, 3, 3))
+                .build();
+
+        var created = patientService.createPatient(req);
+        assertThat(created).isNotNull();
+        assertThat(created.getName()).isEqualTo("Active Patient");
+        assertThat(created.getPatientCode()).isNotBlank();
     }
 }

@@ -3,10 +3,25 @@ import { Check, Sparkles, Shield, Users, FileText } from "lucide-react";
 import type { LicenseResponse } from "../types/licenseTypes";
 
 interface PlanDetailsCardProps {
-  license: LicenseResponse;
+  license?: LicenseResponse | null;
 }
 
 export function PlanDetailsCard({ license }: PlanDetailsCardProps) {
+  if (!license) {
+    return (
+      <Card className="p-5 sm:p-6 border-slate-200 bg-white shadow-xs space-y-4">
+        <div>
+          <h3 className="text-base font-semibold text-slate-900">
+            Subscription Plan Specifications
+          </h3>
+          <p className="text-xs text-slate-500 mt-1">
+            No active subscription plan assigned. Select and activate an eligible plan to enable laboratory workflows, report quotas, and staff seats.
+          </p>
+        </div>
+      </Card>
+    );
+  }
+
   const isPro = license.planCode === "PROFESSIONAL";
   const isEnterprise = license.planCode === "ENTERPRISE";
 

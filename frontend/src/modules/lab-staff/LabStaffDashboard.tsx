@@ -23,6 +23,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useAuth } from "@/core/auth/AuthContext";
+import { useSubscriptionEligibility } from "@/core/auth/useSubscriptionEligibility";
+import { SubscriptionAlertBanner } from "@/core/components/SubscriptionAlertBanner";
 
 import { useReportsQuery } from "@/modules/org-admin/reports/hooks/useReports";
 import { usePatientsQuery } from "@/modules/org-admin/patients/hooks/usePatients";
@@ -31,6 +33,7 @@ import { useTenantTestsQuery } from "@/modules/org-admin/tests/hooks/useTenantTe
 export function LabStaffDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { isEligible, reasonMessage } = useSubscriptionEligibility();
 
   // 1. Pending Drafts Query (Worklist)
   const { data: draftReportsData, isLoading: isDraftsLoading } = useReportsQuery({
@@ -83,6 +86,8 @@ export function LabStaffDashboard() {
 
   return (
     <div className="space-y-6">
+      <SubscriptionAlertBanner />
+
       {/* Welcome & Station Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-gradient-to-r from-emerald-900 to-slate-900 text-white p-6 rounded-2xl shadow-sm">
         <div className="space-y-1.5">
@@ -104,14 +109,23 @@ export function LabStaffDashboard() {
 
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
           <Button
-            asChild
+            asChild={isEligible}
             size="sm"
-            className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs gap-1.5 font-semibold shadow-xs cursor-pointer"
+            disabled={!isEligible}
+            title={!isEligible ? reasonMessage ?? undefined : undefined}
+            className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs gap-1.5 font-semibold shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Link to="/lab-staff/reports/new">
-              <FilePlus className="h-4 w-4" />
-              New Report
-            </Link>
+            {isEligible ? (
+              <Link to="/lab-staff/reports/new">
+                <FilePlus className="h-4 w-4" />
+                New Report
+              </Link>
+            ) : (
+              <span className="flex items-center gap-1.5">
+                <FilePlus className="h-4 w-4" />
+                New Report
+              </span>
+            )}
           </Button>
 
           <Button
@@ -244,10 +258,14 @@ export function LabStaffDashboard() {
                 <EmptyState
                   title="Worklist is clear"
                   description="No reports are currently pending results. Create a new patient report to start testing."
-                  action={{
-                    label: "New Report",
-                    onClick: () => navigate("/lab-staff/reports/new"),
-                  }}
+                  action={
+                    isEligible
+                      ? {
+                          label: "New Report",
+                          onClick: () => navigate("/lab-staff/reports/new"),
+                        }
+                      : undefined
+                  }
                 />
               </div>
             ) : (

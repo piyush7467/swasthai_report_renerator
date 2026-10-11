@@ -6,6 +6,7 @@ import com.swasthai.report_generator.auth.service.impl.CurrentOrganizationServic
 import com.swasthai.report_generator.common.exception.ForbiddenException;
 import com.swasthai.report_generator.common.exception.ResourceAlreadyExistsException;
 import com.swasthai.report_generator.common.exception.ResourceNotFoundException;
+import com.swasthai.report_generator.license.service.LicenseGuard;
 import com.swasthai.report_generator.organization.entity.Organization;
 import com.swasthai.report_generator.organization.entity.OrganizationStatus;
 import com.swasthai.report_generator.organization.repository.OrganizationRepository;
@@ -73,6 +74,9 @@ class TenantIsolationAndRbacTest {
     @Mock
     private CurrentUserService currentUserService;
 
+    @Mock
+    private LicenseGuard licenseGuard;
+
     private PatientService patientService;
     private UserService userService;
     private CurrentOrganizationService currentOrgServiceImpl;
@@ -88,7 +92,8 @@ class TenantIsolationAndRbacTest {
                 reportRepository,
                 currentOrganizationService,
                 currentUserService,
-                organizationSequenceService
+                organizationSequenceService,
+                licenseGuard
         );
 
         userService = new UserServiceImpl(

@@ -2,6 +2,7 @@ package com.swasthai.report_generator.test.service.impl;
 
 import com.swasthai.report_generator.common.exception.ResourceAlreadyExistsException;
 import com.swasthai.report_generator.common.exception.ResourceNotFoundException;
+import com.swasthai.report_generator.license.service.LicenseGuard;
 import com.swasthai.report_generator.organization.entity.Organization;
 import com.swasthai.report_generator.organization.entity.OrganizationStatus;
 import com.swasthai.report_generator.organization.repository.OrganizationRepository;
@@ -37,6 +38,7 @@ public class OrganizationTestServiceImpl
     private final OrganizationTestRepository organizationTestRepository;
     private final OrganizationRepository organizationRepository;
     private final TestRepository testRepository;
+    private final LicenseGuard licenseGuard;
 
     // ============================================================
     // ASSIGN TEST
@@ -351,6 +353,10 @@ public class OrganizationTestServiceImpl
                 getCurrentUserOrganization(
                         currentUser
                 );
+
+        if (!licenseGuard.isSubscriptionActive(organization.getId())) {
+            return false;
+        }
 
         Test test =
                 testRepository.findByRefId(

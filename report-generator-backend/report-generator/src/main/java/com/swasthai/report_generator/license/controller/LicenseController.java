@@ -156,7 +156,7 @@ public class LicenseController {
     // ============================================================
 
     @GetMapping("/license/me")
-    @PreAuthorize("hasRole('ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('ORG_ADMIN', 'LAB_STAFF')")
     public LicenseResponse getOwnLicense() {
 
         return licenseService.getOwnLicense();

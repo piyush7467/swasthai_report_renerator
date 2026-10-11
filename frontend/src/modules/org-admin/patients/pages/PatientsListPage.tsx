@@ -32,10 +32,13 @@ import { usePatientsQuery } from "../hooks/usePatients";
 import { EditPatientModal } from "../components/EditPatientModal";
 import { RegisterPatientModal } from "../components/RegisterPatientModal";
 import type { PatientResponse } from "../types/patientTypes";
+import { useSubscriptionEligibility } from "@/core/auth/useSubscriptionEligibility";
+import { SubscriptionAlertBanner } from "@/core/components/SubscriptionAlertBanner";
 
 export default function PatientsListPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isEligible, reasonMessage } = useSubscriptionEligibility();
 
   const isLabStaff = location.pathname.startsWith("/lab-staff");
   const basePath = isLabStaff ? "/lab-staff/patients" : "/org-admin/patients";
@@ -79,6 +82,8 @@ export default function PatientsListPage() {
 
   return (
     <div className="space-y-6 pb-12">
+      <SubscriptionAlertBanner />
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -101,8 +106,10 @@ export default function PatientsListPage() {
           <Button
             variant="outline"
             onClick={() => setIsRegisterModalOpen(true)}
+            disabled={!isEligible}
+            title={!isEligible ? reasonMessage ?? undefined : undefined}
             size="sm"
-            className="gap-1.5 text-xs border-teal-200 text-[#0F766E] hover:bg-teal-50 font-semibold shadow-2xs cursor-pointer"
+            className="gap-1.5 text-xs border-teal-200 text-[#0F766E] hover:bg-teal-50 font-semibold shadow-2xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <UserPlus className="h-4 w-4" />
             Register Patient
@@ -110,8 +117,10 @@ export default function PatientsListPage() {
 
           <Button
             onClick={() => navigate(`${reportsBasePath}/new`)}
+            disabled={!isEligible}
+            title={!isEligible ? reasonMessage ?? undefined : undefined}
             size="sm"
-            className="gap-1.5 text-xs bg-[#0F766E] hover:bg-[#115E59] text-white font-semibold shadow-xs cursor-pointer"
+            className="gap-1.5 text-xs bg-[#0F766E] hover:bg-[#115E59] text-white font-semibold shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="h-4 w-4" />
             Create Report
@@ -179,11 +188,15 @@ export default function PatientsListPage() {
                 ? `No patient records matched "${searchTerm}". Verify the patient name or code, or register a new record.`
                 : "No patients have been registered in your organization yet. Register a patient to track diagnostics and issue reports."
             }
-            action={{
-              label: searchTerm ? "Register New Patient" : "Register First Patient",
-              onClick: () => setIsRegisterModalOpen(true),
-              icon: Plus,
-            }}
+            action={
+              isEligible
+                ? {
+                    label: searchTerm ? "Register New Patient" : "Register First Patient",
+                    onClick: () => setIsRegisterModalOpen(true),
+                    icon: Plus,
+                  }
+                : undefined
+            }
             secondaryAction={
               searchTerm
                 ? {
@@ -293,9 +306,10 @@ export default function PatientsListPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              title="Create New Report"
+                              title={!isEligible ? reasonMessage ?? undefined : "Create New Report"}
+                              disabled={!isEligible}
                               onClick={() => navigate(`${reportsBasePath}/new?patientRefId=${p.refId}`)}
-                              className="h-7 px-2 text-xs text-[#0F766E] hover:bg-teal-50 hover:text-[#115E59]"
+                              className="h-7 px-2 text-xs text-[#0F766E] hover:bg-teal-50 hover:text-[#115E59] disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <FilePlus className="h-3.5 w-3.5 mr-1" />
                               New Report
@@ -329,8 +343,16 @@ export default function PatientsListPage() {
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  onClick={() => navigate(`${reportsBasePath}/new?patientRefId=${p.refId}`)}
-                                  className="cursor-pointer text-teal-700 focus:text-teal-800 focus:bg-teal-50 flex items-center gap-2"
+                                  disabled={!isEligible}
+                                  onClick={() => {
+                                    if (!isEligible) return;
+                                    navigate(`${reportsBasePath}/new?patientRefId=${p.refId}`);
+                                  }}
+                                  className={`cursor-pointer flex items-center gap-2 ${
+                                    !isEligible
+                                      ? "text-slate-400 cursor-not-allowed opacity-50"
+                                      : "text-teal-700 focus:text-teal-800 focus:bg-teal-50"
+                                  }`}
                                 >
                                   <FilePlus className="h-3.5 w-3.5" />
                                   <span>New Diagnostic Report</span>
@@ -431,8 +453,16 @@ export default function PatientsListPage() {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              onClick={() => navigate(`${reportsBasePath}/new?patientRefId=${p.refId}`)}
-                              className="cursor-pointer text-teal-700 focus:text-teal-800 focus:bg-teal-50 flex items-center gap-2 font-medium"
+                              disabled={!isEligible}
+                              onClick={() => {
+                                if (!isEligible) return;
+                                navigate(`${reportsBasePath}/new?patientRefId=${p.refId}`);
+                              }}
+                              className={`cursor-pointer flex items-center gap-2 font-medium ${
+                                !isEligible
+                                  ? "text-slate-400 cursor-not-allowed opacity-50"
+                                  : "text-teal-700 focus:text-teal-800 focus:bg-teal-50"
+                              }`}
                             >
                               <FilePlus className="h-3.5 w-3.5" />
                               <span>New Diagnostic Report</span>

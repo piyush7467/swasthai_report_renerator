@@ -5,6 +5,7 @@ import {
   Mail,
   MapPin,
   Phone,
+  ShieldAlert,
   User,
   X,
 } from "lucide-react";
@@ -20,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUpdatePatientMutation } from "../hooks/usePatients";
+import { useSubscriptionEligibility } from "@/core/auth/useSubscriptionEligibility";
 import type {
   AgeUnit,
   Gender,
@@ -54,6 +56,7 @@ export function EditPatientModal({
   const [weightKg, setWeightKg] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
+  const { isEligible, reasonMessage } = useSubscriptionEligibility();
   const updateMutation = useUpdatePatientMutation(patient?.refId || "");
 
   useEffect(() => {
@@ -86,6 +89,14 @@ export function EditPatientModal({
     e.preventDefault();
     if (!patient) return;
     setFormError(null);
+
+    if (!isEligible) {
+      setFormError(
+        reasonMessage ||
+          "An active subscription plan is required to edit patient records."
+      );
+      return;
+    }
 
     if (!name.trim()) {
       setFormError("Patient full name is required.");
@@ -149,6 +160,21 @@ export function EditPatientModal({
           </DialogHeader>
 
           <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+            {!isEligible && (
+              <div className="flex items-start gap-2.5 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs">
+                <ShieldAlert className="h-4 w-4 shrink-0 text-rose-600 mt-0.5" />
+                <div>
+                  <span className="font-semibold block text-rose-900">
+                    Subscription Required
+                  </span>
+                  <p className="mt-0.5 text-rose-700">
+                    {reasonMessage ||
+                      "An active subscription plan is required to edit patient records."}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {formError && (
               <div className="flex items-start gap-2 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs">
                 <AlertCircle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
@@ -341,8 +367,9 @@ export function EditPatientModal({
             <Button
               type="submit"
               size="sm"
-              disabled={updateMutation.isPending}
-              className="text-xs h-9 bg-[#0F766E] hover:bg-[#115E59] text-white font-semibold shadow-xs"
+              disabled={updateMutation.isPending || !isEligible}
+              title={!isEligible ? reasonMessage ?? undefined : undefined}
+              className="text-xs h-9 bg-[#0F766E] hover:bg-[#115E59] text-white font-semibold shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {updateMutation.isPending ? (
                 <>

@@ -23,6 +23,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useAuth } from "@/core/auth/AuthContext";
+import { useSubscriptionEligibility } from "@/core/auth/useSubscriptionEligibility";
+import { SubscriptionAlertBanner } from "@/core/components/SubscriptionAlertBanner";
 
 import { useReportsQuery } from "./reports/hooks/useReports";
 import { usePatientsQuery } from "./patients/hooks/usePatients";
@@ -49,6 +51,7 @@ import heroLabImg from "@/assets/dashboard/hero_lab_illustration.jpg";
 export function OrgAdminDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { isEligible, reasonMessage } = useSubscriptionEligibility();
 
   const [trendDays, setTrendDays] = useState<7 | 14 | 30>(30);
   const [reportFilter, setReportFilter] = useState<"ALL" | "FINALIZED" | "DRAFT">("ALL");
@@ -184,6 +187,8 @@ export function OrgAdminDashboard() {
 
   return (
     <div className="space-y-6 pb-12">
+      <SubscriptionAlertBanner />
+
       {/* 1. Hero Header Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-teal-50/70 via-slate-50/40 to-cyan-50/60 border border-teal-100/60 p-6 sm:p-8">
         {/* Soft background laboratory illustration seamlessly blending on right */}
@@ -229,26 +234,44 @@ export function OrgAdminDashboard() {
         {/* Action Controls */}
         <div className="relative z-10 flex flex-wrap items-center gap-2.5 mt-5">
           <Button
-            asChild
+            asChild={isEligible}
             size="sm"
-            className="bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs shadow-xs gap-1.5 px-4 h-9 cursor-pointer transition-colors"
+            disabled={!isEligible}
+            title={!isEligible ? reasonMessage ?? undefined : undefined}
+            className="bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs shadow-xs gap-1.5 px-4 h-9 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Link to="/org-admin/reports/new">
-              <Plus className="size-4 stroke-[2.5]" />
-              New Report
-            </Link>
+            {isEligible ? (
+              <Link to="/org-admin/reports/new">
+                <Plus className="size-4 stroke-[2.5]" />
+                New Report
+              </Link>
+            ) : (
+              <span className="flex items-center gap-1.5">
+                <Plus className="size-4 stroke-[2.5]" />
+                New Report
+              </span>
+            )}
           </Button>
 
           <Button
-            asChild
+            asChild={isEligible}
             size="sm"
             variant="outline"
-            className="text-xs gap-1.5 border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 cursor-pointer h-9 px-3.5 shadow-xs"
+            disabled={!isEligible}
+            title={!isEligible ? reasonMessage ?? undefined : undefined}
+            className="text-xs gap-1.5 border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 cursor-pointer h-9 px-3.5 shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Link to="/org-admin/patients">
-              <UserPlus className="size-3.5 text-teal-600" />
-              Register Patient
-            </Link>
+            {isEligible ? (
+              <Link to="/org-admin/patients">
+                <UserPlus className="size-3.5 text-teal-600" />
+                Register Patient
+              </Link>
+            ) : (
+              <span className="flex items-center gap-1.5">
+                <UserPlus className="size-3.5 text-teal-600" />
+                Register Patient
+              </span>
+            )}
           </Button>
 
           <Button
@@ -655,10 +678,14 @@ export function OrgAdminDashboard() {
                   <EmptyState
                     title="No reports match this criteria"
                     description="Select a different filter or create a new diagnostic report for a registered patient."
-                    action={{
-                      label: "Create New Report",
-                      onClick: () => navigate("/org-admin/reports/new"),
-                    }}
+                    action={
+                      isEligible
+                        ? {
+                            label: "Create New Report",
+                            onClick: () => navigate("/org-admin/reports/new"),
+                          }
+                        : undefined
+                    }
                   />
                 </div>
               ) : (

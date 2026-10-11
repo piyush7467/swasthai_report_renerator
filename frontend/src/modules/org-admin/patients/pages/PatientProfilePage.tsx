@@ -31,11 +31,14 @@ import { ShareReportModal } from "../../reports/components/ShareReportModal";
 import { EditPatientModal } from "../components/EditPatientModal";
 import { reportApi } from "../../reports/api/reportApi";
 import type { ReportResponse } from "../../reports/types/reportTypes";
+import { useSubscriptionEligibility } from "@/core/auth/useSubscriptionEligibility";
+import { SubscriptionAlertBanner } from "@/core/components/SubscriptionAlertBanner";
 
 export default function PatientProfilePage() {
   const { patientRefId } = useParams<{ patientRefId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isEligible, reasonMessage } = useSubscriptionEligibility();
 
   const isLabStaff = location.pathname.startsWith("/lab-staff");
   const basePath = isLabStaff ? "/lab-staff/patients" : "/org-admin/patients";
@@ -135,6 +138,8 @@ export default function PatientProfilePage() {
 
   return (
     <div className="space-y-6 pb-12">
+      <SubscriptionAlertBanner />
+
       {/* Navigation Breadcrumb */}
       <div>
         <button
@@ -194,8 +199,10 @@ export default function PatientProfilePage() {
               onClick={() =>
                 navigate(`${reportsBasePath}/new?patientRefId=${patient.refId}`)
               }
+              disabled={!isEligible}
+              title={!isEligible ? reasonMessage ?? undefined : undefined}
               size="sm"
-              className="text-xs h-9 bg-[#0F766E] hover:bg-[#115E59] text-white font-semibold gap-1.5 shadow-xs cursor-pointer"
+              className="text-xs h-9 bg-[#0F766E] hover:bg-[#115E59] text-white font-semibold gap-1.5 shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FilePlus className="h-4 w-4" />
               Create New Report
@@ -317,12 +324,16 @@ export default function PatientProfilePage() {
               compact
               title="No Reports Yet"
               description="Create the first diagnostic report for this patient to establish their medical history and test findings."
-              action={{
-                label: "Create New Report",
-                onClick: () =>
-                  navigate(`${reportsBasePath}/new?patientRefId=${patient.refId}`),
-                icon: Plus,
-              }}
+              action={
+                isEligible
+                  ? {
+                      label: "Create New Report",
+                      onClick: () =>
+                        navigate(`${reportsBasePath}/new?patientRefId=${patient.refId}`),
+                      icon: Plus,
+                    }
+                  : undefined
+              }
             />
           ) : (
             <>

@@ -6,6 +6,7 @@ import com.swasthai.report_generator.common.exception.ForbiddenException;
 import com.swasthai.report_generator.common.exception.ResourceAlreadyExistsException;
 import com.swasthai.report_generator.common.exception.ResourceNotFoundException;
 import com.swasthai.report_generator.common.response.PagedResponse;
+import com.swasthai.report_generator.license.service.LicenseGuard;
 import com.swasthai.report_generator.organization.entity.Organization;
 import com.swasthai.report_generator.organization.entity.OrganizationStatus;
 import com.swasthai.report_generator.organization.service.OrganizationSequenceService;
@@ -57,6 +58,7 @@ public class PatientServiceImpl implements PatientService {
     private final CurrentOrganizationService currentOrganizationService;
     private final CurrentUserService currentUserService;
     private final OrganizationSequenceService organizationSequenceService;
+    private final LicenseGuard licenseGuard;
 
     // ============================================================
     // CREATE
@@ -69,6 +71,8 @@ public class PatientServiceImpl implements PatientService {
                 currentOrganizationService.getCurrentOrganization();
 
         validateOrganizationAvailable(organization);
+
+        licenseGuard.requireActiveLicenseForOrganization(organization.getId());
 
         validateAgeData(
                 request.getDateOfBirthKnown(),
@@ -265,6 +269,8 @@ public class PatientServiceImpl implements PatientService {
 
         validateOrganizationAvailable(organization);
 
+        licenseGuard.requireActiveLicenseForOrganization(organization.getId());
+
         Patient patient =
                 patientRepository
                         .findByRefIdAndOrganization_IdAndDeletedAtIsNull(
@@ -362,6 +368,8 @@ public class PatientServiceImpl implements PatientService {
 
         validateOrganizationAvailable(organization);
 
+        licenseGuard.requireActiveLicenseForOrganization(organization.getId());
+
         Patient patient =
                 patientRepository
                         .findByRefIdAndOrganization_IdAndDeletedAtIsNull(
@@ -399,6 +407,8 @@ public class PatientServiceImpl implements PatientService {
                 currentOrganizationService.getCurrentOrganization();
 
         validateOrganizationAvailable(organization);
+
+        licenseGuard.requireActiveLicenseForOrganization(organization.getId());
 
         /*
          * IMPORTANT:

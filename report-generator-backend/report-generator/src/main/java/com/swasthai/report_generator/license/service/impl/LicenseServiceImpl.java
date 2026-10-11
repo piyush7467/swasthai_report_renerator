@@ -354,7 +354,7 @@ public class LicenseServiceImpl
         return mapToResponse(license);
     }
 
-    // MANDATORY REPORT-GENERATION GUARD
+    // MANDATORY OPERATIONAL WORKFLOW GUARD
 
     @Override
     @Transactional(readOnly = true)
@@ -370,9 +370,15 @@ public class LicenseServiceImpl
                 .findByOrganization_Id(
                         organizationId)
                 .orElseThrow(() -> new AccessDeniedException(
-                        "An active license is required to create reports."));
+                        "An active license is required to perform operational workflows."));
 
         Instant now = Instant.now();
+
+        if (license.getStatus() == LicenseStatus.DEACTIVATED) {
+            throw new AccessDeniedException(
+                    "Your organization license has been deactivated. "
+                            + "Please contact support to reactivate.");
+        }
 
         /*
          * License status AND expiration are checked.
@@ -389,9 +395,27 @@ public class LicenseServiceImpl
 
             throw new AccessDeniedException(
                     "Your organization license has expired. "
-                            + "Please renew the license to create reports.");
+                            + "Please renew the license to continue.");
         }
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isLicenseActiveForOrganization(
+            UUID organizationId) {
+
+        if (organizationId == null) {
+            return false;
+        }
+
+        return licenseRepository
+                .findByOrganization_Id(organizationId)
+                .map(license -> license.getStatus() == LicenseStatus.ACTIVE
+                        && license.getExpiresAt() != null
+                        && Instant.now().isBefore(license.getExpiresAt()))
+                .orElse(false);
+    }
+
     // HELPERS
 
     private Organization findOrganization(

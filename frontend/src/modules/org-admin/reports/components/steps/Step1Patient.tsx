@@ -22,6 +22,7 @@ import {
   usePatientsQuery,
   useCreatePatientMutation,
 } from "@/modules/org-admin/patients/hooks/usePatients";
+import { useSubscriptionEligibility } from "@/core/auth/useSubscriptionEligibility";
 import type {
   AgeUnit,
   CreatePatientRequest,
@@ -84,6 +85,8 @@ export function Step1Patient({
   // Mode: "overview" (default), "register" (active form), or "search" (existing patient search)
   const [mode, setMode] = useState<"overview" | "register" | "search">("overview");
 
+  const { isEligible, reasonMessage } = useSubscriptionEligibility();
+
   // Registration Form State
   const [salutation, setSalutation] = useState<Salutation>("MR");
   const [name, setName] = useState("");
@@ -142,6 +145,14 @@ export function Step1Patient({
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+
+    if (!isEligible) {
+      setFormError(
+        reasonMessage ||
+          "An active subscription plan is required to register patients."
+      );
+      return;
+    }
 
     if (!name.trim()) {
       setFormError("Patient full name is required.");
@@ -571,8 +582,9 @@ export function Step1Patient({
 
                     <Button
                       type="submit"
-                      disabled={createPatientMutation.isPending}
-                      className="bg-[#0F766E] hover:bg-[#115E59] text-white h-11 px-7 text-sm font-semibold flex items-center gap-2 shadow-xs cursor-pointer rounded-lg"
+                      disabled={createPatientMutation.isPending || !isEligible}
+                      title={!isEligible ? reasonMessage ?? undefined : undefined}
+                      className="bg-[#0F766E] hover:bg-[#115E59] text-white h-11 px-7 text-sm font-semibold flex items-center gap-2 shadow-xs cursor-pointer rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {createPatientMutation.isPending ? (
                         <>

@@ -3,7 +3,7 @@ import { CheckCircle2, AlertTriangle, XCircle, PauseCircle, Clock } from "lucide
 import type { LicenseStatus } from "../types/licenseTypes";
 
 interface LicenseStatusBadgeProps {
-  status: LicenseStatus | "EXPIRING_SOON" | "OVER_LIMIT";
+  status: LicenseStatus | "EXPIRING_SOON" | "OVER_LIMIT" | "NO_PLAN";
   className?: string;
 }
 
@@ -57,6 +57,16 @@ export function LicenseStatusBadge({ status, className }: LicenseStatusBadgeProp
         >
           <AlertTriangle className="h-3.5 w-3.5 text-rose-600" />
           Over Capacity Limit
+        </Badge>
+      );
+    case "NO_PLAN":
+      return (
+        <Badge
+          variant="outline"
+          className={`bg-slate-100 text-slate-700 border-slate-200 font-medium gap-1 text-xs px-2.5 py-0.5 ${className ?? ""}`}
+        >
+          <XCircle className="h-3.5 w-3.5 text-slate-500" />
+          No Active Plan
         </Badge>
       );
     default:

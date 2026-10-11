@@ -37,6 +37,8 @@ import { DeleteReportDialog } from "../components/DeleteReportDialog";
 import { ShareReportModal } from "../components/ShareReportModal";
 import { reportApi } from "../api/reportApi";
 import type { ReportResponse, ReportStatus } from "../types/reportTypes";
+import { useSubscriptionEligibility } from "@/core/auth/useSubscriptionEligibility";
+import { SubscriptionAlertBanner } from "@/core/components/SubscriptionAlertBanner";
 
 function extractErrorMessage(err: unknown, fallback: string): string {
   if (axios.isAxiosError(err)) {
@@ -58,6 +60,7 @@ export default function ReportsListPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { isEligible, reasonMessage } = useSubscriptionEligibility();
 
   const basePath = location.pathname.startsWith("/lab-staff")
     ? "/lab-staff/reports"
@@ -143,6 +146,8 @@ export default function ReportsListPage() {
 
   return (
     <div className="space-y-6 pb-12">
+      <SubscriptionAlertBanner />
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -164,8 +169,10 @@ export default function ReportsListPage() {
         <div className="flex items-center gap-2">
           <Button
             onClick={() => navigate(`${basePath}/new`)}
+            disabled={!isEligible}
+            title={!isEligible ? reasonMessage ?? undefined : undefined}
             size="sm"
-            className="gap-1.5 text-xs bg-[#0F766E] hover:bg-[#115E59] text-white font-semibold shadow-xs"
+            className="gap-1.5 text-xs bg-[#0F766E] hover:bg-[#115E59] text-white font-semibold shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="h-4 w-4" />
             Create Report
@@ -264,11 +271,15 @@ export default function ReportsListPage() {
                 ? `There are no diagnostic reports currently marked as "${selectedStatus}" in your organization.`
                 : "Your organization has not created any diagnostic reports yet. Start preparing patient reports to build clinical records."
             }
-            action={{
-              label: "Create Report",
-              onClick: () => navigate(`${basePath}/new`),
-              icon: Plus,
-            }}
+            action={
+              isEligible
+                ? {
+                    label: "Create Report",
+                    onClick: () => navigate(`${basePath}/new`),
+                    icon: Plus,
+                  }
+                : undefined
+            }
             secondaryAction={
               selectedStatus !== "ALL"
                 ? {

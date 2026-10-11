@@ -22,6 +22,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useTestParametersQuery } from "@/modules/super-admin/tests/hooks/useParameters";
 import { TestTypeBadge } from "@/modules/super-admin/tests/components/TestTypeBadge";
 import type { OrganizationTestResponse } from "@/modules/super-admin/tests/types/assignmentTypes";
+import { useSubscriptionEligibility } from "@/core/auth/useSubscriptionEligibility";
 
 interface TestParametersDrawerProps {
   open: boolean;
@@ -36,6 +37,7 @@ export function TestParametersDrawer({
   test,
   onCreateReport,
 }: TestParametersDrawerProps) {
+  const { isEligible, reasonMessage } = useSubscriptionEligibility();
   const testRefId = test?.testRefId;
 
   const {
@@ -292,8 +294,11 @@ export function TestParametersDrawer({
           {onCreateReport && test && test.status === "ACTIVE" && (
             <Button
               type="button"
-              className="bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-2 shadow-sm"
+              disabled={!isEligible}
+              title={!isEligible ? reasonMessage ?? undefined : undefined}
+              className="bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => {
+                if (!isEligible) return;
                 onOpenChange(false);
                 onCreateReport(test.testRefId);
               }}

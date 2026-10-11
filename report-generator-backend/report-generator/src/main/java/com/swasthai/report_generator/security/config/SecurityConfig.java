@@ -101,6 +101,13 @@ public class SecurityConfig {
                                                 .hasRole("SUPER_ADMIN")
 
                                                 .requestMatchers(
+                                                                HttpMethod.GET,
+                                                                "/api/v1/license/me")
+                                                .hasAnyRole(
+                                                                "ORG_ADMIN",
+                                                                "LAB_STAFF")
+
+                                                .requestMatchers(
                                                                 "/api/v1/license/**")
                                                 .hasRole("ORG_ADMIN")
 

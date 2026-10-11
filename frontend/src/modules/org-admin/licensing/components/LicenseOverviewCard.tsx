@@ -31,7 +31,23 @@ export function LicenseOverviewCard({
   return (
     <Card className="border-slate-200 bg-white shadow-xs overflow-hidden">
       {/* Top Banner for Urgent Expiry Notice */}
-      {expiryStatus === "EXPIRED" ? (
+      {expiryStatus === "NO_PLAN" ? (
+        <div className="bg-rose-50 border-b border-rose-200 px-5 py-2.5 flex items-center justify-between text-xs text-rose-800">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
+            <span>
+              <strong>No Active Subscription:</strong> Diagnostic reports and patient operations require an active subscription plan.
+            </span>
+          </div>
+          <Button
+            size="sm"
+            onClick={onRequestUpgrade}
+            className="h-6 text-xs bg-rose-700 hover:bg-rose-800 text-white"
+          >
+            Select Plan
+          </Button>
+        </div>
+      ) : expiryStatus === "EXPIRED" ? (
         <div className="bg-rose-50 border-b border-rose-200 px-5 py-2.5 flex items-center justify-between text-xs text-rose-800">
           <div className="flex items-center gap-2">
             <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
@@ -53,7 +69,7 @@ export function LicenseOverviewCard({
           <div className="flex items-center gap-2">
             <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
             <span>
-              <strong>Expiring in {daysRemaining} days:</strong> Your annual subscription expires on {formatDate(license.expiresAt)}.
+              <strong>Expiring in {daysRemaining} days:</strong> Your annual subscription expires on {formatDate(license?.expiresAt)}.
             </span>
           </div>
           <Button
@@ -77,12 +93,12 @@ export function LicenseOverviewCard({
             <div>
               <div className="flex items-center gap-2.5">
                 <h2 className="text-xl font-bold tracking-tight text-slate-900">
-                  {license.planName || "Current Subscription"}
+                  {license?.planName || "No Active Plan"}
                 </h2>
                 <LicenseStatusBadge status={expiryStatus} />
               </div>
               <p className="text-xs text-slate-500 mt-0.5 font-mono">
-                License Ref: {license.refId}
+                {license?.refId ? `License Ref: ${license.refId}` : "No active license record"}
               </p>
             </div>
           </div>
@@ -92,7 +108,7 @@ export function LicenseOverviewCard({
             className="bg-[#0F766E] hover:bg-[#0d655e] text-white shadow-2xs gap-1.5 cursor-pointer shrink-0"
           >
             <Sparkles className="h-4 w-4" />
-            Request Plan Upgrade
+            {expiryStatus === "NO_PLAN" ? "Choose Subscription Plan" : "Request Plan Upgrade"}
             <ArrowUpRight className="h-3.5 w-3.5 ml-0.5 opacity-80" />
           </Button>
         </div>
@@ -105,7 +121,7 @@ export function LicenseOverviewCard({
             </span>
             <div className="mt-1 flex items-center gap-2 text-slate-900 font-semibold text-sm">
               <Calendar className="h-4 w-4 text-slate-400" />
-              <span>{formatDate(license.startedAt)}</span>
+              <span>{formatDate(license?.startedAt)}</span>
             </div>
           </div>
 
@@ -115,7 +131,7 @@ export function LicenseOverviewCard({
             </span>
             <div className="mt-1 flex items-center gap-2 text-slate-900 font-semibold text-sm">
               <Calendar className="h-4 w-4 text-slate-400" />
-              <span>{formatDate(license.expiresAt)}</span>
+              <span>{formatDate(license?.expiresAt)}</span>
             </div>
           </div>
 

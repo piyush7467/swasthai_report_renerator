@@ -87,12 +87,23 @@ public class LicenseGuard {
     }
 
     /**
-     * Must be called before modifying, calculating, or finalizing a clinical report.
+     * Must be called before modifying, calculating, or finalizing a clinical report,
+     * or executing operational actions such as patient management.
      * Enforces that an active, non-expired license is held by the organization.
      */
     public void requireActiveLicenseForOrganization(
             UUID organizationId
     ) {
         licenseService.requireActiveLicenseForOrganization(organizationId);
+    }
+
+    /**
+     * Non-throwing inquiry to check whether the organization currently holds
+     * an active, non-expired license.
+     */
+    public boolean isSubscriptionActive(
+            UUID organizationId
+    ) {
+        return licenseService.isLicenseActiveForOrganization(organizationId);
     }
 }

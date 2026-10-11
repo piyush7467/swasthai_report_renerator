@@ -79,7 +79,53 @@ public class PlanUpgradeRequestServiceImpl implements PlanUpgradeRequestService 
 
         License license = licenseRepository
                 .findWithPlanByOrganizationId(organization.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("License not found for organization."));
+                .orElse(null);
+
+        if (license == null) {
+            long activeStaff = userRepository.countByOrganization_IdAndRoleAndStatus(
+                    organization.getId(),
+                    Role.LAB_STAFF,
+                    UserStatus.ACTIVE
+            );
+            long totalStaff = userRepository.countByOrganization_IdAndRole(
+                    organization.getId(),
+                    Role.LAB_STAFF
+            );
+            long totalPatients = patientRepository.countByOrganization_IdAndDeletedAtIsNull(organization.getId());
+            long totalReports = reportRepository.countByOrganization_IdAndDeletedAtIsNull(organization.getId());
+            long finalizedReports = reportRepository.countByOrganization_IdAndStatusAndDeletedAtIsNull(
+                    organization.getId(),
+                    ReportStatus.FINALIZED
+            );
+
+            return OrganizationLicenseOverviewResponse.builder()
+                    .license(null)
+                    .daysRemaining(0L)
+                    .expiryStatus("NO_PLAN")
+                    .staffUsage(OrganizationLicenseOverviewResponse.StaffUsageSummary.builder()
+                            .activeStaff(activeStaff)
+                            .maxLabStaff(0)
+                            .remainingSlots(0)
+                            .totalStaff(totalStaff)
+                            .limitReached(true)
+                            .overLimit(activeStaff > 0)
+                            .build())
+                    .patientUsage(OrganizationLicenseOverviewResponse.PatientUsageSummary.builder()
+                            .totalPatients(totalPatients)
+                            .build())
+                    .reportUsage(OrganizationLicenseOverviewResponse.ReportUsageSummary.builder()
+                            .totalReports(totalReports)
+                            .finalizedReports(finalizedReports)
+                            .monthlyReportsCreated(0L)
+                            .maxReportsPerMonth(0)
+                            .dailyReportsCreated(0L)
+                            .maxReportsPerDay(0)
+                            .remainingMonthlyReports(0)
+                            .monthlyLimitReached(true)
+                            .dailyLimitReached(true)
+                            .build())
+                    .build();
+        }
 
         Instant now = Instant.now();
         long daysRemaining = 0L;

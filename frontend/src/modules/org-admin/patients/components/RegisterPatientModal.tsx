@@ -5,6 +5,7 @@ import {
   Mail,
   MapPin,
   Phone,
+  ShieldAlert,
   User,
   X,
 } from "lucide-react";
@@ -20,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCreatePatientMutation } from "../hooks/usePatients";
+import { useSubscriptionEligibility } from "@/core/auth/useSubscriptionEligibility";
 import type {
   AgeUnit,
   CreatePatientRequest,
@@ -52,6 +54,7 @@ export function RegisterPatientModal({
   const [weightKg, setWeightKg] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
+  const { isEligible, reasonMessage } = useSubscriptionEligibility();
   const createMutation = useCreatePatientMutation();
 
   const handleSalutationChange = (newSalutation: Salutation) => {
@@ -81,6 +84,14 @@ export function RegisterPatientModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+
+    if (!isEligible) {
+      setFormError(
+        reasonMessage ||
+          "An active subscription plan is required to register patients."
+      );
+      return;
+    }
 
     if (!name.trim()) {
       setFormError("Patient full name is required.");
@@ -150,6 +161,21 @@ export function RegisterPatientModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4">
+          {!isEligible && (
+            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs">
+              <ShieldAlert className="h-4 w-4 shrink-0 text-rose-600 mt-0.5" />
+              <div>
+                <span className="font-semibold block text-rose-900">
+                  Subscription Required
+                </span>
+                <p className="mt-0.5 text-rose-700">
+                  {reasonMessage ||
+                    "An active subscription plan is required to register patients."}
+                </p>
+              </div>
+            </div>
+          )}
+
           {formError && (
             <div className="flex items-center justify-between p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs">
               <div className="flex items-center gap-2">
@@ -354,8 +380,9 @@ export function RegisterPatientModal({
             <Button
               type="submit"
               size="sm"
-              disabled={createMutation.isPending}
-              className="text-xs h-9 px-5 bg-[#0F766E] hover:bg-[#115E59] text-white font-semibold cursor-pointer"
+              disabled={createMutation.isPending || !isEligible}
+              title={!isEligible ? reasonMessage ?? undefined : undefined}
+              className="text-xs h-9 px-5 bg-[#0F766E] hover:bg-[#115E59] text-white font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {createMutation.isPending ? (
                 <>

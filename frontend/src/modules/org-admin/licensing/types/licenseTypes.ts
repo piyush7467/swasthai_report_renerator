@@ -50,12 +50,12 @@ export interface ReportUsageSummary {
 }
 
 export interface OrganizationLicenseOverviewResponse {
-  license: LicenseResponse;
+  license: LicenseResponse | null;
   staffUsage: StaffUsageSummary;
   patientUsage: PatientUsageSummary;
   reportUsage: ReportUsageSummary;
   daysRemaining: number;
-  expiryStatus: "ACTIVE" | "EXPIRING_SOON" | "EXPIRED" | "DEACTIVATED";
+  expiryStatus: "ACTIVE" | "EXPIRING_SOON" | "EXPIRED" | "DEACTIVATED" | "NO_PLAN";
 }
 
 export interface AvailablePlanResponse {

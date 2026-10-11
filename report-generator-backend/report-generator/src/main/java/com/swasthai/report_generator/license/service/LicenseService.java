@@ -32,9 +32,13 @@ public interface LicenseService {
 
     /**
      * Mandatory server-side authorization check for
-     * report generation.
+     * report generation and operational workflows.
      */
     void requireActiveLicenseForOrganization(
+            java.util.UUID organizationId
+    );
+
+    boolean isLicenseActiveForOrganization(
             java.util.UUID organizationId
     );
 }

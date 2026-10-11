@@ -33,10 +33,13 @@ import { useTenantTestsQuery } from "../hooks/useTenantTests";
 import { TestParametersDrawer } from "../components/TestParametersDrawer";
 import { TestTypeBadge } from "@/modules/super-admin/tests/components/TestTypeBadge";
 import type { OrganizationTestResponse } from "@/modules/super-admin/tests/types/assignmentTypes";
+import { useSubscriptionEligibility } from "@/core/auth/useSubscriptionEligibility";
+import { SubscriptionAlertBanner } from "@/core/components/SubscriptionAlertBanner";
 
 export function AssignedTestsPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isEligible, reasonMessage } = useSubscriptionEligibility();
 
   const isLabStaff = location.pathname.startsWith("/lab-staff");
   const reportNewPath = isLabStaff ? "/lab-staff/reports/new" : "/org-admin/reports/new";
@@ -127,6 +130,8 @@ export function AssignedTestsPage() {
 
   return (
     <div className="space-y-6">
+      <SubscriptionAlertBanner />
+
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -162,7 +167,9 @@ export function AssignedTestsPage() {
 
           <Button
             size="sm"
-            className="bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-2 shadow-sm"
+            disabled={!isEligible}
+            title={!isEligible ? reasonMessage ?? undefined : undefined}
+            className="bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={() => handleCreateReport()}
           >
             <FilePlus className="size-4" />
@@ -486,8 +493,10 @@ export function AssignedTestsPage() {
                           {isActive && (
                             <Button
                               size="sm"
+                              disabled={!isEligible}
+                              title={!isEligible ? reasonMessage ?? undefined : undefined}
                               onClick={() => handleCreateReport(test.testRefId)}
-                              className="h-8 text-xs bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-1.5 shadow-2xs"
+                              className="h-8 text-xs bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-1.5 shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <FilePlus className="size-3.5" />
                               Order Report

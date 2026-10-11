@@ -7,7 +7,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSubscriptionEligibility } from "@/core/auth/useSubscriptionEligibility";
+import { SubscriptionAlertBanner } from "@/core/components/SubscriptionAlertBanner";
 
 import {
   useReportQuery,
@@ -35,6 +38,12 @@ export default function ReportWorkspacePage() {
   const { reportRefId } = useParams<{ reportRefId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const {
+    isEligible,
+    reasonMessage,
+    canManageSubscription,
+    subscriptionManagementPath,
+  } = useSubscriptionEligibility();
 
   const isNewReportFlow = !reportRefId || reportRefId === "new";
   const basePath = location.pathname.startsWith("/lab-staff")
@@ -250,6 +259,40 @@ export default function ReportWorkspacePage() {
     return <FinalizedReportView report={report} patient={activePatient} />;
   }
 
+  // If user is attempting to create a new report but the organization is not eligible
+  if (isNewReportFlow && !isEligible) {
+    return (
+      <div className="max-w-2xl mx-auto py-12 space-y-6">
+        <SubscriptionAlertBanner />
+        <Card className="p-8 text-center border-slate-200 bg-white shadow-xs">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-100 mb-4">
+            <AlertCircle className="h-6 w-6 text-rose-600" />
+          </div>
+          <h3 className="text-lg font-bold text-slate-900">
+            Report Creation Blocked
+          </h3>
+          <p className="mt-2 text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
+            {reasonMessage ||
+              "An active subscription plan is required to create diagnostic reports. Please activate or renew your organization's plan."}
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <Button asChild variant="outline" size="sm" className="text-xs">
+              <Link to={basePath}>
+                <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
+                Back to Reports
+              </Link>
+            </Button>
+            {canManageSubscription && (
+              <Button asChild size="sm" className="text-xs bg-[#0F766E] hover:bg-[#115E59] text-white">
+                <Link to={subscriptionManagementPath}>Manage Subscription</Link>
+              </Button>
+            )}
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   // Determine max step user can navigate to
   const maxAccessibleStep: ReportStepIndex = isNewReportFlow
     ? selectedPatientForNew
@@ -259,6 +302,8 @@ export default function ReportWorkspacePage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-20">
+      <SubscriptionAlertBanner />
+
       {/* Top Header & Back Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">

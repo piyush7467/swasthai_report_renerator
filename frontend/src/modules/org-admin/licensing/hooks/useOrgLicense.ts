@@ -6,6 +6,7 @@ import type {
 } from "../types/licenseTypes";
 
 export const LICENSE_QUERY_KEYS = {
+  me: ["org-license", "me"] as const,
   overview: ["org-license", "overview"] as const,
   availablePlans: ["org-license", "available-plans"] as const,
   requests: (page: number, size: number, status?: UpgradeRequestStatus) =>
@@ -13,6 +14,14 @@ export const LICENSE_QUERY_KEYS = {
   requestDetails: (refId: string) =>
     ["org-license", "request-details", refId] as const,
 };
+
+export function useOwnLicenseQuery() {
+  return useQuery({
+    queryKey: LICENSE_QUERY_KEYS.me,
+    queryFn: () => orgLicensingApi.getOwnLicense(),
+    staleTime: 30_000,
+  });
+}
 
 export function useLicenseOverview() {
   return useQuery({

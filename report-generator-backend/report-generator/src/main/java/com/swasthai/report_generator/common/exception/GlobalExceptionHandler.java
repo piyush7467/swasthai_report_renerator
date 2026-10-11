@@ -132,11 +132,17 @@ public class GlobalExceptionHandler {
             AccessDeniedException exception,
             HttpServletRequest request
     ) {
+        String message = (exception.getMessage() != null
+                && !exception.getMessage().isBlank()
+                && !"Access is denied".equalsIgnoreCase(exception.getMessage().trim()))
+                ? exception.getMessage()
+                : "You do not have permission to perform this operation.";
+
         ErrorResponse response = ErrorResponse.builder()
                 .success(false)
                 .status(HttpStatus.FORBIDDEN.value())
                 .code("FORBIDDEN")
-                .message("You do not have permission to perform this operation.")
+                .message(message)
                 .path(request.getRequestURI())
                 .timestamp(Instant.now())
                 .build();
