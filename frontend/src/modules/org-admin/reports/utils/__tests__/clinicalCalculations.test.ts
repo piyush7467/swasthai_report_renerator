@@ -758,7 +758,7 @@ function runTests() {
     param_lymph: "12",
   });
   assert(diffValidation !== null && diffValidation.isValid === false, "Incomplete differential should be invalid");
-  assert(diffValidation?.missingParams.includes("EOS"), "Should flag missing EOS");
+  assert(diffValidation?.missingParams.includes("EOS") === true, "Should flag missing EOS");
   console.log("  ✓ Incomplete differential leaves MONO/BASO empty and flags missing EOS");
 
   // 7c. Cleared inputs
