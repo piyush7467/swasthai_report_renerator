@@ -54,7 +54,7 @@ type RenewLicenseFormValues = z.infer<typeof renewLicenseSchema>;
 interface RenewLicenseDialogProps {
   organizationRefId: string;
   organizationName?: string;
-  currentLicense: LicenseResponse;
+  currentLicense?: LicenseResponse | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: (license: LicenseResponse) => void;
@@ -68,6 +68,9 @@ export function RenewLicenseDialog({
   onOpenChange,
   onSuccess,
 }: RenewLicenseDialogProps) {
+  if (!currentLicense) {
+    return null;
+  }
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState<boolean>(false);
   const [pendingValues, setPendingValues] =
@@ -218,10 +221,10 @@ export function RenewLicenseDialog({
                 <span className="text-slate-500 font-medium">Selected Plan:</span>
                 <div className="flex items-center gap-1.5">
                   <span className="font-semibold text-slate-900">
-                    {chosenPlan?.name || currentLicense.planName}
+                    {chosenPlan?.name || currentLicense?.planName || "Standard Plan"}
                   </span>
                   <Badge variant="outline" className="font-mono text-[10px] bg-white">
-                    {chosenPlan?.code || currentLicense.planCode}
+                    {chosenPlan?.code || currentLicense?.planCode || "STANDARD"}
                   </Badge>
                 </div>
               </div>
@@ -344,15 +347,15 @@ export function RenewLicenseDialog({
                     Current Subscription
                   </span>
                   <LicenseStatusBadge
-                    status={currentLicense.status}
-                    currentlyUsable={currentLicense.currentlyUsable}
+                    status={currentLicense?.status || "ACTIVE"}
+                    currentlyUsable={currentLicense?.currentlyUsable || false}
                     showUsability
                   />
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-600">Plan:</span>
                   <span className="font-semibold text-slate-900">
-                    {currentLicense.planName} ({currentLicense.planCode})
+                    {currentLicense?.planName || "Standard Plan"} ({currentLicense?.planCode || "STANDARD"})
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-xs">

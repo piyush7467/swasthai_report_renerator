@@ -279,7 +279,7 @@ export default function OrganizationDetailsPage() {
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-slate-500 font-medium">Assigned Plan:</span>
                         <span className="font-semibold text-slate-900">
-                          {license.planName} ({license.planCode})
+                          {license?.planName || "Standard Plan"} ({license?.planCode || "STANDARD"})
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-xs">

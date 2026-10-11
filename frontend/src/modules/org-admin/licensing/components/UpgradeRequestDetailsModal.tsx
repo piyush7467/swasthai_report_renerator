@@ -108,7 +108,7 @@ export function UpgradeRequestDetailsModal({
           <div className="p-3 rounded-lg border border-slate-200 divide-y divide-slate-100">
             <div className="flex justify-between py-1.5">
               <span className="text-slate-500">Current Plan:</span>
-              <span className="font-medium text-slate-800">{request.currentPlanName}</span>
+              <span className="font-medium text-slate-800">{request.currentPlanName || "No Previous Plan"}</span>
             </div>
             <div className="flex justify-between py-1.5">
               <span className="text-slate-500">Requested Plan:</span>

@@ -22,8 +22,8 @@ export function PlanDetailsCard({ license }: PlanDetailsCardProps) {
     );
   }
 
-  const isPro = license.planCode === "PROFESSIONAL";
-  const isEnterprise = license.planCode === "ENTERPRISE";
+  const isPro = license?.planCode === "PROFESSIONAL";
+  const isEnterprise = license?.planCode === "ENTERPRISE";
 
   return (
     <Card className="p-5 sm:p-6 border-slate-200 bg-white shadow-xs space-y-4">
@@ -33,7 +33,7 @@ export function PlanDetailsCard({ license }: PlanDetailsCardProps) {
             Subscription Plan Specifications
           </h3>
           <p className="text-xs text-slate-500">
-            Capabilities and provisions enabled under the {license.planName} tier.
+            Capabilities and provisions enabled under the {license?.planName || "Standard"} tier.
           </p>
         </div>
 
@@ -53,7 +53,7 @@ export function PlanDetailsCard({ license }: PlanDetailsCardProps) {
               Staff Seat Allocation
             </span>
             <p className="text-xs text-slate-500 mt-0.5">
-              Up to <strong className="text-slate-700">{license.maxLabStaff} active users</strong> (technicians, pathologists, reviewers).
+              Up to <strong className="text-slate-700">{license?.maxLabStaff ?? 0} active users</strong> (technicians, pathologists, reviewers).
             </p>
           </div>
         </div>
@@ -67,7 +67,7 @@ export function PlanDetailsCard({ license }: PlanDetailsCardProps) {
               Report Quota Limits
             </span>
             <p className="text-xs text-slate-500 mt-0.5">
-              {license.maxReportsPerMonth && license.maxReportsPerMonth > 0 ? (
+              {license?.maxReportsPerMonth && license.maxReportsPerMonth > 0 ? (
                 <>
                   Up to <strong className="text-slate-700">{license.maxReportsPerMonth.toLocaleString()} reports / mo</strong> ({license.maxReportsPerDay ?? 25}/day).
                 </>
@@ -96,7 +96,7 @@ export function PlanDetailsCard({ license }: PlanDetailsCardProps) {
       {/* Feature list bullet points */}
       <div className="pt-2 border-t border-slate-100">
         <span className="text-xs font-medium text-slate-500 uppercase tracking-wider block mb-2">
-          Included in {license.planName}
+          Included in {license?.planName || "Subscription Plan"}
         </span>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700">
           <div className="flex items-center gap-2">

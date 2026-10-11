@@ -182,7 +182,7 @@ export function ReviewUpgradeRequestModal({
                   Current Tier
                 </span>
                 <span className="font-semibold text-slate-800 text-sm block">
-                  {request.currentPlanName}
+                  {request.currentPlanName || "No Previous Plan"}
                 </span>
                 <span className="text-[11px] text-slate-500">
                   {request.currentActiveStaffCount} active staff
@@ -195,7 +195,7 @@ export function ReviewUpgradeRequestModal({
                   <ArrowRight className="h-3 w-3" />
                 </div>
                 <span className="font-bold text-teal-950 text-sm block">
-                  {request.requestedPlanName}
+                  {request.requestedPlanName || "New Plan"}
                 </span>
                 <span className="text-[11px] text-teal-800 font-medium">
                   {request.requestedStaffCapacity} max staff seats

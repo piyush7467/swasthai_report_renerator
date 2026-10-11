@@ -40,8 +40,13 @@ export function LabStaffSummaryCard({
     );
   }
 
-  const { activeStaff, maxLabStaff, remainingSlots, limitReached, planName } =
-    summary;
+  const {
+    activeStaff = 0,
+    maxLabStaff = 0,
+    remainingSlots = 0,
+    limitReached = false,
+    planName = null,
+  } = summary || {};
   const isOverLimit = activeStaff > maxLabStaff;
   const usagePercentage = Math.min(
     100,

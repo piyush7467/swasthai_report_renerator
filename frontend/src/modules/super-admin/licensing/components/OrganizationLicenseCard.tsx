@@ -185,10 +185,10 @@ export function OrganizationLicenseCard({
               <div>
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-base font-semibold text-slate-900">
-                    {license.planName}
+                    {license?.planName || "Standard Plan"}
                   </CardTitle>
                   <Badge variant="outline" className="font-mono text-[11px] bg-white text-slate-700">
-                    {license.planCode}
+                    {license?.planCode || "STANDARD"}
                   </Badge>
                 </div>
                 <CardDescription className="text-xs">
