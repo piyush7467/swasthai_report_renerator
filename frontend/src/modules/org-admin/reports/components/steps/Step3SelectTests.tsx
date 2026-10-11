@@ -137,8 +137,9 @@ export function Step3SelectTests({
     try {
       await onConfirm(selectedTestRefIds);
     } catch (err: unknown) {
+      const apiMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       const msg =
-        err instanceof Error ? err.message : "Failed to add selected tests.";
+        apiMsg || (err instanceof Error ? err.message : "Failed to add selected tests.");
       setErrorMessage(msg);
     }
   };

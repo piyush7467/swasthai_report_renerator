@@ -64,8 +64,7 @@ public class Report {
 
         @Version
         @Column(name = "lock_version", nullable = false)
-        @Builder.Default
-        private Long lockVersion = 0L;
+        private Long lockVersion;
 
         @ManyToOne(fetch = FetchType.LAZY, optional = true)
         @JoinColumn(name = "created_by", nullable = true, foreignKey = @ForeignKey(name = "fk_reports_created_by"))
@@ -121,10 +120,6 @@ public class Report {
 
                 if (includeOrganizationHeader == null) {
                         includeOrganizationHeader = false;
-                }
-
-                if (lockVersion == null) {
-                        lockVersion = 0L;
                 }
 
                 if (tests == null) {

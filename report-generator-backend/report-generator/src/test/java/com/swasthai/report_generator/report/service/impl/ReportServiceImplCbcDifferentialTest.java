@@ -8,7 +8,9 @@ import com.swasthai.report_generator.organization.repository.OrganizationProfile
 import com.swasthai.report_generator.organization.repository.OrganizationRepository;
 import com.swasthai.report_generator.patient.repository.PatientRepository;
 import com.swasthai.report_generator.report.config.ReportRetentionProperties;
+import com.swasthai.report_generator.report.dto.request.AddReportTestsBulkRequest;
 import com.swasthai.report_generator.report.dto.request.UpdateReportParametersRequest;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import com.swasthai.report_generator.report.dto.response.ReportResponse;
 import com.swasthai.report_generator.report.entity.Report;
 import com.swasthai.report_generator.report.entity.ReportStatus;
@@ -521,5 +523,97 @@ class ReportServiceImplCbcDifferentialTest {
         assertThat(basoResult.getValue()).isNull();
         assertThat(basoResult.getNumericValue()).isNull();
         assertThat(basoResult.getFlag()).isNull();
+    }
+
+    @Test
+    @DisplayName("Bulk Add: Initializes CBC differential MONO and BASO as CALCULATED inputType")
+    void testAddTestsBulk_InitializesCbcDifferentialAsCalculated() {
+        Report emptyReport = Report.builder()
+                .id(UUID.randomUUID())
+                .refId("REP-NEW")
+                .organization(testOrg)
+                .status(ReportStatus.DRAFT)
+                .reportVersion(1)
+                .lockVersion(0L)
+                .tests(new ArrayList<>())
+                .build();
+
+        when(reportRepository.findByRefIdAndOrganization_IdAndDeletedAtIsNull("REP-NEW", testOrg.getId()))
+                .thenReturn(Optional.of(emptyReport));
+        when(reportRepository.save(any(Report.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        com.swasthai.report_generator.test.entity.Test cbcEntity =
+                com.swasthai.report_generator.test.entity.Test.builder()
+                        .id(UUID.randomUUID())
+                        .refId("TEST-CBC")
+                        .code("CBC")
+                        .name("Complete Blood Count")
+                        .status(TestStatus.ACTIVE)
+                        .build();
+
+        when(organizationTestService.hasTestAccess("TEST-CBC")).thenReturn(true);
+        when(testRepository.findByRefId("TEST-CBC")).thenReturn(Optional.of(cbcEntity));
+
+        TestParameter neut = TestParameter.builder().code("NEUT").name("Neutrophils").inputType(ParameterInputType.MANUAL).calculationType(CalculationType.NONE).displayOrder(1).build();
+        TestParameter mono = TestParameter.builder().code("MONO").name("Monocytes").inputType(ParameterInputType.MANUAL).calculationType(CalculationType.NONE).displayOrder(2).build();
+        TestParameter baso = TestParameter.builder().code("BASO").name("Basophils").inputType(ParameterInputType.MANUAL).calculationType(CalculationType.NONE).displayOrder(3).build();
+
+        when(testParameterRepository.findAllByTest_IdAndStatusOrderByDisplayOrderAsc(cbcEntity.getId(), TestParameterStatus.ACTIVE))
+                .thenReturn(List.of(neut, mono, baso));
+
+        AddReportTestsBulkRequest request = new AddReportTestsBulkRequest(List.of("TEST-CBC"), null);
+        ReportResponse response = reportService.addTestsBulk("REP-NEW", request);
+
+        assertThat(response).isNotNull();
+        assertThat(emptyReport.getTests()).hasSize(1);
+        ReportTestResult addedTest = emptyReport.getTests().get(0);
+        assertThat(addedTest.getTestCode()).isEqualTo("CBC");
+
+        TestParameterResult addedMono = addedTest.getParameterResults().stream()
+                .filter(p -> "MONO".equals(p.getParameterCode())).findFirst().orElseThrow();
+        TestParameterResult addedBaso = addedTest.getParameterResults().stream()
+                .filter(p -> "BASO".equals(p.getParameterCode())).findFirst().orElseThrow();
+        TestParameterResult addedNeut = addedTest.getParameterResults().stream()
+                .filter(p -> "NEUT".equals(p.getParameterCode())).findFirst().orElseThrow();
+
+        assertThat(addedNeut.getInputType()).isEqualTo(ParameterInputType.MANUAL);
+        assertThat(addedMono.getInputType()).isEqualTo(ParameterInputType.CALCULATED);
+        assertThat(addedBaso.getInputType()).isEqualTo(ParameterInputType.CALCULATED);
+    }
+
+    @Test
+    @DisplayName("Bulk Add: Idempotently skips already existing tests and duplicate IDs in same batch")
+    void testAddTestsBulk_IdempotentlySkipsDuplicates() {
+        when(reportRepository.findByRefIdAndOrganization_IdAndDeletedAtIsNull("REP-001", testOrg.getId()))
+                .thenReturn(Optional.of(draftReport));
+        when(reportRepository.save(any(Report.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        com.swasthai.report_generator.test.entity.Test cbcEntity = draftReport.getTests().get(0).getTest();
+        cbcEntity.setStatus(TestStatus.ACTIVE);
+        when(organizationTestService.hasTestAccess("TEST-CBC")).thenReturn(true);
+        when(testRepository.findByRefId("TEST-CBC")).thenReturn(Optional.of(cbcEntity));
+
+        int initialTestCount = draftReport.getTests().size();
+
+        AddReportTestsBulkRequest request = new AddReportTestsBulkRequest(List.of("TEST-CBC", "TEST-CBC"), 0L);
+        ReportResponse response = reportService.addTestsBulk("REP-001", request);
+
+        assertThat(response).isNotNull();
+        assertThat(draftReport.getTests()).hasSize(initialTestCount);
+    }
+
+    @Test
+    @DisplayName("Bulk Add: Throws ObjectOptimisticLockingFailureException on lock version mismatch")
+    void testAddTestsBulk_LockVersionMismatch_ThrowsOptimisticLockException() {
+        when(reportRepository.findByRefIdAndOrganization_IdAndDeletedAtIsNull("REP-001", testOrg.getId()))
+                .thenReturn(Optional.of(draftReport));
+
+        AddReportTestsBulkRequest request = new AddReportTestsBulkRequest(List.of("TEST-CBC"), 99L);
+
+        assertThatThrownBy(() -> reportService.addTestsBulk("REP-001", request))
+                .isInstanceOf(ObjectOptimisticLockingFailureException.class)
+                .hasMessageContaining("Report has been modified by another transaction");
     }
 }

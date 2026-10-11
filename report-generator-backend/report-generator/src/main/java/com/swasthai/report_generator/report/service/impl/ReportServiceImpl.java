@@ -197,7 +197,6 @@ public class ReportServiceImpl implements ReportService {
                 .patientRefId(patientRefId)
                 .status(ReportStatus.DRAFT)
                 .reportVersion(1)
-                .lockVersion(0L)
                 .createdBy(currentUser)
                 .createdByName(currentUser.getName())
                 .createdByEmail(currentUser.getEmail())
@@ -464,6 +463,8 @@ public class ReportServiceImpl implements ReportService {
                 .max()
                 .orElse(0);
 
+        java.util.Set<java.util.UUID> addedInBatch = new java.util.HashSet<>();
+
         for (String rawTestRefId : request.testRefIds()) {
             if (rawTestRefId == null || rawTestRefId.isBlank()) {
                 continue;
@@ -479,12 +480,15 @@ public class ReportServiceImpl implements ReportService {
                 throw new IllegalArgumentException("Test is not active: " + testRefId);
             }
 
-            boolean alreadyExists = report.getTests().stream()
-                    .anyMatch(rt -> rt.getTest() != null && rt.getTest().getId().equals(test.getId()));
+            boolean alreadyExists = (report.getId() != null && reportTestResultRepository.existsByReport_IdAndTest_Id(report.getId(), test.getId()))
+                    || (report.getTests() != null && report.getTests().stream()
+                            .anyMatch(rt -> rt.getTest() != null && rt.getTest().getId().equals(test.getId())))
+                    || addedInBatch.contains(test.getId());
 
             if (alreadyExists) {
                 continue;
             }
+            addedInBatch.add(test.getId());
 
             currentOrder++;
             ReportTestResult reportTest = ReportTestResult.builder()
@@ -1894,15 +1898,16 @@ public class ReportServiceImpl implements ReportService {
             return;
         }
 
+        Long currentLockVersion = report.getLockVersion() == null ? 0L : report.getLockVersion();
         if (!Objects.equals(
-                report.getLockVersion(),
+                currentLockVersion,
                 clientLockVersion)) {
 
             throw new ObjectOptimisticLockingFailureException(
                     Report.class,
                     "Report has been modified by another transaction. "
                             + "Expected lock version: "
-                            + report.getLockVersion()
+                            + currentLockVersion
                             + " but received: "
                             + clientLockVersion);
         }

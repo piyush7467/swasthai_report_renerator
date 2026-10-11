@@ -189,7 +189,6 @@ export default function ReportWorkspacePage() {
             reportRefId: createdReport.refId,
             request: {
               testRefIds,
-              lockVersion: createdReport.lockVersion,
             },
           });
         }
