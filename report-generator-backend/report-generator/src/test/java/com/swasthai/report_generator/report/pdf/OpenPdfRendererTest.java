@@ -193,17 +193,15 @@ class OpenPdfRendererTest {
     }
 
     @Test
-    @DisplayName("Renders PDF with Organization Header OFF completely omitting header and whitespace")
-    void testRenderPdf_HeaderOff_CompletelyOmitted() throws Exception {
+    @DisplayName("Renders PDF with Organization Header OFF leaving blank space placeholder for letterhead paper")
+    void testRenderPdf_HeaderOff_BlankSpacePlaceholder() throws Exception {
         ReportPdfData data = createSampleReportData(false, null);
         byte[] pdfBytes = renderer.render(data);
 
         assertThat(pdfBytes).isNotEmpty();
         PdfReader reader = new PdfReader(pdfBytes);
         String text = new PdfTextExtractor(reader).getTextFromPage(1);
-        // Header is completely omitted: document begins directly with Patient Name (no spacer or blank table)
-        assertThat(text.trim()).startsWith("Patient Name");
-        // Organization header details (tagline, address, email) are omitted
+        // Organization header details (tagline, address, email) are omitted from letterhead space
         assertThat(text).doesNotContain("Excellence in Diagnostics");
         assertThat(text).doesNotContain("123 Health Ave");
         assertThat(text).doesNotContain("contact@apexlab.com");

@@ -224,12 +224,6 @@ public class OpenPdfRenderer implements PdfRenderer {
      * ============================================================
      */
     private void addOrganizationHeader(Document document, ReportPdfData data) throws DocumentException {
-        if (!Boolean.TRUE.equals(data.includeOrganizationHeader())) {
-            // Header is disabled: do NOT render header or reserve any blank placeholder space.
-            // Patient card will start directly at the top margin.
-            return;
-        }
-
         OrganizationPdfSnapshot organization = data.organization();
         Image logoImage = loadLogoImage(organization.logoStorageKey());
 
@@ -336,7 +330,26 @@ public class OpenPdfRenderer implements PdfRenderer {
         }
         header.addCell(rightCell);
 
-        document.add(header);
+        if (Boolean.TRUE.equals(data.includeOrganizationHeader())) {
+            document.add(header);
+        } else {
+            // Header is OFF: Reserve blank vertical space for physical pre-printed letterhead paper
+            float contentWidth = document.right() - document.left();
+            header.setTotalWidth(contentWidth);
+            float headerHeight = header.calculateHeights(true);
+            if (headerHeight < 80f) {
+                headerHeight = 80f;
+            }
+
+            PdfPTable placeholder = new PdfPTable(1);
+            placeholder.setWidthPercentage(100);
+            placeholder.setSpacingAfter(header.spacingAfter());
+            PdfPCell blankCell = new PdfPCell();
+            blankCell.setBorder(Rectangle.NO_BORDER);
+            blankCell.setFixedHeight(headerHeight);
+            placeholder.addCell(blankCell);
+            document.add(placeholder);
+        }
     }
 
     private Image loadLogoImage(String logoStorageKey) {

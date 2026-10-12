@@ -28,6 +28,7 @@ import com.swasthai.report_generator.report.dto.response.ReportTestItemResponse;
 import com.swasthai.report_generator.report.entity.Report;
 import com.swasthai.report_generator.report.entity.ReportStatus;
 import com.swasthai.report_generator.report.entity.ReportTestResult;
+import com.swasthai.report_generator.report.pdf.OrganizationPdfSnapshot;
 import com.swasthai.report_generator.report.pdf.PdfRenderer;
 import com.swasthai.report_generator.report.pdf.ReportPdfData;
 import com.swasthai.report_generator.report.pdf.ReportPdfDataBuilder;
@@ -3060,24 +3061,49 @@ public class ReportServiceImpl implements ReportService {
          * when master data changes.
          */
         ReportPdfData baseData = reportPdfDataBuilder.build(report);
-        if (includeOrganizationHeaderOverride != null) {
-            return ReportPdfData.builder()
-                    .reportRefId(baseData.reportRefId())
-                    .status(baseData.status())
-                    .reportVersion(baseData.reportVersion())
-                    .createdAt(baseData.createdAt())
-                    .finalizedAt(baseData.finalizedAt())
-                    .organization(baseData.organization())
-                    .patient(baseData.patient())
-                    .createdBy(baseData.createdBy())
-                    .finalizedBy(baseData.finalizedBy())
-                    .tests(baseData.tests())
-                    .verificationUrl(baseData.verificationUrl())
-                    .includeOrganizationHeader(includeOrganizationHeaderOverride)
-                    .build();
+        OrganizationPdfSnapshot orgSnapshot = baseData.organization();
+        if ((orgSnapshot.logoStorageKey() == null || orgSnapshot.logoStorageKey().isBlank())
+                && report.getOrganization() != null) {
+            OrganizationProfile profile = organizationProfileRepository
+                    .findByOrganization_Id(report.getOrganization().getId())
+                    .orElse(null);
+            if (profile != null && profile.getLogoStorageKey() != null && !profile.getLogoStorageKey().isBlank()) {
+                orgSnapshot = OrganizationPdfSnapshot.builder()
+                        .name(orgSnapshot.name())
+                        .addressLine1(orgSnapshot.addressLine1())
+                        .addressLine2(orgSnapshot.addressLine2())
+                        .city(orgSnapshot.city())
+                        .state(orgSnapshot.state())
+                        .postalCode(orgSnapshot.postalCode())
+                        .country(orgSnapshot.country())
+                        .phone(orgSnapshot.phone())
+                        .alternatePhone(orgSnapshot.alternatePhone())
+                        .email(orgSnapshot.email())
+                        .website(orgSnapshot.website())
+                        .logoStorageKey(profile.getLogoStorageKey())
+                        .signatureStorageKey(orgSnapshot.signatureStorageKey())
+                        .signatureOwnerName(orgSnapshot.signatureOwnerName())
+                        .signatureOwnerEmail(orgSnapshot.signatureOwnerEmail())
+                        .reportFooterText(orgSnapshot.reportFooterText())
+                        .reportDisclaimer(orgSnapshot.reportDisclaimer())
+                        .build();
+            }
         }
 
-        return baseData;
+        return ReportPdfData.builder()
+                .reportRefId(baseData.reportRefId())
+                .status(baseData.status())
+                .reportVersion(baseData.reportVersion())
+                .createdAt(baseData.createdAt())
+                .finalizedAt(baseData.finalizedAt())
+                .organization(orgSnapshot)
+                .patient(baseData.patient())
+                .createdBy(baseData.createdBy())
+                .finalizedBy(baseData.finalizedBy())
+                .tests(baseData.tests())
+                .verificationUrl(baseData.verificationUrl())
+                .includeOrganizationHeader(includeOrganizationHeaderOverride != null ? includeOrganizationHeaderOverride : baseData.includeOrganizationHeader())
+                .build();
     }
 
     @Override
