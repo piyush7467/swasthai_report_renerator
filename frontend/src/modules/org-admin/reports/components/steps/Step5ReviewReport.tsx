@@ -21,8 +21,20 @@ import { formatDisplayUnit } from "../../utils/unitFormatter";
 import { isCalculatedParameter } from "../../utils/clinicalCalculations";
 import type { ReportResponse } from "../../types/reportTypes";
 import type { PatientResponse } from "@/modules/org-admin/patients/types/patientTypes";
-import { useMyOrganizationProfileQuery } from "@/modules/org-admin/settings/hooks/useOrgProfile";
-import { orgProfileApi } from "@/modules/org-admin/settings/api/orgProfileApi";
+import {
+  useMyOrganizationProfileQuery,
+  useMyLogoBlobQuery,
+  useMySignatureBlobQuery,
+} from "@/modules/org-admin/settings/hooks/useOrgProfile";
+
+function getInitials(name?: string): string {
+  if (!name) return "LAB";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
 
 interface Step5ReviewReportProps {
   report: ReportResponse;
@@ -47,54 +59,35 @@ export function Step5ReviewReport({
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [isRecalculating, setIsRecalculating] = useState(false);
+  const [logoImageError, setLogoImageError] = useState(false);
+
+  const { data: orgProfile } = useMyOrganizationProfileQuery();
+  const { data: logoBlob } = useMyLogoBlobQuery(Boolean(orgProfile?.logoConfigured));
+  const { data: signatureBlob } = useMySignatureBlobQuery(Boolean(orgProfile?.signatureConfigured));
+
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
 
-  const { data: orgProfile } = useMyOrganizationProfileQuery();
+  useEffect(() => {
+    if (logoBlob) {
+      const url = URL.createObjectURL(logoBlob);
+      setLogoUrl(url);
+      setLogoImageError(false);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setLogoUrl(null);
+    }
+  }, [logoBlob]);
 
   useEffect(() => {
-    let isMounted = true;
-    let url: string | null = null;
-
-    if (orgProfile?.logoConfigured) {
-      orgProfileApi
-        .getLogoBlob()
-        .then((blob) => {
-          if (isMounted) {
-            url = URL.createObjectURL(blob);
-            setLogoUrl(url);
-          }
-        })
-        .catch(() => {});
+    if (signatureBlob) {
+      const url = URL.createObjectURL(signatureBlob);
+      setSignatureUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setSignatureUrl(null);
     }
-
-    return () => {
-      isMounted = false;
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [orgProfile?.logoConfigured]);
-
-  useEffect(() => {
-    let isMounted = true;
-    let url: string | null = null;
-
-    if (orgProfile?.signatureConfigured) {
-      orgProfileApi
-        .getSignatureBlob()
-        .then((blob) => {
-          if (isMounted) {
-            url = URL.createObjectURL(blob);
-            setSignatureUrl(url);
-          }
-        })
-        .catch(() => {});
-    }
-
-    return () => {
-      isMounted = false;
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [orgProfile?.signatureConfigured]);
+  }, [signatureBlob]);
 
   const handleRecalculateClick = async () => {
     setIsRecalculating(true);
@@ -112,7 +105,10 @@ export function Step5ReviewReport({
   const handleDownloadPdf = async () => {
     setIsDownloadingPdf(true);
     try {
-      const blob = await reportApi.downloadReportPdf(report.refId);
+      const blob = await reportApi.downloadReportPdf(
+        report.refId,
+        report.includeOrganizationHeader
+      );
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -209,12 +205,17 @@ export function Step5ReviewReport({
           <div className="border-b-2 border-slate-800 pb-4 mb-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3.5">
-                {logoUrl && (
+                {logoUrl && !logoImageError ? (
                   <img
                     src={logoUrl}
                     alt={orgProfile?.organizationName || report.organizationName}
+                    onError={() => setLogoImageError(true)}
                     className="h-12 w-auto max-w-[100px] object-contain rounded shrink-0"
                   />
+                ) : (
+                  <div className="h-12 w-12 rounded-lg bg-teal-50 border border-teal-200 text-teal-800 flex items-center justify-center font-bold text-sm shrink-0">
+                    {getInitials(orgProfile?.organizationName || report.organizationName)}
+                  </div>
                 )}
                 <div>
                   <h1 className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 uppercase">
@@ -244,13 +245,7 @@ export function Step5ReviewReport({
               )}
             </div>
           </div>
-        ) : (
-          <div className="border border-dashed border-slate-300 rounded-lg p-3 mb-5 text-center bg-slate-50/50">
-            <span className="text-xs text-slate-400 italic">
-              [ Pre-printed Letterhead Space Reserved (Header OFF) ]
-            </span>
-          </div>
-        )}
+        ) : null}
 
         {/* PATIENT & REPORT CLINICAL DEMOGRAPHICS BLOCK (2 Columns) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border border-slate-200 rounded-lg p-3 sm:p-4 bg-slate-50/50 mb-6 text-xs">

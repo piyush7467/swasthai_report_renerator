@@ -195,8 +195,8 @@ class CbcMasterDataValidationTest {
         MasterDataSeedSummary firstRun = seeder.seed();
 
         assertThat(firstRun.categoriesInserted()).isEqualTo(2);
-        assertThat(firstRun.testsInserted()).isEqualTo(2);
-        assertThat(firstRun.parametersInserted()).isEqualTo(25);
+        assertThat(firstRun.testsInserted()).isEqualTo(3);
+        assertThat(firstRun.parametersInserted()).isEqualTo(31);
         assertThat(firstRun.categoriesSkipped()).isEqualTo(0);
         assertThat(firstRun.testsSkipped()).isEqualTo(0);
         assertThat(firstRun.parametersSkipped()).isEqualTo(0);
@@ -215,7 +215,7 @@ class CbcMasterDataValidationTest {
         assertThat(secondRun.testsInserted()).isEqualTo(0);
         assertThat(secondRun.parametersInserted()).isEqualTo(0);
         assertThat(secondRun.categoriesSkipped()).isEqualTo(2);
-        assertThat(secondRun.testsSkipped()).isEqualTo(2);
-        assertThat(secondRun.parametersSkipped()).isEqualTo(25);
+        assertThat(secondRun.testsSkipped()).isEqualTo(3);
+        assertThat(secondRun.parametersSkipped()).isEqualTo(31);
     }
 }

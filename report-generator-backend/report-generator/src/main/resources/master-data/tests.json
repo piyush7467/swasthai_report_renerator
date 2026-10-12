@@ -52,5 +52,33 @@
     "currency": "INR",
     "billingCode": "LFT-001",
     "status": "ACTIVE"
+  },
+  {
+    "code": "KFT",
+    "name": "Kidney Function Test",
+    "shortName": "KFT",
+    "categoryCode": "BIO",
+    "testType": "PANEL",
+    "description": "Kidney Function Test (KFT) panel evaluating renal function, filtration capacity, and electrolyte balance through serum creatinine, blood urea, electrolytes (sodium, potassium, chloride), and total calcium.",
+    "sampleType": "SERUM",
+    "specimenContainer": "SST Vacutainer (Gold/Yellow Top) or Plain Clot Activator (Red Top)",
+    "sampleVolume": 2.00,
+    "sampleVolumeUnit": "mL",
+    "fastingRequired": false,
+    "patientPreparation": "No special fasting required unless specified by the physician. Avoid strenuous exercise prior to blood collection.",
+    "collectionInstructions": "Collect venous blood in SST or plain tube. Allow blood to clot for 30 minutes at room temperature before centrifugation. Centrifuge at 3000 rpm for 10 minutes to separate serum. Avoid hemolysis.",
+    "turnaroundTimeHours": 4,
+    "prioritySupported": true,
+    "outsourced": false,
+    "laboratoryInstructions": "Serum must be non-hemolyzed. Gross hemolysis interferes with potassium and calcium measurements. Analyze on automated clinical chemistry analyzer. Store serum refrigerated at 2-8°C if analysis is delayed.",
+    "reportSection": "BIOCHEMISTRY",
+    "displayOrder": 3,
+    "reportDescription": "Kidney Function Panel assessing renal excretory capacity and electrolyte balance.",
+    "interpretationGuidance": "Elevated creatinine and urea indicate reduced renal filtration capacity. Electrolyte alterations (sodium, potassium, chloride) reflect fluid balance, acid-base status, and tubular function. Serum calcium evaluates mineral metabolism.",
+    "basePrice": 600.00,
+    "currency": "INR",
+    "billingCode": "KFT-001",
+    "status": "ACTIVE"
   }
 ]
+

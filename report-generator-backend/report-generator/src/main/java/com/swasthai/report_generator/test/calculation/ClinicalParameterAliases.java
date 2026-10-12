@@ -45,14 +45,15 @@ public final class ClinicalParameterAliases {
         registerAliases("ALB", "ALB", "ALBUMIN", "SERUM_ALBUMIN");
         registerAliases("GLOB", "GLOB", "GLOBULIN", "SERUM_GLOBULIN");
 
-        registerAliases("BUN", "BUN", "BLOOD_UREA_NITROGEN");
-        registerAliases("UREA", "UREA", "BLOOD_UREA", "SERUM_UREA");
-        registerAliases("CREAT", "CREAT", "CREATININE", "SERUM_CREATININE", "S_CREATININE");
+        registerAliases("BUN", "BUN", "BLOOD_UREA_NITROGEN", "B_UREA_NITROGEN");
+        registerAliases("UREA", "UREA", "BLOOD_UREA", "SERUM_UREA", "B_UREA", "S_UREA");
+        registerAliases("CREAT", "CREAT", "CREA", "CREATININE", "SERUM_CREATININE", "S_CREATININE", "S_CREA");
 
         registerAliases("NA", "NA", "SODIUM", "SERUM_SODIUM");
         registerAliases("K", "K", "POTASSIUM", "SERUM_POTASSIUM");
         registerAliases("CL", "CL", "CHLORIDE", "SERUM_CHLORIDE");
         registerAliases("HCO3", "HCO3", "BICARBONATE", "SERUM_BICARBONATE", "CO2", "TOTAL_CO2");
+        registerAliases("CA", "CA", "CALCIUM", "TOTAL_CALCIUM", "SERUM_CALCIUM", "S_CALCIUM");
 
         // --- TARGET CALCULATED PARAMETERS ---
         registerTarget(CalculationType.MCV, "MCV", "MCV", "MEAN_CORPUSCULAR_VOLUME", "MEAN_CELL_VOLUME");

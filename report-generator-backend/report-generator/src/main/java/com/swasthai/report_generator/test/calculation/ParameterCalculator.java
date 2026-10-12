@@ -33,4 +33,19 @@ public interface ParameterCalculator {
     default String getExpectedOutputUnit() {
         return "";
     }
+
+    default void validateContext(CalculationContext context) {
+        for (String parameterCode : requiredParameters()) {
+            if (!context.containsKey(parameterCode)) {
+                throw new CalculationException(
+                        "Required parameter is missing: " + parameterCode
+                );
+            }
+            if (context.getValue(parameterCode) == null) {
+                throw new CalculationException(
+                        "Required parameter value is null: " + parameterCode
+                );
+            }
+        }
+    }
 }

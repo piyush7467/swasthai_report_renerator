@@ -57,7 +57,11 @@ public interface ReportService {
 
     byte[] generateReportPdf(String reportRefId);
 
+    byte[] generateReportPdf(String reportRefId, Boolean includeOrganizationHeaderOverride);
+
     com.swasthai.report_generator.report.pdf.ReportPdfData getReportPdfData(String reportRefId);
+
+    com.swasthai.report_generator.report.pdf.ReportPdfData getReportPdfData(String reportRefId, Boolean includeOrganizationHeaderOverride);
 
     byte[] getReportQrPngBytes(String reportRefId);
 

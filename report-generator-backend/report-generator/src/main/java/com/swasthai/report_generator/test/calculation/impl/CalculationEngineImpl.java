@@ -131,6 +131,42 @@ public class CalculationEngineImpl implements CalculationEngine {
             return baseRequired;
         }
 
+        // When BUN_CREATININE_RATIO is requested and the panel provides UREA rather than BUN
+        if (calculationType == CalculationType.BUN_CREATININE_RATIO) {
+            boolean hasBun = ClinicalParameterAliases.resolveAvailableCode("BUN", availableCodes).isPresent();
+            boolean hasUrea = ClinicalParameterAliases.resolveAvailableCode("UREA", availableCodes).isPresent();
+            if (!hasBun && hasUrea) {
+                Set<String> resolved = new LinkedHashSet<>();
+                for (String req : baseRequired) {
+                    if ("BUN".equalsIgnoreCase(req)) {
+                        resolved.add(ClinicalParameterAliases.resolveAvailableCode("UREA", availableCodes).orElse("UREA"));
+                    } else {
+                        Optional<String> matched = ClinicalParameterAliases.resolveAvailableCode(req, availableCodes);
+                        resolved.add(matched.orElse(req));
+                    }
+                }
+                return Collections.unmodifiableSet(resolved);
+            }
+        }
+
+        // When UREA_CREATININE_RATIO is requested and the panel provides BUN rather than UREA
+        if (calculationType == CalculationType.UREA_CREATININE_RATIO) {
+            boolean hasUrea = ClinicalParameterAliases.resolveAvailableCode("UREA", availableCodes).isPresent();
+            boolean hasBun = ClinicalParameterAliases.resolveAvailableCode("BUN", availableCodes).isPresent();
+            if (!hasUrea && hasBun) {
+                Set<String> resolved = new LinkedHashSet<>();
+                for (String req : baseRequired) {
+                    if ("UREA".equalsIgnoreCase(req)) {
+                        resolved.add(ClinicalParameterAliases.resolveAvailableCode("BUN", availableCodes).orElse("BUN"));
+                    } else {
+                        Optional<String> matched = ClinicalParameterAliases.resolveAvailableCode(req, availableCodes);
+                        resolved.add(matched.orElse(req));
+                    }
+                }
+                return Collections.unmodifiableSet(resolved);
+            }
+        }
+
         Set<String> resolved = new LinkedHashSet<>();
         for (String req : baseRequired) {
             Optional<String> matched = ClinicalParameterAliases.resolveAvailableCode(req, availableCodes);
@@ -158,17 +194,6 @@ public class CalculationEngineImpl implements CalculationEngine {
             ParameterCalculator calculator,
             CalculationContext context
     ) {
-        for (String parameterCode : calculator.requiredParameters()) {
-            if (!context.containsKey(parameterCode)) {
-                throw new CalculationException(
-                        "Required parameter is missing: " + parameterCode
-                );
-            }
-            if (context.getValue(parameterCode) == null) {
-                throw new CalculationException(
-                        "Required parameter value is null: " + parameterCode
-                );
-            }
-        }
+        calculator.validateContext(context);
     }
 }

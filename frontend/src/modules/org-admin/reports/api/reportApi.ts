@@ -142,10 +142,18 @@ export const reportApi = {
     return response.data.data;
   },
 
-  async downloadReportPdf(reportRefId: string): Promise<Blob> {
+  async downloadReportPdf(
+    reportRefId: string,
+    includeOrganizationHeader?: boolean,
+  ): Promise<Blob> {
+    const params =
+      includeOrganizationHeader !== undefined
+        ? { includeOrganizationHeader }
+        : undefined;
     const response = await apiClient.get<Blob>(
       `/reports/${encodeURIComponent(reportRefId)}/pdf`,
       {
+        params,
         responseType: "blob",
       },
     );

@@ -22,9 +22,13 @@ import org.openpdf.text.pdf.PdfPTable;
 import org.openpdf.text.pdf.PdfPageEventHelper;
 import org.openpdf.text.pdf.PdfTemplate;
 import org.openpdf.text.pdf.PdfWriter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import javax.imageio.ImageIO;
 import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -37,6 +41,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class OpenPdfRenderer implements PdfRenderer {
@@ -219,7 +224,14 @@ public class OpenPdfRenderer implements PdfRenderer {
      * ============================================================
      */
     private void addOrganizationHeader(Document document, ReportPdfData data) throws DocumentException {
+        if (!Boolean.TRUE.equals(data.includeOrganizationHeader())) {
+            // Header is disabled: do NOT render header or reserve any blank placeholder space.
+            // Patient card will start directly at the top margin.
+            return;
+        }
+
         OrganizationPdfSnapshot organization = data.organization();
+        Image logoImage = loadLogoImage(organization.logoStorageKey());
 
         PdfPTable header = new PdfPTable(3);
         header.setWidthPercentage(100);
@@ -231,16 +243,27 @@ public class OpenPdfRenderer implements PdfRenderer {
         leftCell.setBorder(Rectangle.NO_BORDER);
         leftCell.setPadding(0f);
 
-        PdfPTable brandTable = new PdfPTable(2);
-        brandTable.setWidthPercentage(100);
-        brandTable.setWidths(new float[]{ 24f, 76f });
+        PdfPTable brandTable;
+        if (logoImage != null) {
+            brandTable = new PdfPTable(2);
+            brandTable.setWidthPercentage(100);
+            brandTable.setWidths(new float[]{ 24f, 76f });
 
-        PdfPCell logoCell = createLogoCell(organization.logoStorageKey());
-        brandTable.addCell(logoCell);
+            PdfPCell logoCell = new PdfPCell();
+            logoCell.setBorder(Rectangle.NO_BORDER);
+            logoCell.setPadding(0f);
+            logoCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            logoCell.addElement(logoImage);
+            brandTable.addCell(logoCell);
+        } else {
+            // Clean text fallback: full width, no awkward blank logo indentation
+            brandTable = new PdfPTable(1);
+            brandTable.setWidthPercentage(100);
+        }
 
         PdfPCell nameCell = new PdfPCell();
         nameCell.setBorder(Rectangle.NO_BORDER);
-        nameCell.setPaddingLeft(5f);
+        nameCell.setPaddingLeft(logoImage != null ? 5f : 0f);
         nameCell.setPaddingTop(2f);
 
         Paragraph orgName = new Paragraph(
@@ -313,46 +336,46 @@ public class OpenPdfRenderer implements PdfRenderer {
         }
         header.addCell(rightCell);
 
-        if (Boolean.TRUE.equals(data.includeOrganizationHeader())) {
-            document.add(header);
-        } else {
-            // Preserve exact calculated space for pre-printed letterheads
-            float contentWidth = document.right() - document.left();
-            header.setTotalWidth(contentWidth);
-            float headerHeight = header.calculateHeights(true);
-
-            PdfPTable placeholder = new PdfPTable(1);
-            placeholder.setWidthPercentage(100);
-            placeholder.setSpacingAfter(header.spacingAfter());
-            PdfPCell blankCell = new PdfPCell();
-            blankCell.setBorder(Rectangle.NO_BORDER);
-            blankCell.setFixedHeight(headerHeight);
-            placeholder.addCell(blankCell);
-            document.add(placeholder);
-        }
+        document.add(header);
     }
 
-    private PdfPCell createLogoCell(String logoStorageKey) {
-        PdfPCell cell = new PdfPCell();
-        cell.setBorder(Rectangle.NO_BORDER);
-        cell.setPadding(0f);
-        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-
-        if (!isBlank(logoStorageKey)) {
-            try {
-                if (fileStorageService.exists(logoStorageKey)) {
-                    byte[] imageBytes = fileStorageService.load(logoStorageKey);
-                    Image image = Image.getInstance(imageBytes);
-                    image.scaleToFit(50f, 45f);
-                    image.setAlignment(Element.ALIGN_LEFT);
-                    cell.addElement(image);
-                    return cell;
-                }
-            } catch (Exception ignored) {
-            }
+    private Image loadLogoImage(String logoStorageKey) {
+        if (isBlank(logoStorageKey)) {
+            return null;
         }
-
-        return cell;
+        try {
+            if (!fileStorageService.exists(logoStorageKey)) {
+                return null;
+            }
+            byte[] imageBytes = fileStorageService.load(logoStorageKey);
+            if (imageBytes == null || imageBytes.length == 0) {
+                return null;
+            }
+            Image image = null;
+            try {
+                image = Image.getInstance(imageBytes);
+            } catch (Exception ex) {
+                // If direct loading fails (e.g. WebP format, non-standard image stream), convert through ImageIO
+                try (ByteArrayInputStream in = new ByteArrayInputStream(imageBytes)) {
+                    BufferedImage buffered = ImageIO.read(in);
+                    if (buffered != null) {
+                        ByteArrayOutputStream pngOut = new ByteArrayOutputStream();
+                        ImageIO.write(buffered, "png", pngOut);
+                        image = Image.getInstance(pngOut.toByteArray());
+                    }
+                } catch (Exception innerEx) {
+                    log.warn("Could not convert logo image to PDF-compatible format: {}", innerEx.getMessage());
+                }
+            }
+            if (image != null) {
+                image.scaleToFit(50f, 45f);
+                image.setAlignment(Element.ALIGN_LEFT);
+                return image;
+            }
+        } catch (Exception ex) {
+            log.warn("Error loading organization logo '{}': {}", logoStorageKey, ex.getMessage());
+        }
+        return null;
     }
 
     /*

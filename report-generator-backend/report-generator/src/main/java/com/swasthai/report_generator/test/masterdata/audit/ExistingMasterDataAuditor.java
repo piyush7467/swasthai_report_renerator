@@ -376,7 +376,16 @@ public class ExistingMasterDataAuditor {
                         for (String req : reqs) {
                             String normReq = req.trim().toUpperCase();
                             String canonReq = ClinicalParameterAliases.getCanonical(normReq);
-                            if (!availableParamCodes.contains(normReq) && (canonReq == null || !availableParamCodes.contains(canonReq))) {
+                            boolean present = availableParamCodes.contains(normReq)
+                                    || (canonReq != null && availableParamCodes.contains(canonReq))
+                                    || ClinicalParameterAliases.resolveAvailableCode(normReq, availableParamCodes).isPresent();
+                            if (!present && p.getCalculationType() == CalculationType.BUN_CREATININE_RATIO && "BUN".equalsIgnoreCase(normReq)) {
+                                present = ClinicalParameterAliases.resolveAvailableCode("UREA", availableParamCodes).isPresent();
+                            }
+                            if (!present && p.getCalculationType() == CalculationType.UREA_CREATININE_RATIO && "UREA".equalsIgnoreCase(normReq)) {
+                                present = ClinicalParameterAliases.resolveAvailableCode("BUN", availableParamCodes).isPresent();
+                            }
+                            if (!present) {
                                 parametersMissingDependency++;
                                 issues.add(MasterDataAuditIssue.builder()
                                         .entityType("TestParameter")

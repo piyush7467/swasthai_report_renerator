@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -345,7 +346,7 @@ class ClinicalCalculationEngineTest {
     class KftTests {
 
         @Test
-        @DisplayName("BUN / Creatinine Ratio: calculates BUN / Creatinine")
+        @DisplayName("BUN / Creatinine Ratio: calculates BUN / Creatinine with direct BUN")
         void shouldCalculateBUNCreatinineRatio() {
             Map<String, BigDecimal> values = Map.of(
                     "BUN", new BigDecimal("18.0"),
@@ -356,7 +357,91 @@ class ClinicalCalculationEngineTest {
         }
 
         @Test
-        @DisplayName("Urea / Creatinine Ratio: calculates Urea / Creatinine")
+        @DisplayName("BUN / Creatinine Ratio: accepts CREA alias for Creatinine")
+        void shouldCalculateBUNCreatinineRatioWithCreaAlias() {
+            Map<String, BigDecimal> values = Map.of(
+                    "BUN", new BigDecimal("18.0"),
+                    "CREA", new BigDecimal("0.9")
+            );
+            BigDecimal ratio = calculationEngine.calculate(CalculationType.BUN_CREATININE_RATIO, values);
+            assertEquals(new BigDecimal("20.00"), ratio);
+        }
+
+        @Test
+        @DisplayName("BUN / Creatinine Ratio: converts UREA to BUN when BUN is not provided (BUN = Urea * 0.467)")
+        void shouldConvertUreaToBunForBUNCreatinineRatio() {
+            // Urea = 40.0 mg/dL, Creatinine = 1.0 mg/dL
+            // Expected BUN = 40.0 * 0.467 = 18.6800 mg/dL
+            // Expected ratio = 18.68 / 1.0 = 18.68
+            Map<String, BigDecimal> values = Map.of(
+                    "UREA", new BigDecimal("40.0"),
+                    "CREA", new BigDecimal("1.0")
+            );
+            BigDecimal ratio = calculationEngine.calculate(CalculationType.BUN_CREATININE_RATIO, values);
+            assertEquals(new BigDecimal("18.68"), ratio);
+        }
+
+        @Test
+        @DisplayName("BUN / Creatinine Ratio: rejects zero creatinine (division by zero)")
+        void shouldRejectZeroCreatinineInBunRatio() {
+            Map<String, BigDecimal> values = Map.of(
+                    "BUN", new BigDecimal("18.0"),
+                    "CREA", BigDecimal.ZERO
+            );
+            CalculationException ex = assertThrows(
+                    CalculationException.class,
+                    () -> calculationEngine.calculate(CalculationType.BUN_CREATININE_RATIO, values)
+            );
+            assertTrue(ex.getMessage().contains("Creatinine is zero"));
+        }
+
+        @Test
+        @DisplayName("BUN / Creatinine Ratio: rejects negative inputs")
+        void shouldRejectNegativeInputsInBunRatio() {
+            Map<String, BigDecimal> negBun = Map.of(
+                    "BUN", new BigDecimal("-5.0"),
+                    "CREA", new BigDecimal("1.0")
+            );
+            assertThrows(CalculationException.class, () -> calculationEngine.calculate(CalculationType.BUN_CREATININE_RATIO, negBun));
+
+            Map<String, BigDecimal> negUrea = Map.of(
+                    "UREA", new BigDecimal("-20.0"),
+                    "CREA", new BigDecimal("1.0")
+            );
+            assertThrows(CalculationException.class, () -> calculationEngine.calculate(CalculationType.BUN_CREATININE_RATIO, negUrea));
+
+            Map<String, BigDecimal> negCrea = Map.of(
+                    "BUN", new BigDecimal("15.0"),
+                    "CREA", new BigDecimal("-0.8")
+            );
+            assertThrows(CalculationException.class, () -> calculationEngine.calculate(CalculationType.BUN_CREATININE_RATIO, negCrea));
+        }
+
+        @Test
+        @DisplayName("BUN / Creatinine Ratio: rejects when neither BUN nor UREA is present")
+        void shouldRejectMissingBunAndUrea() {
+            Map<String, BigDecimal> onlyCrea = Map.of(
+                    "CREA", new BigDecimal("1.0")
+            );
+            assertThrows(CalculationException.class, () -> calculationEngine.calculate(CalculationType.BUN_CREATININE_RATIO, onlyCrea));
+        }
+
+        @Test
+        @DisplayName("BUN / Creatinine Ratio: normalizes umol/L creatinine to mg/dL")
+        void shouldNormalizeCreatinineInBunRatio() {
+            // 88.4 umol/L = 1.0 mg/dL. BUN = 20.0 mg/dL => ratio = 20.00
+            CalculationContext context = CalculationContext.of(
+                    Map.of("BUN", new BigDecimal("20.0"), "CREA", new BigDecimal("88.4")),
+                    Map.of("CREA", "umol/L"),
+                    null,
+                    null
+            );
+            BigDecimal ratio = calculationEngine.calculate(CalculationType.BUN_CREATININE_RATIO, context);
+            assertEquals(new BigDecimal("20.00"), ratio);
+        }
+
+        @Test
+        @DisplayName("Urea / Creatinine Ratio: calculates Urea / Creatinine with direct UREA")
         void shouldCalculateUreaCreatinineRatio() {
             Map<String, BigDecimal> values = Map.of(
                     "UREA", new BigDecimal("35.0"),
@@ -367,7 +452,76 @@ class ClinicalCalculationEngineTest {
         }
 
         @Test
-        @DisplayName("eGFR CKD-EPI 2021: calculates adult female eGFR accurately")
+        @DisplayName("Urea / Creatinine Ratio: accepts CREA alias for Creatinine")
+        void shouldCalculateUreaCreatinineRatioWithCreaAlias() {
+            Map<String, BigDecimal> values = Map.of(
+                    "UREA", new BigDecimal("35.0"),
+                    "CREA", new BigDecimal("1.0")
+            );
+            BigDecimal ratio = calculationEngine.calculate(CalculationType.UREA_CREATININE_RATIO, values);
+            assertEquals(new BigDecimal("35.00"), ratio);
+        }
+
+        @Test
+        @DisplayName("Urea / Creatinine Ratio: converts BUN to UREA when UREA is not provided (Urea = BUN * 2.14)")
+        void shouldConvertBunToUreaForUreaCreatinineRatio() {
+            // BUN = 15.0 mg/dL => Urea = 15.0 * 2.14 = 32.10 mg/dL
+            // Creatinine = 1.0 mg/dL => ratio = 32.10
+            Map<String, BigDecimal> values = Map.of(
+                    "BUN", new BigDecimal("15.0"),
+                    "CREA", new BigDecimal("1.0")
+            );
+            BigDecimal ratio = calculationEngine.calculate(CalculationType.UREA_CREATININE_RATIO, values);
+            assertEquals(new BigDecimal("32.10"), ratio);
+        }
+
+        @Test
+        @DisplayName("Urea / Creatinine Ratio: rejects zero creatinine (division by zero)")
+        void shouldRejectZeroCreatinineInUreaRatio() {
+            Map<String, BigDecimal> values = Map.of(
+                    "UREA", new BigDecimal("35.0"),
+                    "CREA", BigDecimal.ZERO
+            );
+            CalculationException ex = assertThrows(
+                    CalculationException.class,
+                    () -> calculationEngine.calculate(CalculationType.UREA_CREATININE_RATIO, values)
+            );
+            assertTrue(ex.getMessage().contains("Creatinine is zero"));
+        }
+
+        @Test
+        @DisplayName("Urea / Creatinine Ratio: rejects negative inputs")
+        void shouldRejectNegativeInputsInUreaRatio() {
+            Map<String, BigDecimal> negUrea = Map.of(
+                    "UREA", new BigDecimal("-10.0"),
+                    "CREA", new BigDecimal("1.0")
+            );
+            assertThrows(CalculationException.class, () -> calculationEngine.calculate(CalculationType.UREA_CREATININE_RATIO, negUrea));
+
+            Map<String, BigDecimal> negBun = Map.of(
+                    "BUN", new BigDecimal("-10.0"),
+                    "CREA", new BigDecimal("1.0")
+            );
+            assertThrows(CalculationException.class, () -> calculationEngine.calculate(CalculationType.UREA_CREATININE_RATIO, negBun));
+
+            Map<String, BigDecimal> negCrea = Map.of(
+                    "UREA", new BigDecimal("30.0"),
+                    "CREA", new BigDecimal("-1.0")
+            );
+            assertThrows(CalculationException.class, () -> calculationEngine.calculate(CalculationType.UREA_CREATININE_RATIO, negCrea));
+        }
+
+        @Test
+        @DisplayName("Urea / Creatinine Ratio: rejects when neither UREA nor BUN is present")
+        void shouldRejectMissingUreaAndBun() {
+            Map<String, BigDecimal> onlyCrea = Map.of(
+                    "CREA", new BigDecimal("1.0")
+            );
+            assertThrows(CalculationException.class, () -> calculationEngine.calculate(CalculationType.UREA_CREATININE_RATIO, onlyCrea));
+        }
+
+        @Test
+        @DisplayName("eGFR CKD-EPI 2021: calculates adult female eGFR accurately with CREAT")
         void shouldCalculateFemaleEgfr() {
             CalculationContext context = CalculationContext.of(
                     Map.of("CREAT", new BigDecimal("0.8")),
@@ -381,7 +535,21 @@ class ClinicalCalculationEngineTest {
         }
 
         @Test
-        @DisplayName("eGFR CKD-EPI 2021: calculates adult male eGFR accurately")
+        @DisplayName("eGFR CKD-EPI 2021: accepts CREA alias for Creatinine in adult female eGFR")
+        void shouldCalculateFemaleEgfrWithCreaAlias() {
+            CalculationContext context = CalculationContext.of(
+                    Map.of("CREA", new BigDecimal("0.8")),
+                    Map.of("CREA", "mg/dL"),
+                    40,
+                    Gender.FEMALE
+            );
+            BigDecimal egfr = calculationEngine.calculate(CalculationType.EGFR_CKD_EPI_2021, context);
+            assertNotNull(egfr);
+            assertEquals(new BigDecimal("95.5"), egfr);
+        }
+
+        @Test
+        @DisplayName("eGFR CKD-EPI 2021: calculates adult male eGFR accurately with CREAT")
         void shouldCalculateMaleEgfr() {
             CalculationContext context = CalculationContext.of(
                     Map.of("CREAT", new BigDecimal("1.2")),
@@ -392,6 +560,40 @@ class ClinicalCalculationEngineTest {
             BigDecimal egfr = calculationEngine.calculate(CalculationType.EGFR_CKD_EPI_2021, context);
             assertNotNull(egfr);
             assertEquals(new BigDecimal("73.7"), egfr);
+        }
+
+        @Test
+        @DisplayName("eGFR CKD-EPI 2021: accepts CREA alias for Creatinine in adult male eGFR")
+        void shouldCalculateMaleEgfrWithCreaAlias() {
+            CalculationContext context = CalculationContext.of(
+                    Map.of("CREA", new BigDecimal("1.2")),
+                    Map.of("CREA", "mg/dL"),
+                    50,
+                    Gender.MALE
+            );
+            BigDecimal egfr = calculationEngine.calculate(CalculationType.EGFR_CKD_EPI_2021, context);
+            assertNotNull(egfr);
+            assertEquals(new BigDecimal("73.7"), egfr);
+        }
+
+        @Test
+        @DisplayName("eGFR CKD-EPI 2021: rejects zero or negative creatinine")
+        void shouldRejectZeroOrNegativeCreatinineInEgfr() {
+            CalculationContext zeroCreat = CalculationContext.of(
+                    Map.of("CREA", BigDecimal.ZERO),
+                    Map.of(),
+                    30,
+                    Gender.MALE
+            );
+            assertThrows(CalculationException.class, () -> calculationEngine.calculate(CalculationType.EGFR_CKD_EPI_2021, zeroCreat));
+
+            CalculationContext negCreat = CalculationContext.of(
+                    Map.of("CREA", new BigDecimal("-0.5")),
+                    Map.of(),
+                    30,
+                    Gender.MALE
+            );
+            assertThrows(CalculationException.class, () -> calculationEngine.calculate(CalculationType.EGFR_CKD_EPI_2021, negCreat));
         }
 
         @Test
@@ -443,6 +645,28 @@ class ClinicalCalculationEngineTest {
             BigDecimal egfr = calculationEngine.calculate(CalculationType.EGFR_CKD_EPI_2021, context);
             assertNotNull(egfr);
             assertTrue(egfr.compareTo(BigDecimal.ZERO) > 0);
+        }
+
+        @Test
+        @DisplayName("Contextual Dependency Resolution: resolves UREA when BUN is requested in a UREA panel")
+        void shouldResolveUreaDependencyWhenBunRequested() {
+            Set<String> deps = calculationEngine.getRequiredParameters(
+                    CalculationType.BUN_CREATININE_RATIO,
+                    Set.of("UREA", "CREA")
+            );
+            assertTrue(deps.contains("UREA"));
+            assertTrue(deps.contains("CREA"));
+        }
+
+        @Test
+        @DisplayName("Contextual Dependency Resolution: resolves BUN when UREA is requested in a BUN panel")
+        void shouldResolveBunDependencyWhenUreaRequested() {
+            Set<String> deps = calculationEngine.getRequiredParameters(
+                    CalculationType.UREA_CREATININE_RATIO,
+                    Set.of("BUN", "CREA")
+            );
+            assertTrue(deps.contains("BUN"));
+            assertTrue(deps.contains("CREA"));
         }
     }
 

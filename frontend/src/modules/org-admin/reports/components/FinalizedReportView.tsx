@@ -18,15 +18,27 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ParameterResultFlagBadge } from "./ParameterResultFlagBadge";
 import { reportApi } from "../api/reportApi";
-import { orgProfileApi } from "../../settings/api/orgProfileApi";
 import { formatDisplayUnit } from "../utils/unitFormatter";
-import { useMyOrganizationProfileQuery } from "../../settings/hooks/useOrgProfile";
+import {
+  useMyOrganizationProfileQuery,
+  useMyLogoBlobQuery,
+  useMySignatureBlobQuery,
+} from "../../settings/hooks/useOrgProfile";
 import type {
   ReportResponse,
   ReportTestItemResponse,
   ReportParameterItemResponse,
 } from "../types/reportTypes";
 import type { PatientResponse } from "../../patients/types/patientTypes";
+
+function getInitials(name: string): string {
+  if (!name) return "LAB";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
 
 interface FinalizedReportViewProps {
   report: ReportResponse;
@@ -41,55 +53,36 @@ export function FinalizedReportView({ report, patient }: FinalizedReportViewProp
   );
 
   const { data: orgProfile } = useMyOrganizationProfileQuery();
+  const { data: logoBlob } = useMyLogoBlobQuery(Boolean(orgProfile?.logoConfigured));
+  const { data: signatureBlob } = useMySignatureBlobQuery(Boolean(orgProfile?.signatureConfigured));
+
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
+  const [logoImageError, setLogoImageError] = useState(false);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
 
-  // Load Organization Logo
+  // Synchronize logo object URL from query
   useEffect(() => {
-    let isMounted = true;
-    let url: string | null = null;
-
-    if (orgProfile?.logoConfigured) {
-      orgProfileApi
-        .getLogoBlob()
-        .then((blob) => {
-          if (isMounted) {
-            url = URL.createObjectURL(blob);
-            setLogoUrl(url);
-          }
-        })
-        .catch(() => {});
+    if (logoBlob) {
+      const url = URL.createObjectURL(logoBlob);
+      setLogoUrl(url);
+      setLogoImageError(false);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setLogoUrl(null);
     }
+  }, [logoBlob]);
 
-    return () => {
-      isMounted = false;
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [orgProfile?.logoConfigured]);
-
-  // Load Organization Signature
+  // Synchronize signature object URL from query
   useEffect(() => {
-    let isMounted = true;
-    let url: string | null = null;
-
-    if (orgProfile?.signatureConfigured) {
-      orgProfileApi
-        .getSignatureBlob()
-        .then((blob) => {
-          if (isMounted) {
-            url = URL.createObjectURL(blob);
-            setSignatureUrl(url);
-          }
-        })
-        .catch(() => {});
+    if (signatureBlob) {
+      const url = URL.createObjectURL(signatureBlob);
+      setSignatureUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setSignatureUrl(null);
     }
-
-    return () => {
-      isMounted = false;
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [orgProfile?.signatureConfigured]);
+  }, [signatureBlob]);
 
   // Load Report Verification QR code
   useEffect(() => {
@@ -119,7 +112,7 @@ export function FinalizedReportView({ report, patient }: FinalizedReportViewProp
     setDownloadError(null);
 
     try {
-      const blob = await reportApi.downloadReportPdf(report.refId);
+      const blob = await reportApi.downloadReportPdf(report.refId, includeHeaderPreview);
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -295,13 +288,18 @@ export function FinalizedReportView({ report, patient }: FinalizedReportViewProp
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
             {/* Left: Logo & Hospital Name */}
             <div className="flex items-center gap-3">
-              {logoUrl ? (
+              {logoUrl && !logoImageError ? (
                 <img
                   src={logoUrl}
                   alt={orgName}
+                  onError={() => setLogoImageError(true)}
                   className="h-12 w-auto max-w-[100px] object-contain rounded shrink-0"
                 />
-              ) : null}
+              ) : (
+                <div className="h-12 w-12 rounded-lg bg-teal-50 border border-teal-200 text-teal-800 flex items-center justify-center font-bold text-sm shrink-0">
+                  {getInitials(orgName)}
+                </div>
+              )}
               <div>
                 <h1 className="text-lg sm:text-xl font-extrabold text-[#0F2C59] tracking-tight uppercase">
                   {orgName}
@@ -353,11 +351,7 @@ export function FinalizedReportView({ report, patient }: FinalizedReportViewProp
               </div>
             )}
           </div>
-        ) : (
-          <div className="border border-dashed border-slate-300 rounded-lg p-4 text-center bg-slate-50/50 text-slate-400 text-xs">
-            [ Pre-printed Letterhead Space Reserved (Header OFF) ]
-          </div>
-        )}
+        ) : null}
 
         {/* 2. Patient Demographics Card */}
         <div className="rounded-xl border border-slate-300 p-3 sm:p-5 bg-white text-xs">

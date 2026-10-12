@@ -40,7 +40,18 @@ public class BUNCreatinineRatioCalculator implements ParameterCalculator {
         }
 
         BigDecimal bun = context.getValue(BUN, "BLOOD_UREA_NITROGEN");
-        BigDecimal creat = context.getValue(CREAT, "CREATININE", "SERUM_CREATININE", "S_CREATININE");
+        if (bun == null) {
+            BigDecimal urea = context.getValue("UREA", "BLOOD_UREA", "SERUM_UREA");
+            if (urea != null) {
+                if (urea.compareTo(BigDecimal.ZERO) < 0) {
+                    throw new CalculationException("Parameter value cannot be negative: UREA");
+                }
+                // BUN (mg/dL) = Urea (mg/dL) * 0.467
+                bun = urea.multiply(new BigDecimal("0.467")).setScale(4, RoundingMode.HALF_UP);
+            }
+        }
+
+        BigDecimal creat = context.getValue(CREAT, "CREA", "CREATININE", "SERUM_CREATININE", "S_CREATININE");
 
         if (bun == null) {
             throw new CalculationException("Required parameter value is missing: BUN");
@@ -56,13 +67,43 @@ public class BUNCreatinineRatioCalculator implements ParameterCalculator {
             throw new CalculationException("Parameter value cannot be negative: CREAT");
         }
 
-        creat = ClinicalUnitValidator.normalizeCreatinineToMgDl(creat, context.getUnit(CREAT, "CREATININE"));
+        creat = ClinicalUnitValidator.normalizeCreatinineToMgDl(creat, context.getUnit(CREAT, "CREA", "CREATININE"));
 
         if (creat.compareTo(BigDecimal.ZERO) == 0) {
             throw new CalculationException("Cannot calculate BUN / Creatinine ratio because Creatinine is zero");
         }
 
         return bun.divide(creat, 2, RoundingMode.HALF_UP);
+    }
+
+    @Override
+    public void validateContext(CalculationContext context) {
+        if (context == null) {
+            throw new CalculationException("Calculation context cannot be null");
+        }
+
+        boolean hasBun = context.containsKey(BUN, "BLOOD_UREA_NITROGEN");
+        boolean hasUrea = context.containsKey("UREA", "BLOOD_UREA", "SERUM_UREA");
+
+        if (!hasBun && !hasUrea) {
+            throw new CalculationException("Required parameter is missing: BUN");
+        }
+
+        if (hasBun && context.getValue(BUN, "BLOOD_UREA_NITROGEN") == null) {
+            throw new CalculationException("Required parameter value is null: BUN");
+        }
+
+        if (!hasBun && hasUrea && context.getValue("UREA", "BLOOD_UREA", "SERUM_UREA") == null) {
+            throw new CalculationException("Required parameter value is null: UREA");
+        }
+
+        if (!context.containsKey(CREAT, "CREA", "CREATININE", "SERUM_CREATININE", "S_CREATININE")) {
+            throw new CalculationException("Required parameter is missing: CREAT");
+        }
+
+        if (context.getValue(CREAT, "CREA", "CREATININE", "SERUM_CREATININE", "S_CREATININE") == null) {
+            throw new CalculationException("Required parameter value is null: CREAT");
+        }
     }
 
     @Override

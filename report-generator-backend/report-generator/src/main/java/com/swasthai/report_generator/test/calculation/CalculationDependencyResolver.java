@@ -132,6 +132,12 @@ public final class CalculationDependencyResolver {
                     String canon = ClinicalParameterAliases.getCanonical(reqCode);
                     upstream = calcByCode.get(canon);
                 }
+                if (upstream == null) {
+                    Optional<String> matched = ClinicalParameterAliases.resolveAvailableCode(reqCode, calcByCode.keySet());
+                    if (matched.isPresent()) {
+                        upstream = calcByCode.get(matched.get());
+                    }
+                }
 
                 if (upstream != null && !upstream.equals(item)) {
                     // upstream must execute before item

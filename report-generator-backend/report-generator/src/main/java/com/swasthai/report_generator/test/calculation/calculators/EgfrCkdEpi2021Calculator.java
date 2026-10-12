@@ -52,7 +52,7 @@ public class EgfrCkdEpi2021Calculator implements ParameterCalculator {
             throw new CalculationException("Calculation context cannot be null");
         }
 
-        BigDecimal creat = context.getValue(CREAT, "CREATININE", "SERUM_CREATININE", "S_CREATININE");
+        BigDecimal creat = context.getValue(CREAT, "CREA", "CREATININE", "SERUM_CREATININE", "S_CREATININE");
         if (creat == null) {
             throw new CalculationException("Required parameter value is missing: CREAT");
         }
@@ -61,7 +61,7 @@ public class EgfrCkdEpi2021Calculator implements ParameterCalculator {
             throw new CalculationException("Serum creatinine must be greater than zero to calculate eGFR");
         }
 
-        creat = ClinicalUnitValidator.normalizeCreatinineToMgDl(creat, context.getUnit(CREAT, "CREATININE"));
+        creat = ClinicalUnitValidator.normalizeCreatinineToMgDl(creat, context.getUnit(CREAT, "CREA", "CREATININE"));
 
         Integer age = context.getPatientAgeInYears();
         if (age == null) {

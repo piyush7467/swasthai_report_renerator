@@ -2990,10 +2990,19 @@ public class ReportServiceImpl implements ReportService {
     @Transactional(readOnly = true)
     public byte[] generateReportPdf(
             String reportRefId) {
+        return generateReportPdf(reportRefId, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] generateReportPdf(
+            String reportRefId,
+            Boolean includeOrganizationHeaderOverride) {
 
         ReportPdfData pdfData =
                 getReportPdfData(
-                        reportRefId);
+                        reportRefId,
+                        includeOrganizationHeaderOverride);
 
         return pdfRenderer.render(
                 pdfData);
@@ -3004,6 +3013,14 @@ public class ReportServiceImpl implements ReportService {
     @Transactional(readOnly = true)
     public ReportPdfData getReportPdfData(
             String reportRefId) {
+        return getReportPdfData(reportRefId, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ReportPdfData getReportPdfData(
+            String reportRefId,
+            Boolean includeOrganizationHeaderOverride) {
 
         String normalizedRefId =
                 normalizeReportRefId(
@@ -3042,8 +3059,25 @@ public class ReportServiceImpl implements ReportService {
          * Otherwise an old finalized report could change
          * when master data changes.
          */
-        return reportPdfDataBuilder.build(
-                report);
+        ReportPdfData baseData = reportPdfDataBuilder.build(report);
+        if (includeOrganizationHeaderOverride != null) {
+            return ReportPdfData.builder()
+                    .reportRefId(baseData.reportRefId())
+                    .status(baseData.status())
+                    .reportVersion(baseData.reportVersion())
+                    .createdAt(baseData.createdAt())
+                    .finalizedAt(baseData.finalizedAt())
+                    .organization(baseData.organization())
+                    .patient(baseData.patient())
+                    .createdBy(baseData.createdBy())
+                    .finalizedBy(baseData.finalizedBy())
+                    .tests(baseData.tests())
+                    .verificationUrl(baseData.verificationUrl())
+                    .includeOrganizationHeader(includeOrganizationHeaderOverride)
+                    .build();
+        }
+
+        return baseData;
     }
 
     @Override

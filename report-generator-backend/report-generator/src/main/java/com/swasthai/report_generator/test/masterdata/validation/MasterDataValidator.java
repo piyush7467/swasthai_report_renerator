@@ -329,11 +329,20 @@ public class MasterDataValidator {
                         for (String reqCode : reqParameters) {
                             String normReq = reqCode.trim().toUpperCase();
                             String canonReq = ClinicalParameterAliases.getCanonical(normReq);
-                            if (!availableCodes.contains(normReq) && (canonReq == null || !availableCodes.contains(canonReq))) {
+                            boolean present = availableCodes.contains(normReq)
+                                    || (canonReq != null && availableCodes.contains(canonReq))
+                                    || ClinicalParameterAliases.resolveAvailableCode(normReq, availableCodes).isPresent();
+                            if (!present && calcType == CalculationType.BUN_CREATININE_RATIO && "BUN".equalsIgnoreCase(normReq)) {
+                                present = ClinicalParameterAliases.resolveAvailableCode("UREA", availableCodes).isPresent();
+                            }
+                            if (!present && calcType == CalculationType.UREA_CREATININE_RATIO && "UREA".equalsIgnoreCase(normReq)) {
+                                present = ClinicalParameterAliases.resolveAvailableCode("BUN", availableCodes).isPresent();
+                            }
+                            if (!present) {
                                 errors.add(String.format(
                                         "File '%s' - Test '%s', Parameter '%s': Missing required calculation dependency '%s'",
                                         param.sourceFile(), testCode, normParamCode, reqCode
-                                        ));
+                                ));
                             }
                         }
                     }

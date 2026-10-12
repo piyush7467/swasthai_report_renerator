@@ -219,8 +219,9 @@ public class ReportController {
         @GetMapping("/{reportRefId}/pdf")
         @PreAuthorize("hasAnyRole('ORG_ADMIN', 'LAB_STAFF')")
         public org.springframework.http.ResponseEntity<byte[]> generateReportPdf(
-                        @PathVariable String reportRefId) {
-                byte[] pdfBytes = reportService.generateReportPdf(reportRefId);
+                        @PathVariable String reportRefId,
+                        @RequestParam(value = "includeOrganizationHeader", required = false) Boolean includeOrganizationHeader) {
+                byte[] pdfBytes = reportService.generateReportPdf(reportRefId, includeOrganizationHeader);
                 return org.springframework.http.ResponseEntity.ok()
                                 .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
                                 .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
