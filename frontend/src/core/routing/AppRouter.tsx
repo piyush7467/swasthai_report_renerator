@@ -52,6 +52,10 @@ import OrgAdminLicensePage from "@/modules/org-admin/licensing/pages/Organizatio
 import OrganizationSettingsPage from "@/modules/org-admin/settings/pages/OrganizationSettingsPage";
 import { AssignedTestsPage } from "@/modules/org-admin/tests/pages/AssignedTestsPage";
 import SharedReportViewerPage from "@/modules/public/pages/SharedReportViewerPage";
+import PrivacyPolicyPage from "@/modules/public/pages/PrivacyPolicyPage";
+import TermsConditionsPage from "@/modules/public/pages/TermsConditionsPage";
+import HelpSupportPage from "@/modules/public/pages/HelpSupportPage";
+import DataDeletionPage from "@/modules/public/pages/DataDeletionPage";
 
 function NotFoundPage() {
   return (
@@ -96,6 +100,16 @@ export function AppRouter() {
           path="/shared/reports/:shareToken"
           element={<SharedReportViewerPage />}
         />
+
+        {/* Public Legal, Policy & Support Pages */}
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms" element={<TermsConditionsPage />} />
+        <Route path="/terms-and-conditions" element={<TermsConditionsPage />} />
+        <Route path="/help" element={<HelpSupportPage />} />
+        <Route path="/support" element={<HelpSupportPage />} />
+        <Route path="/data-deletion" element={<DataDeletionPage />} />
+        <Route path="/delete-data" element={<DataDeletionPage />} />
 
         {/* =========================
             AUTHENTICATED ROUTES

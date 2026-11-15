@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -391,6 +391,20 @@ export function LoginPage() {
             <div className="mt-6 flex items-center justify-center gap-1.5 text-center text-xs text-slate-400">
               <ShieldCheck className="size-3.5 text-teal-600/70 shrink-0" />
               <span>Tenant-isolated diagnostic data • HIPAA & ISO 15189 aligned</span>
+            </div>
+
+            <div className="mt-3 flex items-center justify-center gap-3 text-[11px] text-slate-400">
+              <Link to="/privacy" className="hover:text-teal-600 hover:underline transition-colors">
+                Privacy Policy
+              </Link>
+              <span>•</span>
+              <Link to="/terms" className="hover:text-teal-600 hover:underline transition-colors">
+                Terms of Service
+              </Link>
+              <span>•</span>
+              <Link to="/help" className="hover:text-teal-600 hover:underline transition-colors">
+                Help Desk
+              </Link>
             </div>
           </div>
         </div>
