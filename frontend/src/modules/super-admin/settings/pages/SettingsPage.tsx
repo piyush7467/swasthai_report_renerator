@@ -1,14 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Shield,
   Server,
   Clock,
   HardDrive,
-  Key,
   User,
   CheckCircle2,
   Lock,
-  Database,
+  Mail,
+  Phone,
+  Building,
+  Loader2,
+  Save,
 } from "lucide-react";
 import {
   Card,
@@ -19,11 +22,57 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/core/auth/AuthContext";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  platformContactApi,
+  DEFAULT_CONTACT_SETTINGS,
+  type PlatformContactSetting,
+} from "@/core/api/platformContactApi";
 
 export default function SettingsPage() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<"platform" | "security" | "retention">("platform");
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<"platform" | "security" | "retention" | "contact">("platform");
+
+  // Contact settings state
+  const { data: contactData, isLoading: isLoadingContact } = useQuery({
+    queryKey: ["admin-contact-settings"],
+    queryFn: platformContactApi.getAdminContactInfo,
+  });
+
+  const [form, setForm] = useState<PlatformContactSetting>(DEFAULT_CONTACT_SETTINGS);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (contactData) {
+      setForm(contactData);
+    }
+  }, [contactData]);
+
+  const handleSaveContact = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    setSaveMessage(null);
+    setSaveError(null);
+
+    try {
+      const updated = await platformContactApi.updateAdminContactInfo(form);
+      setForm(updated);
+      await queryClient.invalidateQueries({ queryKey: ["admin-contact-settings"] });
+      await queryClient.invalidateQueries({ queryKey: ["platform-public-contact"] });
+      setSaveMessage("Contact information updated successfully across the platform!");
+      setTimeout(() => setSaveMessage(null), 4000);
+    } catch {
+      setSaveError("Failed to update contact settings. Please try again.");
+      setTimeout(() => setSaveError(null), 4000);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -33,7 +82,7 @@ export default function SettingsPage() {
           System Settings & Platform Diagnostics
         </h1>
         <p className="mt-1 text-sm text-slate-600">
-          Global architecture parameters, cryptographic security configuration, and data retention policies.
+          Global architecture parameters, contact & compliance information, and data retention policies.
         </p>
       </div>
 
@@ -50,6 +99,19 @@ export default function SettingsPage() {
         >
           <Server className="h-3.5 w-3.5" />
           Platform Overview
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("contact")}
+          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold whitespace-nowrap transition-colors ${
+            activeTab === "contact"
+              ? "bg-[#0F766E] text-white shadow-xs"
+              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+          }`}
+        >
+          <Mail className="h-3.5 w-3.5" />
+          Public Contact & Compliance
         </button>
 
         <button
@@ -82,7 +144,6 @@ export default function SettingsPage() {
       {/* Tab 1: Platform Overview */}
       {activeTab === "platform" && (
         <div className="space-y-6">
-          {/* Admin Identity Card */}
           <Card className="border-slate-200 bg-white shadow-xs">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -118,143 +179,208 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3">
-                  <p className="text-[10px] font-medium uppercase text-slate-400">Account Status</p>
+                  <p className="text-[10px] font-medium uppercase text-slate-400">Security Clearance</p>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                    <span className="font-semibold text-emerald-700 text-xs">Active & Verified</span>
+                    <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs font-semibold text-emerald-700">Root Governance</span>
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
+        </div>
+      )}
 
-          {/* Infrastructure Grid */}
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <Card className="border-slate-200 bg-white">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <Database className="h-4 w-4 text-purple-600" />
-                  <CardTitle className="text-sm font-semibold text-slate-900">
-                    Database & Persistence Engine
+      {/* Tab: Public Contact & Compliance */}
+      {activeTab === "contact" && (
+        <div className="space-y-6">
+          <Card className="border-slate-200 bg-white shadow-xs">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-bold text-slate-900">
+                    Public Contact & Legal Information Management
                   </CardTitle>
+                  <CardDescription className="text-xs text-slate-500 mt-1">
+                    Manage the support emails, WhatsApp number, phone helpline, and address displayed on the public website, Privacy Policy, Terms, and Help Desk pages.
+                  </CardDescription>
                 </div>
-                <CardDescription className="text-xs text-slate-500">
-                  Primary relational database connection & schema migration status.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 text-xs">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <span className="text-slate-500">Database Engine</span>
-                  <span className="font-mono font-semibold text-slate-900">PostgreSQL (v18.2 Dialect)</span>
+                <Badge variant="outline" className="text-xs border-teal-200 text-teal-800 bg-teal-50">
+                  Live Public Sync
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoadingContact ? (
+                <div className="py-12 flex items-center justify-center gap-2 text-slate-500">
+                  <Loader2 className="size-5 animate-spin text-teal-600" />
+                  <span className="text-sm">Loading contact configuration...</span>
                 </div>
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <span className="text-slate-500">Connection Pool</span>
-                  <span className="font-mono font-semibold text-slate-900">HikariCP (High Performance)</span>
-                </div>
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <span className="text-slate-500">Schema Management</span>
-                  <span className="font-mono font-semibold text-slate-900">Flyway (V1 - V17 Validated)</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500">DDL Mode</span>
-                  <Badge variant="outline" className="text-[10px] text-emerald-700 bg-emerald-50 border-emerald-200">
-                    Validate Only (Strict Production)
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
+              ) : (
+                <form onSubmit={handleSaveContact} className="space-y-6">
+                  {saveMessage && (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 flex items-center gap-2">
+                      <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
+                      <span>{saveMessage}</span>
+                    </div>
+                  )}
 
-            <Card className="border-slate-200 bg-white">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <Server className="h-4 w-4 text-teal-600" />
-                  <CardTitle className="text-sm font-semibold text-slate-900">
-                    Application Backend Services
-                  </CardTitle>
-                </div>
-                <CardDescription className="text-xs text-slate-500">
-                  Runtime environment and framework specifications.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 text-xs">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <span className="text-slate-500">Framework</span>
-                  <span className="font-mono font-semibold text-slate-900">Spring Boot 4.1.1 (Java 21/25)</span>
-                </div>
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <span className="text-slate-500">API Standard</span>
-                  <span className="font-mono font-semibold text-slate-900">REST (Standardized ApiResponse)</span>
-                </div>
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <span className="text-slate-500">Timezone Base</span>
-                  <span className="font-mono font-semibold text-slate-900">Asia/Kolkata (IST, UTC+05:30)</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Health Endpoint</span>
-                  <span className="font-mono text-teal-600 font-medium">/actuator/health (Live)</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                  {saveError && (
+                    <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                      {saveError}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    {/* Support Desk Email */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                        <Mail className="size-3.5 text-teal-600" />
+                        Support Desk Email
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={form.supportEmail}
+                        onChange={(e) => setForm({ ...form, supportEmail: e.target.value })}
+                        placeholder="support@swasthai.com"
+                        className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:border-teal-600 focus:outline-hidden focus:ring-1 focus:ring-teal-600"
+                      />
+                      <p className="text-[11px] text-slate-500">Displayed in footer, help desk, and error states.</p>
+                    </div>
+
+                    {/* Privacy Officer Email */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                        <Shield className="size-3.5 text-teal-600" />
+                        Privacy Inquiries Email
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={form.privacyEmail}
+                        onChange={(e) => setForm({ ...form, privacyEmail: e.target.value })}
+                        placeholder="privacy@swasthai.com"
+                        className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:border-teal-600 focus:outline-hidden focus:ring-1 focus:ring-teal-600"
+                      />
+                      <p className="text-[11px] text-slate-500">Target for data deletion requests and DPDP grievances.</p>
+                    </div>
+
+                    {/* Legal Email */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                        <Building className="size-3.5 text-teal-600" />
+                        Legal Notices Email
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={form.legalEmail}
+                        onChange={(e) => setForm({ ...form, legalEmail: e.target.value })}
+                        placeholder="legal@swasthai.com"
+                        className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:border-teal-600 focus:outline-hidden focus:ring-1 focus:ring-teal-600"
+                      />
+                      <p className="text-[11px] text-slate-500">Referenced in Terms & Conditions agreement.</p>
+                    </div>
+
+                    {/* Helpline Phone */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                        <Phone className="size-3.5 text-teal-600" />
+                        Helpline Phone Number
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={form.helplinePhone}
+                        onChange={(e) => setForm({ ...form, helplinePhone: e.target.value })}
+                        placeholder="+91 99999 99999"
+                        className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:border-teal-600 focus:outline-hidden focus:ring-1 focus:ring-teal-600"
+                      />
+                      <p className="text-[11px] text-slate-500">Official customer telephone helpline.</p>
+                    </div>
+
+                    {/* WhatsApp Number */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                        <Phone className="size-3.5 text-emerald-600" />
+                        WhatsApp Support Number
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={form.whatsappNumber}
+                        onChange={(e) => setForm({ ...form, whatsappNumber: e.target.value })}
+                        placeholder="919999999999 (country code + number without plus)"
+                        className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:border-teal-600 focus:outline-hidden focus:ring-1 focus:ring-teal-600"
+                      />
+                      <p className="text-[11px] text-slate-500">Format: Country code followed by number (e.g. 919999999999 for wa.me links).</p>
+                    </div>
+
+                    {/* Operating Hours */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                        <Clock className="size-3.5 text-teal-600" />
+                        Support Operating Hours
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={form.operatingHours}
+                        onChange={(e) => setForm({ ...form, operatingHours: e.target.value })}
+                        placeholder="Monday to Saturday, 9:00 AM – 6:00 PM IST"
+                        className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:border-teal-600 focus:outline-hidden focus:ring-1 focus:ring-teal-600"
+                      />
+                      <p className="text-[11px] text-slate-500">Business working hours displayed on Help and Footer.</p>
+                    </div>
+
+                    {/* Office Address */}
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                        <Building className="size-3.5 text-teal-600" />
+                        Registered Entity / Office Address
+                      </label>
+                      <textarea
+                        rows={2}
+                        required
+                        value={form.officeAddress}
+                        onChange={(e) => setForm({ ...form, officeAddress: e.target.value })}
+                        placeholder="SwasthAI Healthcare Technologies Private Limited"
+                        className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:border-teal-600 focus:outline-hidden focus:ring-1 focus:ring-teal-600"
+                      />
+                      <p className="text-[11px] text-slate-500">Entity name and registered physical office.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <Button
+                      type="submit"
+                      disabled={isSaving}
+                      className="bg-teal-600 hover:bg-teal-700 text-white rounded-xl h-11 px-6 font-semibold"
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin mr-2" />
+                          Saving Changes...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="size-4 mr-2" />
+                          Save Contact Settings
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {/* Tab 2: Security & Cryptography */}
       {activeTab === "security" && (
         <div className="space-y-6">
-          <Card className="border-slate-200 bg-white">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <Key className="h-4 w-4 text-emerald-600" />
-                <CardTitle className="text-base font-semibold text-slate-900">
-                  Asymmetric Cryptographic Authentication
-                </CardTitle>
-              </div>
-              <CardDescription className="text-xs text-slate-500">
-                JWT tokens are signed via RS256 private key and validated using public keys.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 text-xs">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-                  <p className="text-[10px] font-medium uppercase text-slate-400">Signature Algorithm</p>
-                  <p className="font-mono font-bold text-slate-800 mt-1">RS256 (RSA 2048-bit)</p>
-                </div>
-                <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-                  <p className="text-[10px] font-medium uppercase text-slate-400">Access Token Validity</p>
-                  <p className="font-mono font-bold text-slate-800 mt-1">15 Minutes (900 seconds)</p>
-                </div>
-                <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-                  <p className="text-[10px] font-medium uppercase text-slate-400">Refresh Token Rotation</p>
-                  <p className="font-mono font-bold text-slate-800 mt-1">Enabled (Single-use)</p>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <h4 className="font-semibold text-slate-900 text-xs">Distributed Rate Limiting Policy</h4>
-                <p className="text-slate-500 leading-relaxed text-[11px]">
-                  Protects authentication endpoints from brute-force intrusions using sliding epoch-second windows.
-                </p>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 mt-2">
-                  <div className="rounded-lg border border-slate-100 p-2.5">
-                    <span className="text-[10px] text-slate-400 uppercase">Max Attempts</span>
-                    <p className="font-bold text-slate-800 mt-0.5">5 failed attempts</p>
-                  </div>
-                  <div className="rounded-lg border border-slate-100 p-2.5">
-                    <span className="text-[10px] text-slate-400 uppercase">Evaluation Window</span>
-                    <p className="font-bold text-slate-800 mt-0.5">60 seconds</p>
-                  </div>
-                  <div className="rounded-lg border border-slate-100 p-2.5">
-                    <span className="text-[10px] text-slate-400 uppercase">Lockout Duration</span>
-                    <p className="font-bold text-rose-700 mt-0.5">300 seconds (5 mins)</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           <Card className="border-slate-200 bg-white">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">

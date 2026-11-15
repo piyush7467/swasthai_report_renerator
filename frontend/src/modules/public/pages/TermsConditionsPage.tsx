@@ -1,8 +1,11 @@
 import { AlertTriangle } from "lucide-react";
 import { PublicHeader } from "../components/PublicHeader";
 import { PublicFooter } from "../components/PublicFooter";
+import { usePlatformContact } from "@/core/hooks/usePlatformContact";
 
 export default function TermsConditionsPage() {
+  const contact = usePlatformContact();
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
       <PublicHeader />
@@ -114,9 +117,12 @@ export default function TermsConditionsPage() {
               </h2>
               <p>
                 For questions regarding these terms, contact us at{" "}
-                <a href="mailto:legal@swasthai.com" className="font-semibold text-teal-700 underline">
-                  legal@swasthai.com
+                <a href={`mailto:${contact.legalEmail}`} className="font-semibold text-teal-700 underline">
+                  {contact.legalEmail}
                 </a>.
+              </p>
+              <p className="text-sm text-slate-500">
+                Registered entity: {contact.officeAddress}
               </p>
             </div>
 

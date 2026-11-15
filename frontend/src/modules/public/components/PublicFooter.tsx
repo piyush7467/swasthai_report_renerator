@@ -1,7 +1,10 @@
 import { Link } from "react-router-dom";
+import { usePlatformContact } from "@/core/hooks/usePlatformContact";
 import logoImg from "@/assets/logo.png";
 
 export function PublicFooter() {
+  const contact = usePlatformContact();
+
   return (
     <footer className="border-t border-slate-200 bg-white text-slate-600">
       <div className="mx-auto max-w-5xl px-6 py-12">
@@ -50,12 +53,12 @@ export function PublicFooter() {
               </li>
               <li>
                 Email:{" "}
-                <a href="mailto:support@swasthai.com" className="font-medium text-teal-700 hover:underline">
-                  support@swasthai.com
+                <a href={`mailto:${contact.supportEmail}`} className="font-medium text-teal-700 hover:underline">
+                  {contact.supportEmail}
                 </a>
               </li>
               <li className="text-xs text-slate-500">
-                Support Hours: Monday to Saturday, 9:00 AM – 6:00 PM IST
+                Support Hours: {contact.operatingHours}
               </li>
             </ul>
           </div>

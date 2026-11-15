@@ -2,8 +2,10 @@ import { useState } from "react";
 import { CheckCircle2, Trash2 } from "lucide-react";
 import { PublicHeader } from "../components/PublicHeader";
 import { PublicFooter } from "../components/PublicFooter";
+import { usePlatformContact } from "@/core/hooks/usePlatformContact";
 
 export default function DataDeletionPage() {
+  const contact = usePlatformContact();
   const [email, setEmail] = useState("");
   const [orgName, setOrgName] = useState("");
   const [details, setDetails] = useState("");
@@ -130,8 +132,8 @@ export default function DataDeletionPage() {
             {/* Email note */}
             <p className="text-center text-sm text-slate-500">
               You can also email your request directly to{" "}
-              <a href="mailto:privacy@swasthai.com" className="font-semibold text-teal-700 hover:underline">
-                privacy@swasthai.com
+              <a href={`mailto:${contact.privacyEmail}`} className="font-semibold text-teal-700 hover:underline">
+                {contact.privacyEmail}
               </a>.
             </p>
 

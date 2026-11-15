@@ -1,7 +1,10 @@
 import { PublicHeader } from "../components/PublicHeader";
 import { PublicFooter } from "../components/PublicFooter";
+import { usePlatformContact } from "@/core/hooks/usePlatformContact";
 
 export default function PrivacyPolicyPage() {
+  const contact = usePlatformContact();
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
       <PublicHeader />
@@ -115,8 +118,8 @@ export default function PrivacyPolicyPage() {
                 </li>
                 <li>
                   Email our data protection team directly at{" "}
-                  <a href="mailto:privacy@swasthai.com" className="font-semibold text-teal-700 underline">
-                    privacy@swasthai.com
+                  <a href={`mailto:${contact.privacyEmail}`} className="font-semibold text-teal-700 underline">
+                    {contact.privacyEmail}
                   </a>.
                 </li>
               </ul>
@@ -134,10 +137,22 @@ export default function PrivacyPolicyPage() {
                 If you have questions about our privacy practices, please contact us:
               </p>
               <div className="rounded-xl border border-slate-200 bg-white p-6 text-base space-y-2">
-                <p className="font-bold text-slate-900">SwasthAI Lab Privacy Desk</p>
-                <p>Email: <a href="mailto:privacy@swasthai.com" className="text-teal-700 font-semibold hover:underline">privacy@swasthai.com</a></p>
-                <p>Support: <a href="mailto:support@swasthai.com" className="text-teal-700 font-semibold hover:underline">support@swasthai.com</a></p>
-                <p className="text-sm text-slate-500 pt-1">Response time: Within 48 business hours.</p>
+                <p className="font-bold text-slate-900">{contact.officeAddress}</p>
+                <p>
+                  Privacy Desk:{" "}
+                  <a href={`mailto:${contact.privacyEmail}`} className="text-teal-700 font-semibold hover:underline">
+                    {contact.privacyEmail}
+                  </a>
+                </p>
+                <p>
+                  General Support:{" "}
+                  <a href={`mailto:${contact.supportEmail}`} className="text-teal-700 font-semibold hover:underline">
+                    {contact.supportEmail}
+                  </a>
+                </p>
+                <p className="text-sm text-slate-500 pt-1">
+                  Operating Hours: {contact.operatingHours}
+                </p>
               </div>
             </div>
 

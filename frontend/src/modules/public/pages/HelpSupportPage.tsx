@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp, Mail, MessageSquare, ArrowRight } from "lucide-react";
 import { PublicHeader } from "../components/PublicHeader";
 import { PublicFooter } from "../components/PublicFooter";
+import { usePlatformContact } from "@/core/hooks/usePlatformContact";
 
 interface FaqItem {
   q: string;
@@ -32,6 +33,7 @@ const faqs: FaqItem[] = [
 ];
 
 export default function HelpSupportPage() {
+  const contact = usePlatformContact();
   const [openIdx, setOpenIdx] = useState<number | null>(0);
 
   const toggleFaq = (idx: number) => {
@@ -73,10 +75,10 @@ export default function HelpSupportPage() {
                   Have questions about station setup or technical issues? Write to our team.
                 </p>
                 <a
-                  href="mailto:support@swasthai.com"
+                  href={`mailto:${contact.supportEmail}`}
                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-teal-700 hover:text-teal-800 underline"
                 >
-                  <span>support@swasthai.com</span>
+                  <span>{contact.supportEmail}</span>
                   <ArrowRight className="size-4" />
                 </a>
               </div>
@@ -90,12 +92,12 @@ export default function HelpSupportPage() {
                   Need quick guidance on report generation or lab settings? Reach out on chat.
                 </p>
                 <a
-                  href="https://wa.me/919999999999?text=Hello%20SwasthAI%20Support"
+                  href={`https://wa.me/${contact.whatsappNumber.replace(/\D/g, "")}?text=Hello%20SwasthAI%20Support`}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 hover:text-emerald-800 underline"
                 >
-                  <span>Start WhatsApp Chat</span>
+                  <span>Start WhatsApp Chat ({contact.helplinePhone})</span>
                   <ArrowRight className="size-4" />
                 </a>
               </div>

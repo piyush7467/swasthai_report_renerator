@@ -70,8 +70,13 @@ public class SecurityConfig {
                                                 .requestMatchers(
                                                                 HttpMethod.GET,
                                                                 "/api/v1/public/reports/*/verify",
-                                                                "/api/v1/shared/reports/**")
+                                                                "/api/v1/shared/reports/**",
+                                                                "/api/v1/public/contact-info")
                                                 .permitAll()
+
+                                                .requestMatchers(
+                                                                "/api/v1/admin/contact-info/**")
+                                                .hasRole("SUPER_ADMIN")
 
                                                 .requestMatchers(
                                                                 "/actuator/health")
