@@ -28,3 +28,18 @@ node_modules/
 dist/
 target/
 *.log
+
+# Android & Gradle
+.gradle/
+**/build/
+**/intermediates/
+**/generated/
+**/tmp/
+captures/
+.externalNativeBuild/
+.cxx/
+local.properties
+*.apk
+*.aab
+*.ap_
+*.dex
