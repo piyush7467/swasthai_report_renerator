@@ -1,4 +1,3 @@
-import { Shield, Lock, CheckCircle2, Building2 } from "lucide-react";
 import { PublicHeader } from "../components/PublicHeader";
 import { PublicFooter } from "../components/PublicFooter";
 
@@ -8,178 +7,137 @@ export default function PrivacyPolicyPage() {
       <PublicHeader />
 
       <main className="flex-1">
-        {/* Hero Header */}
-        <section className="border-b border-slate-200 bg-white py-12 px-4 sm:px-6">
-          <div className="mx-auto max-w-4xl text-center space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full bg-teal-50 border border-teal-200 px-3 py-1 text-xs font-semibold text-teal-700">
-              <Shield className="size-3.5" />
-              <span>Healthcare Data Protection Compliant</span>
-            </div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
+        {/* Header */}
+        <section className="border-b border-slate-200 bg-white py-14 px-6">
+          <div className="mx-auto max-w-3xl">
+            <p className="text-sm font-semibold uppercase tracking-wider text-teal-700">
+              Legal & Compliance
+            </p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
               Privacy Policy
             </h1>
-            <p className="text-sm text-slate-500 max-w-2xl mx-auto">
-              Effective Date: November 2026 • Compliant with the Digital Personal Data Protection (DPDP) Act & Global Health Data Standards
+            <p className="mt-3 text-base text-slate-600">
+              Last updated: November 15, 2026
             </p>
           </div>
         </section>
 
-        {/* Content Container */}
-        <section className="py-10 px-4 sm:px-6">
-          <div className="mx-auto max-w-4xl space-y-8">
-            
-            {/* Quick Summary Card */}
-            <div className="rounded-2xl border border-teal-200 bg-teal-50/60 p-6 shadow-xs">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-teal-900 flex items-center gap-2 mb-2">
-                <CheckCircle2 className="size-4 text-teal-700" />
-                Commitment to Patient Health Confidentiality
+        {/* Content */}
+        <section className="py-12 px-6">
+          <div className="mx-auto max-w-3xl space-y-10 text-base leading-relaxed text-slate-700">
+
+            {/* Plain Promise */}
+            <div className="rounded-2xl border border-teal-200 bg-teal-50/70 p-6 sm:p-8">
+              <h2 className="text-lg font-bold text-teal-950">
+                Our Core Promise
               </h2>
-              <p className="text-xs text-teal-950 leading-relaxed">
-                SwasthAI Lab provides diagnostic data management and report generation tools strictly for licensed laboratories, hospitals, and clinics. <strong>We do not sell, monetize, or disclose patient medical records to third-party advertisers or commercial data brokers under any circumstances.</strong>
+              <p className="mt-2 text-base text-teal-900 leading-relaxed">
+                SwasthAI Lab is built for diagnostic clinics, pathology labs, and hospitals to generate verified reports. <strong>We do not sell patient data, we do not run third-party advertisements, and we do not share medical records with data brokers.</strong>
               </p>
             </div>
 
-            {/* 1. Introduction */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs space-y-3">
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2.5">
-                <span className="flex size-7 items-center justify-center rounded-lg bg-teal-100/70 text-xs font-bold text-teal-800">
-                  1
-                </span>
-                Introduction & Scope
+            {/* Section 1 */}
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold text-slate-900">
+                1. What Information We Collect
               </h2>
-              <p className="text-sm text-slate-600 leading-relaxed">
-                SwasthAI Lab (&quot;Platform&quot;, &quot;we&quot;, &quot;our&quot;) is operated by SwasthAI Healthcare Technologies. This Privacy Policy details how we collect, process, store, and safeguard personal demographic and clinical diagnostic information obtained when healthcare providers and patients use our mobile application and web portals.
+              <p>
+                When a laboratory station creates a diagnostic record, we process only the information needed to generate the report:
               </p>
-            </div>
-
-            {/* 2. Information Collected */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs space-y-4">
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2.5">
-                <span className="flex size-7 items-center justify-center rounded-lg bg-teal-100/70 text-xs font-bold text-teal-800">
-                  2
-                </span>
-                Information We Collect
-              </h2>
-              <div className="grid gap-4 sm:grid-cols-2 pt-2">
-                <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-1.5">
-                  <h3 className="text-xs font-bold text-slate-900 uppercase">Patient Data</h3>
-                  <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
-                    <li>Full Name, Age, Gender</li>
-                    <li>Contact Number & Unique Patient ID (UHID)</li>
-                    <li>Referring Clinician / Doctor details</li>
-                  </ul>
-                </div>
-                <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-1.5">
-                  <h3 className="text-xs font-bold text-slate-900 uppercase">Clinical & Test Data</h3>
-                  <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
-                    <li>Test names (CBC, LFT, KFT, Lipid Profile, etc.)</li>
-                    <li>Measured bio-chemical values & unit metrics</li>
-                    <li>Clinical observations and pathological notes</li>
-                  </ul>
-                </div>
-                <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-1.5">
-                  <h3 className="text-xs font-bold text-slate-900 uppercase">Laboratory Staff Data</h3>
-                  <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
-                    <li>Staff email, full name, clinical designation</li>
-                    <li>Digital signature image for report certification</li>
-                    <li>Authentication logs & station activity records</li>
-                  </ul>
-                </div>
-                <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-1.5">
-                  <h3 className="text-xs font-bold text-slate-900 uppercase">Diagnostic Documents</h3>
-                  <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
-                    <li>Generated PDF reports</li>
-                    <li>QR verification tokens for report authenticity</li>
-                    <li>Laboratory letterhead and branding assets</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            {/* 3. Purpose of Processing */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs space-y-3">
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2.5">
-                <span className="flex size-7 items-center justify-center rounded-lg bg-teal-100/70 text-xs font-bold text-teal-800">
-                  3
-                </span>
-                How We Use Health Data
-              </h2>
-              <p className="text-sm text-slate-600 leading-relaxed">
-                Collected diagnostic and personal data is processed solely for lawful healthcare operations:
-              </p>
-              <ul className="text-xs text-slate-600 space-y-2 list-disc list-inside pt-1">
-                <li>Generating certified, standardized pathology and diagnostic reports.</li>
-                <li>Affixing approved digital signatures and institutional letterheads.</li>
-                <li>Facilitating secure report sharing and QR-code report verification for patients and doctors.</li>
-                <li>Maintaining institutional audit logs to track report creation, edits, and finalization.</li>
-                <li>Ensuring role-based security access within diagnostic laboratory workstations.</li>
+              <ul className="list-disc pl-6 space-y-2 text-slate-700">
+                <li>
+                  <strong className="text-slate-900">Patient Details:</strong> Name, age, gender, contact number, and internal patient ID.
+                </li>
+                <li>
+                  <strong className="text-slate-900">Test Measurements:</strong> Laboratory test panels (such as Complete Blood Count, Liver Function, Lipid Profile, Kidney Function), numerical values, and reference flags.
+                </li>
+                <li>
+                  <strong className="text-slate-900">Lab Personnel Details:</strong> Name and email of the lab administrator, technician, or pathologist who logged in and reviewed the report.
+                </li>
+                <li>
+                  <strong className="text-slate-900">Lab Branding & Signatures:</strong> Laboratory letterhead image, address, and the digital signature uploaded by authorized staff for report stamping.
+                </li>
               </ul>
             </div>
 
-            {/* 4. Security & Protection */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs space-y-3">
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2.5">
-                <span className="flex size-7 items-center justify-center rounded-lg bg-teal-100/70 text-xs font-bold text-teal-800">
-                  4
-                </span>
-                Data Security & Storage Safeguards
+            {/* Section 2 */}
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold text-slate-900">
+                2. How We Use This Information
               </h2>
-              <p className="text-sm text-slate-600 leading-relaxed">
-                We implement robust security controls across mobile and cloud infrastructure:
-              </p>
-              <div className="grid gap-3 sm:grid-cols-3 pt-2">
-                <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-center space-y-1">
-                  <Lock className="size-5 text-teal-600 mx-auto" />
-                  <p className="text-xs font-bold text-slate-900">TLS 1.3 Encryption</p>
-                  <p className="text-[11px] text-slate-500">All data in transit is encrypted using 256-bit SSL protocols.</p>
-                </div>
-                <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-center space-y-1">
-                  <Building2 className="size-5 text-teal-600 mx-auto" />
-                  <p className="text-xs font-bold text-slate-900">Multi-Tenant Isolation</p>
-                  <p className="text-[11px] text-slate-500">Each diagnostic clinic's records are strictly isolated at database level.</p>
-                </div>
-                <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-center space-y-1">
-                  <Shield className="size-5 text-teal-600 mx-auto" />
-                  <p className="text-xs font-bold text-slate-900">JWT Token Auth</p>
-                  <p className="text-[11px] text-slate-500">Stateless cryptographic tokens prevent session spoofing.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* 5. User Rights & Data Deletion */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs space-y-3">
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2.5">
-                <span className="flex size-7 items-center justify-center rounded-lg bg-teal-100/70 text-xs font-bold text-teal-800">
-                  5
-                </span>
-                Patient Rights & Account/Data Deletion
-              </h2>
-              <p className="text-sm text-slate-600 leading-relaxed">
-                Under the DPDP Act and mobile app store policies (Google Play & Indus Appstore), laboratories and patients have the right to inspect, correct, and request the complete purging of their records:
-              </p>
-              <ul className="text-xs text-slate-600 space-y-2 list-disc list-inside pt-1">
-                <li><strong>Patient Profile Removal:</strong> Laboratory administrators can delete individual patient records directly from the station.</li>
-                <li><strong>Account & Organization Purge:</strong> You may submit an online deletion request at any time through our dedicated portal (<a href="/data-deletion" className="text-teal-600 underline font-medium">Data Deletion Request Page</a>) or by emailing <span className="font-mono text-teal-700">privacy@swasthai.com</span>.</li>
-                <li><strong>Retention Standards:</strong> In compliance with medical regulatory guidelines, verified diagnostic reports may be retained for the minimum statutory period required by local health authorities before automated purging.</li>
+              <p>We use this data solely to run the service:</p>
+              <ul className="list-disc pl-6 space-y-2 text-slate-700">
+                <li>Creating and rendering certified PDF lab test reports.</li>
+                <li>Allowing clinics to pull up previous patient test history when requested.</li>
+                <li>Enabling patients or doctors to verify report authenticity via QR code.</li>
+                <li>Maintaining station audit logs to record which staff member entered or certified results.</li>
               </ul>
             </div>
 
-            {/* 6. Contact Us */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs space-y-3">
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2.5">
-                <span className="flex size-7 items-center justify-center rounded-lg bg-teal-100/70 text-xs font-bold text-teal-800">
-                  6
-                </span>
-                Grievance Officer & Inquiries
+            {/* Section 3 */}
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold text-slate-900">
+                3. How Your Data Is Protected
               </h2>
-              <p className="text-sm text-slate-600 leading-relaxed">
-                For questions, clarifications, or data protection concerns, contact our designated privacy officer:
+              <p>
+                We use secure, modern safeguards to keep diagnostic records private:
               </p>
-              <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-xs space-y-1 text-slate-700">
-                <p><strong>SwasthAI Healthcare Technologies Private Limited</strong></p>
-                <p>Attention: Data Protection & Compliance Officer</p>
-                <p>Email: <a href="mailto:privacy@swasthai.com" className="text-teal-600 font-medium">privacy@swasthai.com</a> | <a href="mailto:support@swasthai.com" className="text-teal-600 font-medium">support@swasthai.com</a></p>
-                <p>Response Time: All privacy requests are acknowledged within 48 business hours.</p>
+              <ul className="list-disc pl-6 space-y-2 text-slate-700">
+                <li>
+                  <strong className="text-slate-900">Encryption:</strong> All communication between your web browser or Android app and our servers is encrypted using TLS (HTTPS).
+                </li>
+                <li>
+                  <strong className="text-slate-900">Clinic Isolation:</strong> Each diagnostic lab&apos;s data is strictly partitioned. Staff at one clinic cannot view records from another.
+                </li>
+                <li>
+                  <strong className="text-slate-900">Access Control:</strong> Secure token authentication ensures only authenticated laboratory personnel can view or edit patient files.
+                </li>
+              </ul>
+            </div>
+
+            {/* Section 4 */}
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold text-slate-900">
+                4. Your Rights and Data Deletion
+              </h2>
+              <p>
+                You retain full ownership of your laboratory records. You can:
+              </p>
+              <ul className="list-disc pl-6 space-y-2 text-slate-700">
+                <li>
+                  Edit or delete patient drafts and records directly inside the application.
+                </li>
+                <li>
+                  Request a complete purge of your account, staff profiles, and stored assets at any time through our{" "}
+                  <a href="/data-deletion" className="font-semibold text-teal-700 underline">
+                    Data Deletion Request Page
+                  </a>.
+                </li>
+                <li>
+                  Email our data protection team directly at{" "}
+                  <a href="mailto:privacy@swasthai.com" className="font-semibold text-teal-700 underline">
+                    privacy@swasthai.com
+                  </a>.
+                </li>
+              </ul>
+              <p className="text-sm text-slate-500">
+                Note: Finalized medical records may be subject to minimum retention periods mandated by local public health authorities.
+              </p>
+            </div>
+
+            {/* Section 5 */}
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold text-slate-900">
+                5. Contact Us
+              </h2>
+              <p>
+                If you have questions about our privacy practices, please contact us:
+              </p>
+              <div className="rounded-xl border border-slate-200 bg-white p-6 text-base space-y-2">
+                <p className="font-bold text-slate-900">SwasthAI Lab Privacy Desk</p>
+                <p>Email: <a href="mailto:privacy@swasthai.com" className="text-teal-700 font-semibold hover:underline">privacy@swasthai.com</a></p>
+                <p>Support: <a href="mailto:support@swasthai.com" className="text-teal-700 font-semibold hover:underline">support@swasthai.com</a></p>
+                <p className="text-sm text-slate-500 pt-1">Response time: Within 48 business hours.</p>
               </div>
             </div>
 
@@ -191,4 +149,3 @@ export default function PrivacyPolicyPage() {
     </div>
   );
 }
-

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Trash2, CheckCircle2, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Trash2 } from "lucide-react";
 import { PublicHeader } from "../components/PublicHeader";
 import { PublicFooter } from "../components/PublicFooter";
 
@@ -20,69 +20,64 @@ export default function DataDeletionPage() {
       <PublicHeader />
 
       <main className="flex-1">
-        {/* Hero Header */}
-        <section className="border-b border-slate-200 bg-white py-12 px-4 sm:px-6">
-          <div className="mx-auto max-w-4xl text-center space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full bg-red-50 border border-red-200 px-3 py-1 text-xs font-semibold text-red-700">
-              <Trash2 className="size-3.5" />
-              <span>User Rights & Regulatory Compliance</span>
-            </div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
-              Account & Data Deletion Request
+        {/* Header */}
+        <section className="border-b border-slate-200 bg-white py-14 px-6">
+          <div className="mx-auto max-w-2xl">
+            <p className="text-sm font-semibold uppercase tracking-wider text-red-600">
+              Account Management
+            </p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+              Request Account & Data Deletion
             </h1>
-            <p className="text-sm text-slate-500 max-w-2xl mx-auto">
-              In accordance with Google Play Store, Indus Appstore, and DPDP Act Data Safety requirements, you may request permanent deletion of your account and associated laboratory data.
+            <p className="mt-3 text-base text-slate-600">
+              Submit a request to permanently delete your laboratory account, staff credentials, and stored records.
             </p>
           </div>
         </section>
 
-        {/* Content Container */}
-        <section className="py-10 px-4 sm:px-6">
+        {/* Content */}
+        <section className="py-12 px-6">
           <div className="mx-auto max-w-2xl space-y-8">
 
-            {/* Explanation Card */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs space-y-4">
-              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <ShieldCheck className="size-5 text-teal-600" />
-                How Deletion is Handled
+            {/* Explanation */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 space-y-4">
+              <h2 className="text-xl font-bold text-slate-900">
+                What happens when you request deletion?
               </h2>
-              <div className="text-xs sm:text-sm text-slate-600 space-y-3 leading-relaxed">
-                <p>
-                  When you submit a data deletion request:
-                </p>
-                <ul className="list-disc list-inside space-y-1.5 pl-2 text-xs">
-                  <li><strong>Account Credentials:</strong> Login credentials, staff profiles, and active access tokens are permanently deactivated and purged.</li>
-                  <li><strong>Laboratory Profile & Letterhead:</strong> Custom letterheads, logos, and digital signature files are wiped from cloud storage.</li>
-                  <li><strong>Diagnostic Records:</strong> Non-finalized drafts and patient contact details are completely deleted. Finalized certified reports will be archived or expunged in accordance with statutory medical record-keeping laws.</li>
-                  <li><strong>Processing Timeframe:</strong> Deletion requests are confirmed within 48 hours and completely processed within 30 calendar days.</li>
-                </ul>
-              </div>
+              <ul className="list-disc pl-6 space-y-2.5 text-base text-slate-700 leading-relaxed">
+                <li>
+                  <strong className="text-slate-900">Staff Logins:</strong> All login credentials and station tokens are immediately deactivated.
+                </li>
+                <li>
+                  <strong className="text-slate-900">Clinic Assets:</strong> Uploaded letterheads, logos, and digital signature stamps are permanently deleted from our servers.
+                </li>
+                <li>
+                  <strong className="text-slate-900">Patient Data:</strong> Unfinalized draft reports and patient profiles are purged. Finalized reports are handled in accordance with local healthcare record-keeping requirements.
+                </li>
+                <li>
+                  <strong className="text-slate-900">Timeline:</strong> Requests are verified and processed within 30 days.
+                </li>
+              </ul>
             </div>
 
-            {/* Request Form / Confirmation */}
+            {/* Form */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs">
               {submitted ? (
-                <div className="text-center py-6 space-y-3">
-                  <div className="flex size-12 items-center justify-center rounded-2xl bg-teal-50 text-teal-600 mx-auto">
-                    <CheckCircle2 className="size-7" />
+                <div className="text-center py-6 space-y-4">
+                  <div className="flex size-14 items-center justify-center rounded-2xl bg-teal-50 text-teal-700 mx-auto">
+                    <CheckCircle2 className="size-8" />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900">Request Submitted Successfully</h3>
-                  <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
-                    We have logged your deletion request for <span className="font-semibold text-slate-800">{email}</span>. Our Data Protection Team will verify laboratory authorization and send a confirmation to your email.
-                  </p>
-                  <p className="text-xs text-slate-400 pt-2">
-                    Reference ID: DEL-{Math.floor(100000 + Math.random() * 900000)}
+                  <h3 className="text-2xl font-bold text-slate-900">Request Received</h3>
+                  <p className="text-base text-slate-600 max-w-md mx-auto leading-relaxed">
+                    We received your deletion request for <strong className="text-slate-900">{email}</strong>. Our team will verify authorization and send a confirmation to your email within 48 hours.
                   </p>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <h3 className="text-base font-bold text-slate-900">Submit Deletion Form</h3>
-                  <p className="text-xs text-slate-500">
-                    Please provide the registered email address associated with your laboratory station.
-                  </p>
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <h3 className="text-xl font-bold text-slate-900">Submit Your Request</h3>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-slate-800">
                       Registered Laboratory Email <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -91,12 +86,12 @@ export default function DataDeletionPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="admin@yourlab.com"
-                      className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-xs text-slate-900 focus:border-teal-500 focus:outline-hidden focus:ring-1 focus:ring-teal-500"
+                      className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 focus:border-teal-600 focus:outline-hidden focus:ring-1 focus:ring-teal-600"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-slate-800">
                       Laboratory / Clinic Name
                     </label>
                     <input
@@ -104,47 +99,41 @@ export default function DataDeletionPage() {
                       value={orgName}
                       onChange={(e) => setOrgName(e.target.value)}
                       placeholder="e.g. Metro Diagnostic Lab"
-                      className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-xs text-slate-900 focus:border-teal-500 focus:outline-hidden focus:ring-1 focus:ring-teal-500"
+                      className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 focus:border-teal-600 focus:outline-hidden focus:ring-1 focus:ring-teal-600"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">
-                      Scope of Deletion (Optional Details)
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-slate-800">
+                      Additional Notes (Optional)
                     </label>
                     <textarea
                       rows={3}
                       value={details}
                       onChange={(e) => setDetails(e.target.value)}
-                      placeholder="e.g. Delete entire organization account, or specific staff credentials..."
-                      className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-xs text-slate-900 focus:border-teal-500 focus:outline-hidden focus:ring-1 focus:ring-teal-500"
+                      placeholder="e.g. Delete all staff profiles and draft patient reports..."
+                      className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 focus:border-teal-600 focus:outline-hidden focus:ring-1 focus:ring-teal-600"
                     />
                   </div>
 
-                  <div className="pt-2">
-                    <button
-                      type="submit"
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-xs font-semibold text-white shadow-xs hover:bg-red-700 focus:outline-hidden focus:ring-2 focus:ring-red-500 transition-colors"
-                    >
-                      <Trash2 className="size-4" />
-                      Submit Permanent Deletion Request
-                    </button>
-                  </div>
+                  <button
+                    type="submit"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-3.5 text-base font-semibold text-white shadow-xs hover:bg-red-700 transition cursor-pointer"
+                  >
+                    <Trash2 className="size-5" />
+                    <span>Submit Deletion Request</span>
+                  </button>
                 </form>
               )}
             </div>
 
-            {/* Direct Email Option */}
-            <div className="text-center text-xs text-slate-500 space-y-1">
-              <p>
-                Alternatively, you can email your request directly to our Data Protection Officer at:
-              </p>
-              <p>
-                <a href="mailto:privacy@swasthai.com" className="font-semibold text-teal-600 hover:underline">
-                  privacy@swasthai.com
-                </a>
-              </p>
-            </div>
+            {/* Email note */}
+            <p className="text-center text-sm text-slate-500">
+              You can also email your request directly to{" "}
+              <a href="mailto:privacy@swasthai.com" className="font-semibold text-teal-700 hover:underline">
+                privacy@swasthai.com
+              </a>.
+            </p>
 
           </div>
         </section>
@@ -154,4 +143,3 @@ export default function DataDeletionPage() {
     </div>
   );
 }
-

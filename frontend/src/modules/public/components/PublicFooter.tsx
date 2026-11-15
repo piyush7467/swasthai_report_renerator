@@ -1,50 +1,39 @@
 import { Link } from "react-router-dom";
-import { ShieldCheck, Mail, Lock } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 
 export function PublicFooter() {
   return (
-    <footer className="border-t border-slate-200 bg-slate-50 text-slate-600">
-      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
+    <footer className="border-t border-slate-200 bg-white text-slate-600">
+      <div className="mx-auto max-w-5xl px-6 py-12">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
           {/* Brand info */}
-          <div className="md:col-span-2 space-y-3">
+          <div className="space-y-3">
             <div className="flex items-center gap-2.5">
-              <img src={logoImg} alt="SwasthAI" className="size-6 object-contain" />
-              <span className="text-base font-bold text-slate-900">SwasthAI Lab</span>
+              <img src={logoImg} alt="SwasthAI" className="size-7 object-contain" />
+              <span className="text-lg font-bold text-slate-900">SwasthAI Lab</span>
             </div>
-            <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
-              Intelligent diagnostic laboratory workflow management, multi-test biochemical cataloging, and automated certified pathology report generation.
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Software for diagnostic labs to record test values, manage patient records, and generate verified PDF reports.
             </p>
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span className="inline-flex items-center gap-1 rounded-md bg-white border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-700 shadow-2xs">
-                <ShieldCheck className="size-3 text-teal-600" />
-                DPDP Act Compliant
-              </span>
-              <span className="inline-flex items-center gap-1 rounded-md bg-white border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-700 shadow-2xs">
-                <Lock className="size-3 text-teal-600" />
-                256-Bit SSL Encrypted
-              </span>
-            </div>
           </div>
 
           {/* Quick Links */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900">Compliance & Legal</h4>
-            <ul className="space-y-2 text-xs">
+            <h4 className="text-sm font-bold uppercase tracking-wider text-slate-900">Legal & Privacy</h4>
+            <ul className="space-y-2.5 text-sm">
               <li>
-                <Link to="/privacy" className="hover:text-teal-600 transition-colors">
+                <Link to="/privacy" className="text-slate-600 hover:text-teal-700 transition-colors">
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link to="/terms" className="hover:text-teal-600 transition-colors">
-                  Terms & Conditions
+                <Link to="/terms" className="text-slate-600 hover:text-teal-700 transition-colors">
+                  Terms of Service
                 </Link>
               </li>
               <li>
-                <Link to="/data-deletion" className="hover:text-teal-600 transition-colors">
-                  Data Deletion Request
+                <Link to="/data-deletion" className="text-slate-600 hover:text-teal-700 transition-colors">
+                  Request Data Deletion
                 </Link>
               </li>
             </ul>
@@ -52,38 +41,37 @@ export function PublicFooter() {
 
           {/* Contact / Help */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900">Support & Help</h4>
-            <ul className="space-y-2 text-xs">
+            <h4 className="text-sm font-bold uppercase tracking-wider text-slate-900">Support</h4>
+            <ul className="space-y-2.5 text-sm text-slate-600">
               <li>
-                <Link to="/help" className="hover:text-teal-600 transition-colors">
+                <Link to="/help" className="hover:text-teal-700 transition-colors">
                   Help Desk & FAQs
                 </Link>
               </li>
-              <li className="flex items-center gap-1.5 text-slate-500">
-                <Mail className="size-3.5 text-slate-400" />
-                <a href="mailto:support@swasthai.com" className="hover:text-teal-600">
+              <li>
+                Email:{" "}
+                <a href="mailto:support@swasthai.com" className="font-medium text-teal-700 hover:underline">
                   support@swasthai.com
                 </a>
               </li>
-              <li className="text-[11px] text-slate-400">
-                Operating Hours: Mon - Sat, 9:00 AM - 6:00 PM IST
+              <li className="text-xs text-slate-500">
+                Support Hours: Monday to Saturday, 9:00 AM – 6:00 PM IST
               </li>
             </ul>
           </div>
         </div>
 
-        {/* Medical Disclaimer Banner */}
-        <div className="mt-8 rounded-xl bg-amber-50/80 border border-amber-200/80 p-3 text-[11px] text-amber-900 leading-relaxed">
-          <strong>Medical Notice:</strong> SwasthAI Lab is a clinical reporting software suite intended for certified healthcare institutions, pathologists, and laboratory technicians. It does not replace professional medical advice, clinical diagnosis, or prescriptive guidance.
+        {/* Medical Notice */}
+        <div className="mt-10 rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-950 leading-relaxed">
+          <strong className="font-semibold">Medical Notice:</strong> SwasthAI Lab is report-generation software for healthcare facilities and pathologists. It does not provide medical diagnoses or treatment advice. All test results must be reviewed and certified by a qualified medical professional.
         </div>
 
         {/* Bottom copyright */}
-        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between border-t border-slate-200/60 pt-6 text-[11px] text-slate-500 gap-2">
-          <p>© {new Date().getFullYear()} SwasthAI Healthcare Technologies. All rights reserved.</p>
-          <p>Version 1.0.0 (Production Release)</p>
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-between border-t border-slate-100 pt-6 text-sm text-slate-500 gap-2">
+          <p>© {new Date().getFullYear()} SwasthAI Lab. All rights reserved.</p>
+          <p>Version 1.0.0</p>
         </div>
       </div>
     </footer>
   );
 }
-
