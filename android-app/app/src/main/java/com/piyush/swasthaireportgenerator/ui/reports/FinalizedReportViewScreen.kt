@@ -370,70 +370,145 @@ fun FinalizedReportViewScreen(
                 // 2. Organization Header Block (or Pre-printed Stationery Reserved Blank Space when Header is OFF)
                 item {
                     if (includeHeaderPreview) {
+                        val orgProfile = entryState.organizationProfile
+                        val labName = report.organizationName?.takeIf { it.isNotBlank() }
+                            ?: orgProfile?.organizationName?.takeIf { it.isNotBlank() }
+                            ?: "Arnav Pathology Lab"
+
+                        val labAddress = run {
+                            val line1 = report.organizationAddressLine1?.takeIf { it.isNotBlank() }
+                                ?: orgProfile?.addressLine1?.takeIf { it.isNotBlank() }
+                            val line2 = report.organizationAddressLine2?.takeIf { it.isNotBlank() }
+                                ?: orgProfile?.addressLine2?.takeIf { it.isNotBlank() }
+                            val city = report.organizationCity?.takeIf { it.isNotBlank() }
+                                ?: orgProfile?.city?.takeIf { it.isNotBlank() }
+                            val state = report.organizationState?.takeIf { it.isNotBlank() }
+                                ?: orgProfile?.state?.takeIf { it.isNotBlank() }
+                            val pincode = report.organizationPostalCode?.takeIf { it.isNotBlank() }
+                                ?: orgProfile?.postalCode?.takeIf { it.isNotBlank() }
+                            val statePin = listOfNotNull(state, pincode).filter { it.isNotBlank() }.joinToString(" - ")
+                            listOfNotNull(line1, line2, city, statePin.takeIf { it.isNotBlank() })
+                                .filter { it.isNotBlank() }
+                                .joinToString(", ")
+                        }
+
+                        val labPhone = report.organizationPhone?.takeIf { it.isNotBlank() }
+                            ?: orgProfile?.phone?.takeIf { it.isNotBlank() }
+                            ?: orgProfile?.alternatePhone?.takeIf { it.isNotBlank() }
+
+                        val labEmail = report.organizationEmail?.takeIf { it.isNotBlank() }
+                            ?: orgProfile?.email?.takeIf { it.isNotBlank() }
+
+                        val labWebsite = report.organizationWebsite?.takeIf { it.isNotBlank() }
+                            ?: orgProfile?.website?.takeIf { it.isNotBlank() }
+
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
-                            Row(
+                            Column(
                                 modifier = Modifier
-                                    .padding(16.dp)
-                                    .fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Surface(
-                                    modifier = Modifier.size(56.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(14.dp)
                                 ) {
-                                    val logoBitmap = remember(entryState.logoBytes) {
-                                        entryState.logoBytes?.let { bytes ->
-                                            try {
-                                                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
-                                            } catch (_: Exception) {
-                                                null
+                                    Surface(
+                                        modifier = Modifier.size(56.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = Color.White,
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                                    ) {
+                                        val logoBitmap = remember(entryState.logoBytes) {
+                                            entryState.logoBytes?.let { bytes ->
+                                                try {
+                                                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+                                                } catch (_: Exception) {
+                                                    null
+                                                }
                                             }
                                         }
+                                        if (logoBitmap != null) {
+                                            Image(
+                                                bitmap = logoBitmap,
+                                                contentDescription = "Laboratory Logo",
+                                                modifier = Modifier.padding(4.dp).fillMaxSize(),
+                                                contentScale = ContentScale.Fit
+                                            )
+                                        } else {
+                                            Image(
+                                                painter = painterResource(id = R.drawable.ic_swasthai_logo),
+                                                contentDescription = "Logo",
+                                                modifier = Modifier.padding(6.dp).fillMaxSize(),
+                                                contentScale = ContentScale.Fit
+                                            )
+                                        }
                                     }
-                                    if (logoBitmap != null) {
-                                        Image(
-                                            bitmap = logoBitmap,
-                                            contentDescription = "Laboratory Logo",
-                                            modifier = Modifier.padding(6.dp).fillMaxSize(),
-                                            contentScale = ContentScale.Fit
+
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        Text(
+                                            text = labName,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
-                                    } else {
-                                        Image(
-                                            painter = painterResource(id = R.drawable.ic_swasthai_logo),
-                                            contentDescription = "Logo",
-                                            modifier = Modifier.padding(8.dp).fillMaxSize(),
-                                            contentScale = ContentScale.Fit
+                                        Text(
+                                            text = "Accredited Diagnostic & Clinical Laboratory",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontWeight = FontWeight.Medium
                                         )
                                     }
                                 }
 
-                                Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1f).padding(start = 12.dp)) {
-                                    Text(
-                                        text = report.organizationName ?: "Diagnostic Laboratory",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    val addr = listOfNotNull(
-                                        report.organizationAddressLine1?.takeIf { it.isNotBlank() },
-                                        report.organizationCity?.takeIf { it.isNotBlank() }
-                                    ).joinToString(", ")
-                                    if (addr.isNotBlank()) {
-                                        Text(addr, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                if (labAddress.isNotBlank() || !labPhone.isNullOrBlank() || !labEmail.isNullOrBlank() || !labWebsite.isNullOrBlank()) {
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+
+                                    if (labAddress.isNotBlank()) {
+                                        Row(
+                                            verticalAlignment = Alignment.Top,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Place,
+                                                contentDescription = "Address",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(15.dp).padding(top = 1.dp)
+                                            )
+                                            Text(
+                                                text = labAddress,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                lineHeight = 16.sp
+                                            )
+                                        }
                                     }
-                                    val contact = listOfNotNull(
-                                        report.organizationPhone?.takeIf { it.isNotBlank() },
-                                        report.organizationEmail?.takeIf { it.isNotBlank() }
-                                    ).joinToString(" • ")
-                                    if (contact.isNotBlank()) {
-                                        Text(contact, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                                    val contacts = listOfNotNull(
+                                        labPhone?.takeIf { it.isNotBlank() }?.let { "📞 $it" },
+                                        labEmail?.takeIf { it.isNotBlank() }?.let { "✉️ $it" },
+                                        labWebsite?.takeIf { it.isNotBlank() }?.let { "🌐 $it" }
+                                    )
+                                    if (contacts.isNotEmpty()) {
+                                        Text(
+                                            text = contacts.joinToString("  •  "),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
                                     }
                                 }
                             }
@@ -444,7 +519,7 @@ fun FinalizedReportViewScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(85.dp),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(14.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                             border = ButtonDefaults.outlinedButtonBorder(enabled = true)
                         ) {
@@ -464,44 +539,117 @@ fun FinalizedReportViewScreen(
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(
-                                text = "Patient Clinical Demographics",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Column {
-                                    Text(
-                                        text = report.displayPatientName,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Section Header: Title + UHID Badge
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.weight(1f, fill = false)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
                                     )
                                     Text(
-                                        text = "UHID: ${report.patientCode ?: ""} • ${report.displayAgeGender}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        text = "PATIENT CLINICAL DEMOGRAPHICS",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 0.6.sp
                                     )
                                 }
 
-                                Column(horizontalAlignment = Alignment.End) {
+                                val uhid = report.patientCode?.takeIf { it.isNotBlank() } ?: "UHID: —"
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                                ) {
                                     Text(
-                                        text = "Report Ref: ${report.refId.take(10)}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = "Date: ${report.createdAt?.take(10) ?: ""}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        text = if (uhid.startsWith("UHID", ignoreCase = true)) uhid else "UHID: $uhid",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                                     )
                                 }
+                            }
+
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+
+                            // Grid Row 1: Patient Name & Report Ref ID
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                DemographicField(
+                                    label = "PATIENT NAME",
+                                    value = report.displayPatientName,
+                                    isBold = true,
+                                    valueColor = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1.1f)
+                                )
+                                DemographicField(
+                                    label = "REPORT REF ID",
+                                    value = report.refId.take(14),
+                                    isBold = true,
+                                    valueColor = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.weight(0.9f)
+                                )
+                            }
+
+                            // Grid Row 2: Age / Gender & Registered Date
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                DemographicField(
+                                    label = "AGE / GENDER",
+                                    value = report.displayAgeGender,
+                                    modifier = Modifier.weight(1.1f)
+                                )
+                                val displayDate = report.createdAt?.take(10) ?: report.finalizedAt?.take(10) ?: "—"
+                                DemographicField(
+                                    label = "DATE OF REPORT",
+                                    value = displayDate,
+                                    modifier = Modifier.weight(0.9f)
+                                )
+                            }
+
+                            // Grid Row 3: Patient Contact & Status
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                DemographicField(
+                                    label = "CONTACT NUMBER",
+                                    value = report.patientPhone?.takeIf { it.isNotBlank() } ?: "—",
+                                    modifier = Modifier.weight(1.1f)
+                                )
+                                DemographicField(
+                                    label = "CERTIFICATION",
+                                    value = "FINALIZED & AUTHENTICATED",
+                                    valueColor = Color(0xFF10B981),
+                                    isBold = true,
+                                    modifier = Modifier.weight(0.9f)
+                                )
                             }
                         }
                     }
@@ -510,13 +658,56 @@ fun FinalizedReportViewScreen(
                 // 4. Test Panels & Results
                 report.tests.forEach { test ->
                     item {
-                        Text(
-                            text = test.testName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 10.dp, bottom = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.weight(1f, fill = false)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.Biotech,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = test.testName,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
+                            if (test.parameters.isNotEmpty()) {
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                ) {
+                                    Text(
+                                        text = "${test.parameters.size} ${if (test.parameters.size == 1) "parameter" else "parameters"}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     items(test.parameters) { param ->
@@ -546,6 +737,8 @@ fun FinalizedReportViewScreen(
                     }
                     val footerNote = report.organizationReportFooterText?.takeIf { it.isNotBlank() }
                         ?: entryState.organizationProfile?.reportFooterText?.takeIf { it.isNotBlank() }
+                        ?: entryState.organizationProfile?.reportDisclaimer?.takeIf { it.isNotBlank() }
+                        ?: "This is an electronically validated and certified clinical report. Authenticity can be verified by scanning the QR code above."
 
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -770,3 +963,37 @@ private fun ShareReportLinkDialog(
         }
     )
 }
+
+@Composable
+private fun DemographicField(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    isBold: Boolean = false,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.5.sp
+        )
+        Text(
+            text = value,
+            style = if (isBold) {
+                MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+            } else {
+                MaterialTheme.typography.bodyMedium
+            },
+            color = valueColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+

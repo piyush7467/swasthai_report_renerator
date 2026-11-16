@@ -42,6 +42,7 @@ import com.piyush.swasthaireportgenerator.data.model.PatientResponse
 import com.piyush.swasthaireportgenerator.data.model.ReportParameterResultResponse
 import com.piyush.swasthaireportgenerator.data.model.ReportResponse
 import com.piyush.swasthaireportgenerator.ui.components.SwasthAiTopAppBar
+import com.piyush.swasthaireportgenerator.ui.patients.AddPatientDialog
 import com.piyush.swasthaireportgenerator.ui.patients.PatientViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,6 +64,7 @@ fun ReportWorkspaceScreen(
     var clinicalNotes by remember { mutableStateOf("") }
     var selectedTestRefIds by remember { mutableStateOf(setOf<String>()) }
     var isCreatingDraft by remember { mutableStateOf(false) }
+    var showAddPatientDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         reportViewModel.loadWorkspaceContext()
@@ -95,6 +97,33 @@ fun ReportWorkspaceScreen(
         if (!existingIds.isNullOrEmpty()) {
             selectedTestRefIds = selectedTestRefIds + existingIds
         }
+    }
+
+    if (showAddPatientDialog) {
+        AddPatientDialog(
+            isSaving = patientState.isCreating,
+            serverError = patientState.createError,
+            onDismissRequest = {
+                patientViewModel.clearCreateError()
+                showAddPatientDialog = false
+            },
+            onSavePatient = { sal, name, age, unit, gender, phone, email, address ->
+                patientViewModel.createPatient(
+                    salutation = sal,
+                    name = name,
+                    age = age,
+                    ageUnit = unit,
+                    gender = gender,
+                    phone = phone,
+                    email = email,
+                    address = address,
+                    onSuccess = { newPatient ->
+                        selectedPatient = newPatient
+                        showAddPatientDialog = false
+                    }
+                )
+            }
+        )
     }
 
     Scaffold(
@@ -203,7 +232,7 @@ fun ReportWorkspaceScreen(
                     onSelectPatient = { pat ->
                         selectedPatient = if (selectedPatient?.refId == pat?.refId) null else pat
                     },
-                    onOpenAddPatient = { onNavigateBack() },
+                    onOpenAddPatient = { showAddPatientDialog = true },
                     onNext = { currentStep = 2 }
                 )
 
@@ -430,36 +459,136 @@ fun Step1PatientSelection(
             (it.phone?.contains(searchQuery) == true)
     }
 
-    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Top Header Row with "+ New Patient" Button
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Select Patient",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = if (selectedPatient != null) "Patient confirmed for report" else "Choose existing or register a new patient",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.sp
+                )
+            }
+
+            if (!readOnly) {
+                Button(
+                    onClick = onOpenAddPatient,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D9488)),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PersonAdd,
+                        contentDescription = "New Patient",
+                        modifier = Modifier.size(16.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "New Patient",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+
+        // Selected Patient Confirmation Card
         if (selectedPatient != null) {
             Surface(
                 color = Color(0xFFD1FAE5),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.5f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = Color(0xFF059669),
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Surface(
+                        modifier = Modifier.size(42.dp),
+                        shape = CircleShape,
+                        color = Color(0xFF059669)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            val initials = selectedPatient.name.trim().split(" ")
+                                .filter { it.isNotBlank() }
+                                .take(2)
+                                .map { it.first().uppercase() }
+                                .joinToString("")
+                                .ifBlank { "P" }
+                            Text(
+                                text = initials,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "${selectedPatient.salutation ?: ""} ${selectedPatient.name}".trim(),
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF065F46),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "${selectedPatient.salutation ?: ""} ${selectedPatient.name}".trim(),
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF065F46),
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                            Surface(
+                                color = Color(0xFF059669),
+                                shape = RoundedCornerShape(100.dp)
+                            ) {
+                                Text(
+                                    text = "SELECTED",
+                                    color = Color.White,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = "UHID: ${selectedPatient.patientCode} • ${selectedPatient.ageValue ?: 0} ${selectedPatient.ageUnit ?: "Yrs"} • ${selectedPatient.gender ?: ""}",
                             color = Color(0xFF047857),
-                            style = MaterialTheme.typography.labelSmall
+                            style = MaterialTheme.typography.bodySmall,
+                            fontSize = 11.sp
                         )
+                        if (!selectedPatient.phone.isNullOrBlank()) {
+                            Text(
+                                text = "Phone: ${selectedPatient.phone}",
+                                color = Color(0xFF047857).copy(alpha = 0.85f),
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
+
+                    if (!readOnly) {
+                        TextButton(
+                            onClick = { onSelectPatient(null) },
+                            colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFF065F46))
+                        ) {
+                            Text("Change", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
                     }
                 }
             }
@@ -469,11 +598,17 @@ fun Step1PatientSelection(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Search patient by name, UHID, or phone...") },
+                placeholder = { Text("Search by name, UHID, or phone...") },
                 leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null) },
                 trailingIcon = {
-                    IconButton(onClick = onRefreshPatients) {
-                        Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh Patients")
+                    if (searchQuery.isNotBlank()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(imageVector = Icons.Default.Close, contentDescription = "Clear search")
+                        }
+                    } else {
+                        IconButton(onClick = onRefreshPatients) {
+                            Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh Patients")
+                        }
                     }
                 },
                 singleLine = true,
@@ -507,20 +642,59 @@ fun Step1PatientSelection(
 
             if (isPatientsLoading && patients.isEmpty()) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = Color(0xFF0D9488))
                 }
             } else if (filtered.isEmpty()) {
-                Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.padding(24.dp)
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(52.dp),
+                            shape = CircleShape,
+                            color = Color(0xFF0D9488).copy(alpha = 0.1f)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.PersonSearch,
+                                    contentDescription = null,
+                                    tint = Color(0xFF0D9488),
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        }
                         Text(
-                            text = "No patients match your search.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.outline
+                            text = if (searchQuery.isBlank()) "No registered patients yet" else "No patients match \"$searchQuery\"",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-                        OutlinedButton(onClick = onOpenAddPatient, shape = RoundedCornerShape(10.dp)) {
-                            Icon(imageVector = Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Register New Patient")
+                        Text(
+                            text = "Register this patient now without leaving report creation.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                        Button(
+                            onClick = onOpenAddPatient,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D9488)),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PersonAdd,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Register New Patient", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -539,9 +713,9 @@ fun Step1PatientSelection(
                                 .clickable { onSelectPatient(patient) },
                             shape = RoundedCornerShape(14.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
+                                containerColor = if (isSelected) Color(0xFFECFDF5) else MaterialTheme.colorScheme.surface
                             ),
-                            border = if (isSelected) BorderStroke(1.5.dp, Color(0xFF0D9488)) else null
+                            border = if (isSelected) BorderStroke(1.5.dp, Color(0xFF0D9488)) else BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         ) {
                             Row(
                                 modifier = Modifier
@@ -550,22 +724,60 @@ fun Step1PatientSelection(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Column {
-                                    Text(
-                                        "${patient.salutation ?: ""} ${patient.name}".trim(),
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-                                    Text(
-                                        "UHID: ${patient.patientCode} • ${patient.ageValue ?: 0} ${patient.ageUnit ?: "Yrs"} • ${patient.gender ?: ""}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Surface(
+                                        modifier = Modifier.size(40.dp),
+                                        shape = CircleShape,
+                                        color = if (isSelected) Color(0xFF0D9488) else MaterialTheme.colorScheme.primaryContainer
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            val initials = patient.name.trim().split(" ")
+                                                .filter { it.isNotBlank() }
+                                                .take(2)
+                                                .map { it.first().uppercase() }
+                                                .joinToString("")
+                                                .ifBlank { "P" }
+                                            Text(
+                                                text = initials,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onPrimaryContainer,
+                                                fontSize = 13.sp
+                                            )
+                                        }
+                                    }
+
+                                    Column {
+                                        Text(
+                                            "${patient.salutation ?: ""} ${patient.name}".trim(),
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            "UHID: ${patient.patientCode} • ${patient.ageValue ?: 0} ${patient.ageUnit ?: "Yrs"} • ${patient.gender ?: ""}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontSize = 11.sp
+                                        )
+                                        if (!patient.phone.isNullOrBlank()) {
+                                            Text(
+                                                "📞 ${patient.phone}",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                fontSize = 10.sp
+                                            )
+                                        }
+                                    }
                                 }
 
                                 RadioButton(
                                     selected = isSelected,
-                                    onClick = { onSelectPatient(patient) }
+                                    onClick = { onSelectPatient(patient) },
+                                    colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF0D9488))
                                 )
                             }
                         }
@@ -579,6 +791,7 @@ fun Step1PatientSelection(
         Button(
             onClick = onNext,
             enabled = selectedPatient != null,
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D9488)),
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
