@@ -1,4 +1,4 @@
-﻿package com.piyush.swasthaireportgenerator.ui.dashboard
+package com.piyush.swasthaireportgenerator.ui.dashboard
 
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
@@ -34,6 +34,8 @@ import com.piyush.swasthaireportgenerator.data.model.OrgActivityItemResponse
 import com.piyush.swasthaireportgenerator.data.model.OrganizationProfileResponse
 import com.piyush.swasthaireportgenerator.data.model.PatientResponse
 import com.piyush.swasthaireportgenerator.data.model.ReportResponse
+import com.piyush.swasthaireportgenerator.ui.components.SkeletonBox
+import com.piyush.swasthaireportgenerator.ui.components.SkeletonWorklistList
 
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 
@@ -55,6 +57,7 @@ fun DashboardScreen(
     val uiState by viewModel.uiState.collectAsState()
     val isOrgAdmin = uiState.userRole.equals("ORG_ADMIN", ignoreCase = true)
     var licenseBlockedMessage by remember { mutableStateOf<String?>(null) }
+    var showOverflowMenu by remember { mutableStateOf(false) }
 
     val logoBitmap = remember(uiState.logoBytes) {
         uiState.logoBytes?.let { bytes ->
@@ -104,7 +107,7 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                expandedHeight = 42.dp,
+                expandedHeight = 48.dp,
                 windowInsets = TopAppBarDefaults.windowInsets,
                 title = {
                     Row(
@@ -157,7 +160,58 @@ fun DashboardScreen(
                         Icon(imageVector = Icons.Default.Menu, contentDescription = "Sidebar Menu")
                     }
                 },
-                actions = {},
+                actions = {
+                    Box {
+                        IconButton(onClick = { showOverflowMenu = true }) {
+                            Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Dashboard Options")
+                        }
+                        DropdownMenu(
+                            expanded = showOverflowMenu,
+                            onDismissRequest = { showOverflowMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Refresh Data") },
+                                leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    viewModel.refreshDashboard()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Letterhead & Branding") },
+                                leadingIcon = { Icon(Icons.Default.Tune, contentDescription = null) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    onNavigateToOrgSettings()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Test Catalog") },
+                                leadingIcon = { Icon(Icons.Default.Biotech, contentDescription = null) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    onNavigateToTestCatalog()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Subscription & Limits") },
+                                leadingIcon = { Icon(Icons.Default.CardMembership, contentDescription = null) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    onNavigateToLicense()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Theme Settings") },
+                                leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    onOpenThemeDialog()
+                                }
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
@@ -402,6 +456,7 @@ fun DashboardScreen(
                 }
 
                 // 2. Comprehensive Statistics Cards (Row 1: 3 cards, Row 2: 2 cards)
+                val isStatsLoading = uiState.isLoading && uiState.pendingCount == 0L && uiState.finalizedCount == 0L
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         // Row 1: 3 cards
@@ -415,6 +470,7 @@ fun DashboardScreen(
                                 subtitle = "All generated reports",
                                 icon = Icons.AutoMirrored.Filled.Assignment,
                                 modifier = Modifier.weight(1f),
+                                isLoading = isStatsLoading,
                                 onClick = onNavigateToReports
                             )
 
@@ -424,6 +480,7 @@ fun DashboardScreen(
                                 subtitle = "24h cycle",
                                 icon = Icons.Default.Today,
                                 modifier = Modifier.weight(1f),
+                                isLoading = isStatsLoading,
                                 onClick = onNavigateToReports
                             )
 
@@ -433,6 +490,7 @@ fun DashboardScreen(
                                 subtitle = "Certified",
                                 icon = Icons.Default.Verified,
                                 modifier = Modifier.weight(1f),
+                                isLoading = isStatsLoading,
                                 onClick = onNavigateToReports
                             )
                         }
@@ -448,6 +506,7 @@ fun DashboardScreen(
                                 subtitle = "Registered profiles",
                                 icon = Icons.Default.People,
                                 modifier = Modifier.weight(1f),
+                                isLoading = isStatsLoading,
                                 onClick = onNavigateToPatients
                             )
 
@@ -457,6 +516,7 @@ fun DashboardScreen(
                                 subtitle = "Test parameters",
                                 icon = Icons.Default.Biotech,
                                 modifier = Modifier.weight(1f),
+                                isLoading = isStatsLoading,
                                 onClick = onNavigateToTestCatalog
                             )
 
@@ -545,16 +605,9 @@ fun DashboardScreen(
                 }
 
                 // 9. Worklist Items
-                if (uiState.isLoading) {
+                if (uiState.isLoading && uiState.recentDrafts.isEmpty()) {
                     item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(24.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(modifier = Modifier.size(32.dp))
-                        }
+                        SkeletonWorklistList(count = 3)
                     }
                 } else if (uiState.recentDrafts.isEmpty()) {
                     item {
@@ -617,6 +670,7 @@ fun DashboardGridStatCard(
     subtitle: String,
     icon: ImageVector,
     modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
     onClick: () -> Unit
 ) {
     Card(
@@ -658,13 +712,21 @@ fun DashboardGridStatCard(
                     fontWeight = FontWeight.Bold,
                     maxLines = 1
                 )
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1
-                )
+                if (isLoading) {
+                    SkeletonBox(
+                        modifier = Modifier
+                            .padding(vertical = 2.dp)
+                            .size(width = 44.dp, height = 20.dp)
+                    )
+                } else {
+                    Text(
+                        text = value,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1
+                    )
+                }
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.labelSmall,

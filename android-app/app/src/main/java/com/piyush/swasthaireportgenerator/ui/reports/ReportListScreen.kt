@@ -1,4 +1,4 @@
-﻿package com.piyush.swasthaireportgenerator.ui.reports
+package com.piyush.swasthaireportgenerator.ui.reports
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.piyush.swasthaireportgenerator.data.model.ReportResponse
+import com.piyush.swasthaireportgenerator.ui.components.SkeletonReportList
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,6 +33,7 @@ fun ReportListScreen(
     val uiState by viewModel.listState.collectAsState()
     var selectedTab by remember { mutableStateOf(0) }
     var reportPendingDelete by remember { mutableStateOf<ReportResponse?>(null) }
+    var showOverflowMenu by remember { mutableStateOf(false) }
     val isOrgAdmin = uiState.userRole.equals("ORG_ADMIN", ignoreCase = true)
     val tabFilters = listOf(null, "DRAFT", "FINALIZED")
     val tabTitles = listOf("All Reports", "Pending Drafts", "Finalized")
@@ -98,7 +100,42 @@ fun ReportListScreen(
                         Icon(imageVector = Icons.Default.Menu, contentDescription = "Sidebar Menu")
                     }
                 },
-                actions = {},
+                actions = {
+                    Box {
+                        IconButton(onClick = { showOverflowMenu = true }) {
+                            Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Report Options")
+                        }
+                        DropdownMenu(
+                            expanded = showOverflowMenu,
+                            onDismissRequest = { showOverflowMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Refresh Reports") },
+                                leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    viewModel.loadReports(tabFilters[selectedTab])
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("New Report Draft") },
+                                leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    onCreateReportClick()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Theme Settings") },
+                                leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    onOpenThemeDialog()
+                                }
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
@@ -177,10 +214,8 @@ fun ReportListScreen(
                 }
             }
 
-            if (uiState.isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+            if (uiState.isLoading && uiState.reports.isEmpty()) {
+                SkeletonReportList()
             } else if (uiState.reports.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -270,13 +305,24 @@ fun ReportCard(
                     color = if (isFinalized) Color(0xFFD1FAE5) else Color(0xFFFEF3C7),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text(
-                        text = if (isFinalized) "FINALIZED & AUTHENTICATED" else "DRAFT (PENDING ENTRY)",
-                        color = if (isFinalized) Color(0xFF065F46) else Color(0xFF92400E),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isFinalized) Icons.Default.CheckCircle else Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = if (isFinalized) Color(0xFF065F46) else Color(0xFF92400E),
+                            modifier = Modifier.size(11.dp)
+                        )
+                        Text(
+                            text = if (isFinalized) "FINALIZED" else "DRAFT",
+                            color = if (isFinalized) Color(0xFF065F46) else Color(0xFF92400E),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
 
                 Text(

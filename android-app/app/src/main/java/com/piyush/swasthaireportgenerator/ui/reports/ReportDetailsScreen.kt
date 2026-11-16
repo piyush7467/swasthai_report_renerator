@@ -1,4 +1,4 @@
-﻿package com.piyush.swasthaireportgenerator.ui.reports
+package com.piyush.swasthaireportgenerator.ui.reports
 
 import android.content.Intent
 import androidx.compose.foundation.layout.*
@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.piyush.swasthaireportgenerator.data.model.ReportParameterResultResponse
@@ -213,16 +214,24 @@ fun FinalizedParameterRow(param: ReportParameterResultResponse) {
     ) {
         Row(
             modifier = Modifier
-                .padding(12.dp)
+                .padding(horizontal = 12.dp, vertical = 9.dp)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .padding(end = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
                 Text(
                     text = param.parameterName,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
 
                 val rangeText = if (param.referenceMin != null && param.referenceMax != null) {
@@ -238,20 +247,36 @@ fun FinalizedParameterRow(param: ReportParameterResultResponse) {
                 }
             }
 
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier
+                    .defaultMinSize(minWidth = 80.dp)
+                    .wrapContentWidth()
+            ) {
                 ResultFlagBadge(flag = param.flag)
-                Text(
-                    text = param.value ?: "—",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                if (!param.unit.isNullOrBlank()) {
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
                     Text(
-                        text = param.unit,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = param.value?.takeIf { it.isNotBlank() } ?: "—",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        softWrap = false
                     )
+                    if (!param.unit.isNullOrBlank()) {
+                        Text(
+                            text = param.unit,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.padding(bottom = 2.dp)
+                        )
+                    }
                 }
             }
         }

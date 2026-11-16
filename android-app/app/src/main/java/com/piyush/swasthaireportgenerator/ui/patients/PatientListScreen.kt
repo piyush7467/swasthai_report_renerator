@@ -1,4 +1,4 @@
-﻿package com.piyush.swasthaireportgenerator.ui.patients
+package com.piyush.swasthaireportgenerator.ui.patients
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.piyush.swasthaireportgenerator.data.model.PatientResponse
+import com.piyush.swasthaireportgenerator.ui.components.SkeletonPatientList
 
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 
@@ -31,6 +32,7 @@ fun PatientListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
+    var showOverflowMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         if (uiState.patients.isEmpty() && !uiState.isLoading) {
@@ -56,7 +58,44 @@ fun PatientListScreen(
                         Icon(imageVector = Icons.Default.Menu, contentDescription = "Sidebar Menu")
                     }
                 },
-                actions = {},
+                actions = {
+                    Box {
+                        IconButton(onClick = { showOverflowMenu = true }) {
+                            Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Patient Options")
+                        }
+                        DropdownMenu(
+                            expanded = showOverflowMenu,
+                            onDismissRequest = { showOverflowMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Refresh Directory") },
+                                leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    viewModel.loadPatients(searchQuery.ifBlank { null })
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Clear Search") },
+                                leadingIcon = { Icon(Icons.Default.Clear, contentDescription = null) },
+                                enabled = searchQuery.isNotBlank(),
+                                onClick = {
+                                    showOverflowMenu = false
+                                    searchQuery = ""
+                                    viewModel.loadPatients(null)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Theme Settings") },
+                                leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    onOpenThemeDialog()
+                                }
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
@@ -118,10 +157,8 @@ fun PatientListScreen(
                 }
             }
 
-            if (uiState.isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+            if (uiState.isLoading && uiState.patients.isEmpty()) {
+                SkeletonPatientList()
             } else if (uiState.patients.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {

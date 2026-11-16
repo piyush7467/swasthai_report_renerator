@@ -1,4 +1,4 @@
-﻿package com.piyush.swasthaireportgenerator.ui.organization
+package com.piyush.swasthaireportgenerator.ui.organization
 
 import android.graphics.BitmapFactory
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import com.piyush.swasthaireportgenerator.ui.components.SignaturePadDialog
 import com.piyush.swasthaireportgenerator.ui.components.SwasthAiTopAppBar
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -43,6 +44,8 @@ fun OrganizationSettingsScreen(
 
     var selectedTab by remember { mutableIntStateOf(0) }
     var deleteConfirmTarget by remember { mutableStateOf<String?>(null) }
+    var showSignaturePad by remember { mutableStateOf(false) }
+    var showOverflowMenu by remember { mutableStateOf(false) }
 
     val logoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -92,6 +95,17 @@ fun OrganizationSettingsScreen(
         )
     }
 
+    if (showSignaturePad) {
+        SignaturePadDialog(
+            isSaving = uiState.isUploadingSignature,
+            onDismiss = { showSignaturePad = false },
+            onSaveSignature = { bytes ->
+                viewModel.uploadSignatureBytes(bytes)
+                showSignaturePad = false
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             SwasthAiTopAppBar(
@@ -99,7 +113,52 @@ fun OrganizationSettingsScreen(
                 subtitle = if (isOrgAdmin) "Letterhead, contact & digital signatory" else "Organization identity (read-only)",
                 canNavigateBack = true,
                 onNavigateBack = onNavigateBack,
-                actions = {}
+                actions = {
+                    Box {
+                        IconButton(onClick = { showOverflowMenu = true }) {
+                            Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Settings Options")
+                        }
+                        DropdownMenu(
+                            expanded = showOverflowMenu,
+                            onDismissRequest = { showOverflowMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Refresh Profile") },
+                                leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    viewModel.loadProfile()
+                                }
+                            )
+                            if (isOrgAdmin) {
+                                DropdownMenuItem(
+                                    text = { Text("Draw Signature") },
+                                    leadingIcon = { Icon(Icons.Default.Draw, contentDescription = null) },
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        showSignaturePad = true
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Upload Signature Image") },
+                                    leadingIcon = { Icon(Icons.Default.DriveFolderUpload, contentDescription = null) },
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        signaturePicker.launch("image/*")
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Upload Lab Logo") },
+                                    leadingIcon = { Icon(Icons.Default.CloudUpload, contentDescription = null) },
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        logoPicker.launch("image/*")
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
             )
         }
     ) { paddingValues ->
@@ -277,6 +336,7 @@ fun OrganizationSettingsScreen(
                         isUploadingSignature = uiState.isUploadingSignature,
                         onPickLogo = { logoPicker.launch("image/*") },
                         onDeleteLogo = { deleteConfirmTarget = "logo" },
+                        onDrawSignature = { showSignaturePad = true },
                         onPickSignature = { signaturePicker.launch("image/*") },
                         onDeleteSignature = { deleteConfirmTarget = "signature" }
                     )
@@ -303,7 +363,8 @@ fun OrganizationSettingsScreen(
                     )
                     3 -> LetterheadLivePreviewSection(
                         profile = profile,
-                        logoBytes = uiState.logoBytes
+                        logoBytes = uiState.logoBytes,
+                        signatureBytes = uiState.signatureBytes
                     )
                 }
             }
@@ -644,6 +705,7 @@ private fun BrandingAndSignatureSection(
     isUploadingSignature: Boolean,
     onPickLogo: () -> Unit,
     onDeleteLogo: () -> Unit,
+    onDrawSignature: () -> Unit,
     onPickSignature: () -> Unit,
     onDeleteSignature: () -> Unit
 ) {
@@ -772,7 +834,7 @@ private fun BrandingAndSignatureSection(
             }
         }
 
-        // Authorized Signature Card
+        // Authorized Signature Card (Upload File OR Draw in App)
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -782,7 +844,7 @@ private fun BrandingAndSignatureSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -803,72 +865,216 @@ private fun BrandingAndSignatureSection(
                     StatusChip(label = verStatus, containerColor = bg, contentColor = fg)
                 }
 
-                if (!profile.signatureOwnerName.isNullOrBlank() || !profile.signatureOwnerEmail.isNullOrBlank()) {
-                    Text(
-                        text = "Signatory: ${profile.signatureOwnerName ?: "-"} ${profile.signatureOwnerEmail?.let { "($it)" } ?: ""}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = "Pathologist digital signature stamped on certified reports. You can draw directly in the app or upload an existing image.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
-                if (!profile.signatureRejectionReason.isNullOrBlank()) {
+                if (!profile.signatureOwnerName.isNullOrBlank() || !profile.signatureOwnerEmail.isNullOrBlank()) {
                     Surface(
-                        color = MaterialTheme.colorScheme.errorContainer,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            text = "Rejection reason: ${profile.signatureRejectionReason}",
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(10.dp)
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "Signatory: ${profile.signatureOwnerName ?: "-"} ${profile.signatureOwnerEmail?.let { "($it)" } ?: ""}",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
 
+                // Verification Status Info Banners (matching Web UI)
+                val verStatus = (profile.signatureVerificationStatus ?: "PENDING").uppercase()
+                if (profile.signatureConfigured && verStatus == "PENDING") {
+                    Surface(
+                        color = Color(0xFFFEF3C7),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Schedule,
+                                contentDescription = null,
+                                tint = Color(0xFFB45309),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    text = "Signature Pending Verification",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF92400E)
+                                )
+                                Text(
+                                    text = "Your digital signature specimen has been submitted to platform administration for clinical verification. Reports cannot be certified until approved.",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFFB45309),
+                                    lineHeight = 15.sp
+                                )
+                            }
+                        }
+                    }
+                } else if (profile.signatureConfigured && verStatus == "APPROVED") {
+                    Surface(
+                        color = Color(0xFFDCFCE7),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = Color(0xFF15803D),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    text = "Verified & Active for Reports",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF166534)
+                                )
+                                Text(
+                                    text = "Verified by platform administration. This signature is automatically affixed to doctor-signed finalized PDF reports.",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF15803D),
+                                    lineHeight = 15.sp
+                                )
+                            }
+                        }
+                    }
+                } else if (profile.signatureConfigured && verStatus == "REJECTED") {
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ErrorOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    text = "Signature Verification Rejected",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                                Text(
+                                    text = "Reason: ${profile.signatureRejectionReason ?: "Signature did not meet clinical compliance requirements."} Please draw or upload a replacement.",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    lineHeight = 15.sp
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Signature Specimen Preview Box
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(110.dp)
+                        .height(130.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                        .border(1.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                         .background(Color.White),
                     contentAlignment = Alignment.Center
                 ) {
                     if (isUploadingSignature) {
-                        CircularProgressIndicator()
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 2.5.dp)
+                            Text("Saving signature...", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                        }
                     } else if (signatureBitmap != null) {
                         Image(
                             bitmap = signatureBitmap,
                             contentDescription = "Authorized Signature Preview",
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(10.dp),
+                                .padding(12.dp),
                             contentScale = ContentScale.Fit
                         )
                     } else {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Draw,
                                 contentDescription = "No Signature",
-                                tint = MaterialTheme.colorScheme.outline,
-                                modifier = Modifier.size(30.dp)
+                                tint = Color(0xFF94A3B8),
+                                modifier = Modifier.size(34.dp)
                             )
                             Text(
                                 text = "No signature uploaded",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF475569)
+                            )
+                            Text(
+                                text = "Draw in app or upload transparent PNG",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = Color(0xFF94A3B8)
                             )
                         }
                     }
                 }
 
+                // Two Signature Methods: Draw in App | Upload File | Delete
                 if (isOrgAdmin) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // 1. Draw in App button (Primary)
                         Button(
+                            onClick = onDrawSignature,
+                            enabled = !isUploadingSignature,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1.1f)
+                        ) {
+                            Icon(Icons.Default.Draw, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(if (profile.signatureConfigured) "Draw New" else "Draw Signature")
+                        }
+
+                        // 2. Upload Image button (Secondary)
+                        OutlinedButton(
                             onClick = onPickSignature,
                             enabled = !isUploadingSignature,
                             shape = RoundedCornerShape(12.dp),
@@ -876,8 +1082,10 @@ private fun BrandingAndSignatureSection(
                         ) {
                             Icon(Icons.Default.Upload, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(if (profile.signatureConfigured) "Replace Signature" else "Upload Signature")
+                            Text("Upload File")
                         }
+
+                        // 3. Delete button (if configured)
                         if (profile.signatureConfigured) {
                             OutlinedButton(
                                 onClick = onDeleteSignature,
@@ -982,10 +1190,20 @@ private fun ReportFootersSection(
 @Composable
 private fun LetterheadLivePreviewSection(
     profile: OrganizationProfileResponse,
-    logoBytes: ByteArray?
+    logoBytes: ByteArray?,
+    signatureBytes: ByteArray?
 ) {
     val logoBitmap = remember(logoBytes) {
         logoBytes?.let {
+            try {
+                BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap()
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
+    val signatureBitmap = remember(signatureBytes) {
+        signatureBytes?.let {
             try {
                 BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap()
             } catch (_: Exception) {
@@ -1202,9 +1420,25 @@ private fun LetterheadLivePreviewSection(
                             horizontalArrangement = Arrangement.End
                         ) {
                             Column(horizontalAlignment = Alignment.End) {
-                                Text("Signature Area", fontSize = 7.5.sp, color = Color.LightGray)
-                                Spacer(modifier = Modifier.height(10.dp))
-                                Text("Authorized Signatory", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                                if (signatureBitmap != null) {
+                                    Image(
+                                        bitmap = signatureBitmap,
+                                        contentDescription = "Doctor Signature",
+                                        modifier = Modifier
+                                            .height(34.dp)
+                                            .widthIn(max = 120.dp),
+                                        contentScale = ContentScale.Fit
+                                    )
+                                } else {
+                                    Text("Signature Area", fontSize = 7.5.sp, color = Color.LightGray)
+                                }
+                                Spacer(modifier = Modifier.height(3.dp))
+                                Text(
+                                    text = profile.signatureOwnerName?.ifBlank { "Authorized Signatory" } ?: "Authorized Signatory",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.Black
+                                )
                                 Text("Consultant Pathologist, MD", fontSize = 7.5.sp, color = Color.Gray)
                             }
                         }

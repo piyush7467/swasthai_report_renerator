@@ -1,23 +1,16 @@
-﻿package com.piyush.swasthaireportgenerator.data.api
+package com.piyush.swasthaireportgenerator.data.api
 
-import com.google.gson.Gson
+import com.google.gson.JsonElement
+import com.google.gson.JsonObject
 import com.google.gson.JsonParseException
-import com.google.gson.annotations.SerializedName
+import com.google.gson.JsonParser
 import retrofit2.Response
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import javax.net.ssl.SSLHandshakeException
 
-private data class BackendErrorPayload(
-    @SerializedName("message") val message: String? = null,
-    @SerializedName("code") val code: String? = null,
-    @SerializedName("errors") val errors: Map<String, String>? = null
-)
-
 object ApiErrorParser {
-
-    private val gson = Gson()
 
     fun extractMessage(response: Response<*>, fallback: String): String {
         val rawError = try {
@@ -28,22 +21,62 @@ object ApiErrorParser {
 
         if (!rawError.isNullOrBlank()) {
             try {
-                val payload = gson.fromJson(rawError, BackendErrorPayload::class.java)
-                val fieldErrors = payload?.errors
-                    ?.values
-                    ?.filter { it.isNotBlank() }
-                    ?.joinToString("\n")
+                val element: JsonElement = JsonParser.parseString(rawError)
+                if (element.isJsonObject) {
+                    val obj: JsonObject = element.asJsonObject
 
-                if (!fieldErrors.isNullOrBlank()) {
-                    return fieldErrors
-                }
+                    // 1. Check if "errors" object or array has messages
+                    if (obj.has("errors") && !obj.get("errors").isJsonNull) {
+                        val errorsElem = obj.get("errors")
+                        if (errorsElem.isJsonObject) {
+                            val messages = errorsElem.asJsonObject.entrySet()
+                                .mapNotNull {
+                                    try {
+                                        it.value.asString?.takeIf { s -> s.isNotBlank() }
+                                    } catch (_: Exception) {
+                                        null
+                                    }
+                                }
+                                .joinToString("\n")
+                            if (messages.isNotBlank()) return messages
+                        } else if (errorsElem.isJsonArray) {
+                            val messages = errorsElem.asJsonArray
+                                .mapNotNull { item ->
+                                    try {
+                                        if (item.isJsonPrimitive) item.asString
+                                        else if (item.isJsonObject && item.asJsonObject.has("message")) {
+                                            item.asJsonObject.get("message").asString
+                                        } else null
+                                    } catch (_: Exception) {
+                                        null
+                                    }
+                                }
+                                .filter { it.isNotBlank() }
+                                .joinToString("\n")
+                            if (messages.isNotBlank()) return messages
+                        }
+                    }
 
-                if (!payload?.message.isNullOrBlank()) {
-                    val msg = payload!!.message!!
-                    return if (response.code() == 401 && msg.equals("Authentication failed.", ignoreCase = true)) {
-                        "Session expired or unauthorized (HTTP 401). Please sign in again."
-                    } else {
-                        msg
+                    // 2. Check "message"
+                    if (obj.has("message") && !obj.get("message").isJsonNull) {
+                        val msg = try { obj.get("message").asString } catch (_: Exception) { null }
+                        if (!msg.isNullOrBlank()) {
+                            return if (response.code() == 401 && msg.equals("Authentication failed.", ignoreCase = true)) {
+                                "Session expired or unauthorized (HTTP 401). Please sign in again."
+                            } else {
+                                msg
+                            }
+                        }
+                    }
+
+                    // 3. Check "detail" or "error"
+                    if (obj.has("detail") && !obj.get("detail").isJsonNull) {
+                        val detail = try { obj.get("detail").asString } catch (_: Exception) { null }
+                        if (!detail.isNullOrBlank()) return detail
+                    }
+                    if (obj.has("error") && !obj.get("error").isJsonNull) {
+                        val err = try { obj.get("error").asString } catch (_: Exception) { null }
+                        if (!err.isNullOrBlank()) return err
                     }
                 }
             } catch (_: Exception) {

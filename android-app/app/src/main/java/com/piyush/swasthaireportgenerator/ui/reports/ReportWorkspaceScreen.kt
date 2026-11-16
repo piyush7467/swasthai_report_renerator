@@ -1,4 +1,4 @@
-﻿package com.piyush.swasthaireportgenerator.ui.reports
+package com.piyush.swasthaireportgenerator.ui.reports
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -7,14 +7,19 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -85,6 +90,13 @@ fun ReportWorkspaceScreen(
 
     val activeReport = entryState.report
 
+    LaunchedEffect(activeReport?.tests) {
+        val existingIds = activeReport?.tests?.mapNotNull { it.testRefId }?.toSet()
+        if (!existingIds.isNullOrEmpty()) {
+            selectedTestRefIds = selectedTestRefIds + existingIds
+        }
+    }
+
     Scaffold(
         topBar = {
             SwasthAiTopAppBar(
@@ -101,9 +113,59 @@ fun ReportWorkspaceScreen(
                 canNavigateBack = true,
                 onNavigateBack = {
                     if (currentStep > 1) {
+                        if (currentStep == 4) {
+                            reportViewModel.silentAutoSaveParameters()
+                        }
                         currentStep--
                     } else {
                         onNavigateBack()
+                    }
+                },
+                actions = {
+                    var showMenu by remember { mutableStateOf(false) }
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "More Options")
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        if (currentStep == 4) {
+                            DropdownMenuItem(
+                                text = { Text("Recalculate Values") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Calculate, contentDescription = null, modifier = Modifier.size(18.dp))
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    activeReport?.refId?.let { ref ->
+                                        reportViewModel.saveAndRecalculate(ref)
+                                    }
+                                }
+                            )
+                        }
+                        if (activeReport != null) {
+                            DropdownMenuItem(
+                                text = { Text("Refresh Data") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    reportViewModel.loadReport(activeReport.refId)
+                                }
+                            )
+                        }
+                        DropdownMenuItem(
+                            text = { Text("Exit to Reports") },
+                            leadingIcon = {
+                                Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, modifier = Modifier.size(18.dp))
+                            },
+                            onClick = {
+                                showMenu = false
+                                onNavigateBack()
+                            }
+                        )
                     }
                 }
             )
@@ -113,14 +175,17 @@ fun ReportWorkspaceScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // 5-STEP STEPPER BAR (Matches Web Step Indicator!)
+            // 5-STEP STEPPER BAR (Horizontally scrollable, compact & auto-scrolling)
             WorkspaceStepperHeader(
                 currentStep = currentStep,
                 onStepClick = { step ->
                     if (step < currentStep || (step == 4 && activeReport != null)) {
+                        if (currentStep == 4 && step < 4) {
+                            reportViewModel.silentAutoSaveParameters()
+                        }
                         currentStep = step
                     }
                 }
@@ -207,8 +272,16 @@ fun ReportWorkspaceScreen(
                     entryState = entryState,
                     onParameterChange = { paramRefId, valStr -> reportViewModel.onParameterChange(paramRefId, valStr) },
                     onRemoveTest = { testRefId -> activeReport?.let { reportViewModel.removeTest(it.refId, testRefId) } },
+                    onAddTest = { testRefId ->
+                        activeReport?.let { rep ->
+                            reportViewModel.addTestsToExistingReport(rep.refId, listOf(testRefId)) {}
+                        }
+                    },
                     onRecalculate = { activeReport?.let { reportViewModel.saveAndRecalculate(it.refId) } },
-                    onBack = { currentStep = 3 },
+                    onBack = {
+                        reportViewModel.silentAutoSaveParameters()
+                        currentStep = 3
+                    },
                     onNext = {
                         reportViewModel.saveAndProceedToReview {
                             currentStep = 5
@@ -237,7 +310,7 @@ fun ReportWorkspaceScreen(
 }
 
 // =========================================================================
-// 5-STEP WORKSPACE STEPPER HEADER (Matches Web ReportWorkspacePage.tsx)
+// 5-STEP WORKSPACE STEPPER HEADER (Horizontally Scrollable & Auto-Scrolling)
 // =========================================================================
 @Composable
 fun WorkspaceStepperHeader(
@@ -245,61 +318,89 @@ fun WorkspaceStepperHeader(
     onStepClick: (Int) -> Unit
 ) {
     val steps = listOf("Patient", "Doctor", "Tests", "Results", "Review")
-    Row(
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(currentStep) {
+        listState.animateScrollToItem(maxOf(0, currentStep - 1))
+    }
+
+    LazyRow(
+        state = listState,
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        steps.forEachIndexed { index, title ->
+        itemsIndexed(steps) { index, title ->
             val stepNumber = index + 1
             val isActive = currentStep == stepNumber
             val isCompleted = currentStep > stepNumber
 
-            Row(
+            Surface(
+                color = when {
+                    isActive -> Color(0xFF0D9488) // Primary Teal
+                    isCompleted -> Color(0xFF10B981).copy(alpha = 0.15f) // Mint tint
+                    else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                },
+                shape = RoundedCornerShape(100.dp),
+                border = when {
+                    isActive -> BorderStroke(1.dp, Color(0xFF14B8A6))
+                    isCompleted -> BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f))
+                    else -> BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                },
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(100.dp))
                     .clickable { onStepClick(stepNumber) }
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Surface(
-                    shape = CircleShape,
-                    color = when {
-                        isCompleted -> Color(0xFF10B981)
-                        isActive -> MaterialTheme.colorScheme.primary
-                        else -> MaterialTheme.colorScheme.surfaceVariant
-                    },
-                    modifier = Modifier.size(22.dp)
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        if (isCompleted) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(12.dp)
-                            )
-                        } else {
-                            Text(
-                                text = "$stepNumber",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isActive) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                    if (isCompleted) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Completed",
+                            tint = Color(0xFF059669),
+                            modifier = Modifier.size(13.dp)
+                        )
+                    } else {
+                        Surface(
+                            shape = CircleShape,
+                            color = if (isActive) Color.White.copy(alpha = 0.25f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                            modifier = Modifier.size(16.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = "$stepNumber",
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isActive) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
-                }
 
+                    Text(
+                        text = title,
+                        fontSize = 11.sp,
+                        fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+                        color = when {
+                            isActive -> Color.White
+                            isCompleted -> Color(0xFF047857)
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
+            }
+
+            if (index < steps.size - 1) {
                 Text(
-                    text = title,
-                    fontSize = 11.sp,
-                    fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
-                    color = when {
-                        isActive -> MaterialTheme.colorScheme.primary
-                        isCompleted -> Color(0xFF047857)
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    }
+                    text = "›",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
@@ -777,13 +878,157 @@ fun Step4ParameterResults(
     entryState: ReportEntryUiState,
     onParameterChange: (String, String) -> Unit,
     onRemoveTest: (String) -> Unit,
+    onAddTest: (String) -> Unit,
     onRecalculate: () -> Unit,
     onBack: () -> Unit,
     onNext: () -> Unit
 ) {
     val report = entryState.report
+    val allParameters = remember(report) { report?.tests?.flatMap { it.parameters } ?: emptyList() }
     var testPendingRemove by remember { mutableStateOf<Pair<String, String>?>(null) }
-    var activeParameter by remember { mutableStateOf<ReportParameterResultResponse?>(null) }
+    var activeParameterId by remember { mutableStateOf<String?>(null) }
+    var validationErrorDialog by remember { mutableStateOf<String?>(null) }
+    var serverErrorDialog by remember { mutableStateOf<String?>(null) }
+    var showAddTestDialog by remember { mutableStateOf(false) }
+    var testFilterQuery by remember { mutableStateOf("") }
+
+    LaunchedEffect(entryState.errorMessage) {
+        if (!entryState.errorMessage.isNullOrBlank()) {
+            serverErrorDialog = entryState.errorMessage
+        }
+    }
+
+    if (showAddTestDialog && report != null) {
+        val existingCodes = remember(report.tests) { report.tests.map { it.testCode.uppercase() }.toSet() }
+        val existingIds = remember(report.tests) { report.tests.mapNotNull { it.testRefId }.toSet() }
+        val availableToAdd = remember(entryState.availableTests, existingCodes, existingIds) {
+            entryState.availableTests.filter { it.refId !in existingIds && it.testCode.uppercase() !in existingCodes }
+        }
+        val filteredTests = remember(availableToAdd, testFilterQuery) {
+            if (testFilterQuery.isBlank()) availableToAdd
+            else availableToAdd.filter {
+                it.testName.contains(testFilterQuery, ignoreCase = true) ||
+                it.testCode.contains(testFilterQuery, ignoreCase = true)
+            }
+        }
+
+        AlertDialog(
+            onDismissRequest = {
+                showAddTestDialog = false
+                testFilterQuery = ""
+            },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(Icons.Default.AddCircleOutline, contentDescription = null, tint = Color(0xFF0D9488))
+                    Text("Add Test Panel", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                }
+            },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth().heightIn(max = 380.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = testFilterQuery,
+                        onValueChange = { testFilterQuery = it },
+                        placeholder = { Text("Search test by name or code...", fontSize = 12.sp) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    if (filteredTests.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                            Text("No unadded tests found.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                        }
+                    } else {
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                            items(filteredTests, key = { it.refId }) { testItem ->
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp).fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f).padding(end = 6.dp)) {
+                                            Text(testItem.testName, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                Surface(color = Color(0xFFE6FFFA), shape = RoundedCornerShape(4.dp)) {
+                                                    Text(testItem.testCode, fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D9488), modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                                                }
+                                                if (!testItem.testType.isNullOrBlank()) {
+                                                    Text(testItem.testType, fontSize = 9.sp, color = MaterialTheme.colorScheme.outline)
+                                                }
+                                            }
+                                        }
+                                        Button(
+                                            onClick = {
+                                                onAddTest(testItem.refId)
+                                                showAddTestDialog = false
+                                                testFilterQuery = ""
+                                            },
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D9488)),
+                                            modifier = Modifier.height(32.dp)
+                                        ) {
+                                            Text("+ Add", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = {
+                    showAddTestDialog = false
+                    testFilterQuery = ""
+                }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+
+    if (validationErrorDialog != null) {
+        AlertDialog(
+            onDismissRequest = { validationErrorDialog = null },
+            icon = { Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+            title = { Text("Differential Percentage Error", fontWeight = FontWeight.Bold) },
+            text = { Text(validationErrorDialog ?: "") },
+            confirmButton = {
+                Button(
+                    onClick = { validationErrorDialog = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Correct Values")
+                }
+            }
+        )
+    }
+
+    if (serverErrorDialog != null) {
+        AlertDialog(
+            onDismissRequest = { serverErrorDialog = null },
+            icon = { Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+            title = { Text("Clinical Submission Error", fontWeight = FontWeight.Bold) },
+            text = { Text(serverErrorDialog ?: "") },
+            confirmButton = {
+                Button(onClick = { serverErrorDialog = null }) {
+                    Text("Review")
+                }
+            }
+        )
+    }
 
     if (testPendingRemove != null) {
         val (testRefId, testTitle) = testPendingRemove!!
@@ -810,242 +1055,295 @@ fun Step4ParameterResults(
         )
     }
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .imePadding(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         if (!entryState.errorMessage.isNullOrBlank()) {
-            Surface(
-                color = MaterialTheme.colorScheme.errorContainer,
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = entryState.errorMessage,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(10.dp)
-                )
+            item {
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = entryState.errorMessage,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(10.dp)
+                    )
+                }
             }
         }
 
         if (entryState.statusMessage != null) {
-            Surface(
-                color = Color(0xFFDCFCE7),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = entryState.statusMessage,
-                    color = Color(0xFF166534),
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(10.dp)
-                )
+            item {
+                Surface(
+                    color = Color(0xFFDCFCE7),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = entryState.statusMessage,
+                        color = Color(0xFF166534),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(10.dp)
+                    )
+                }
             }
         }
 
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            if (report != null) {
-                report.tests.forEach { test ->
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        if (report != null) {
+            report.tests.forEach { test ->
+                val isCbcTest = test.testCode.trim().equals("CBC", ignoreCase = true)
+                val cbcValidation = if (isCbcTest) {
+                    ClinicalCalculations.validateCbcDifferential(test, entryState.parameterValues)
+                } else null
+
+                item(key = "test_header_${test.refId}") {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Row(
-                                modifier = Modifier
-                                    .padding(12.dp)
-                                    .fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.weight(1f)
                             ) {
                                 Surface(
-                                    shape = RoundedCornerShape(10.dp),
+                                    shape = RoundedCornerShape(6.dp),
                                     color = Color(0xFFDCFCE7),
-                                    modifier = Modifier.size(38.dp)
+                                    modifier = Modifier.size(26.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
                                             imageVector = Icons.Default.Biotech,
                                             contentDescription = null,
                                             tint = Color(0xFF166534),
-                                            modifier = Modifier.size(20.dp)
+                                            modifier = Modifier.size(15.dp)
                                         )
                                     }
                                 }
 
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        Text(
-                                            text = test.testName,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Surface(
-                                            color = Color(0xFFE6FFFA),
-                                            shape = RoundedCornerShape(4.dp)
-                                        ) {
-                                            Text(
-                                                text = test.testCode,
-                                                fontSize = 9.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color(0xFF0D9488),
-                                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
-                                            )
-                                        }
-                                    }
+                                Text(
+                                    text = test.testName,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+
+                                Surface(
+                                    color = Color(0xFFE6FFFA),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
                                     Text(
-                                        text = "${test.parameters.size} parameters",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        text = test.testCode,
+                                        fontSize = 8.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF0D9488),
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.5.dp)
                                     )
                                 }
 
-                                if (report.tests.size > 1) {
-                                    IconButton(
-                                        onClick = { testPendingRemove = test.refId to test.testName },
-                                        modifier = Modifier.size(32.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.DeleteOutline,
-                                            contentDescription = "Remove panel",
-                                            tint = MaterialTheme.colorScheme.error,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
+                                Text(
+                                    text = "(${test.parameters.size})",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            if (report.tests.size > 1) {
+                                IconButton(
+                                    onClick = { testPendingRemove = test.refId to test.testName },
+                                    modifier = Modifier.size(26.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.DeleteOutline,
+                                        contentDescription = "Remove panel",
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(15.dp)
+                                    )
                                 }
                             }
                         }
                     }
+                }
 
-                    items(test.parameters) { param ->
-                        val isCurrentActive = activeParameter?.parameterRefId == param.parameterRefId
-                        WorkspaceParameterCard(
-                            parameter = param,
-                            currentValue = entryState.parameterValues[param.parameterRefId] ?: "",
-                            isActive = isCurrentActive,
-                            onFocusChange = { activeParameter = param },
-                            onValueChange = { newVal ->
-                                activeParameter = param
-                                onParameterChange(param.parameterRefId, newVal)
+                // Real-time CBC Differential Feedback Banner
+                if (cbcValidation != null && cbcValidation.hasDifferential) {
+                    item(key = "cbc_diff_status_${test.refId}") {
+                        Surface(
+                            color = if (cbcValidation.isValid) Color(0xFFDCFCE7) else MaterialTheme.colorScheme.errorContainer,
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, if (cbcValidation.isValid) Color(0xFF86EFAC) else MaterialTheme.colorScheme.error),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 2.dp, vertical = 2.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (cbcValidation.isValid) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = if (cbcValidation.isValid) Color(0xFF166534) else MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = if (cbcValidation.isValid) {
+                                        "Differential Sum: ${ClinicalCalculations.formatNumber(cbcValidation.sum)}% • Monocytes (Calculated): ${ClinicalCalculations.formatNumber(cbcValidation.mono ?: 0.0)}%"
+                                    } else {
+                                        cbcValidation.errorMessage ?: "Differential percentages exceed 100%."
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (cbcValidation.isValid) Color(0xFF166534) else MaterialTheme.colorScheme.onErrorContainer
+                                )
                             }
-                        )
+                        }
                     }
                 }
-            }
-        }
 
-        // Active Parameter Bottom Info Bar (Matching Web Screenshot!)
-        val currentParam = activeParameter
-        if (currentParam != null) {
-            Surface(
-                color = Color(0xFFE6FFFA),
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, Color(0xFF38B2AC)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                items(test.parameters, key = { it.parameterRefId }) { param ->
+                    val isCurrentActive = activeParameterId == param.parameterRefId
+                    val isCalculated = ClinicalCalculations.isCalculatedParameter(param, test.testCode)
+                    val calculatedVal = if (isCalculated) {
+                        ClinicalCalculations.calculateParameterValue(param, allParameters, entryState.parameterValues)
+                    } else null
+                    val resolvedValue = entryState.parameterValues[param.parameterRefId]?.takeIf { it.isNotBlank() }
+                        ?: calculatedVal?.takeIf { it.isNotBlank() }
+                        ?: param.value?.takeIf { it.isNotBlank() }
+                        ?: ""
+
+                    WorkspaceParameterCard(
+                        parameter = param,
+                        currentValue = resolvedValue,
+                        calculatedFallback = calculatedVal,
+                        testCode = test.testCode,
+                        isActive = isCurrentActive,
+                        onFocusChange = { activeParameterId = param.parameterRefId },
+                        onValueChange = { newVal ->
+                            activeParameterId = param.parameterRefId
+                            onParameterChange(param.parameterRefId, newVal)
+                        }
+                    )
+                }
+            }
+
+            // In-Step Test Addition Action (Lets user add another panel without losing current inputs!)
+            item(key = "add_test_panel_button") {
+                Spacer(modifier = Modifier.height(2.dp))
+                OutlinedButton(
+                    onClick = { showAddTestDialog = true },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF0D9488)),
+                    border = BorderStroke(1.dp, Color(0xFF0D9488).copy(alpha = 0.6f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(42.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.AddCircleOutline, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("+ Add Another Test Panel", fontWeight = FontWeight.Bold, fontSize = 12.5.sp)
+                }
+            }
+
+            // Results Action Buttons Bar (placed naturally at the end of parameter list - no screen occlusion!)
+            item(key = "results_action_buttons") {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedButton(
+                        onClick = onBack,
+                        enabled = !entryState.isSaving && !entryState.isRecalculating,
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
                     ) {
-                        Text(
-                            text = "ACTIVE PARAMETER: ${currentParam.parameterName} (${currentParam.parameterCode})",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F766E)
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = null,
+                            modifier = Modifier.size(15.dp)
                         )
-                        ResultFlagBadge(flag = currentParam.flag)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Tests", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                     }
-                    val rangeText = if (currentParam.referenceMin != null && currentParam.referenceMax != null) {
-                        "${currentParam.referenceMin} - ${currentParam.referenceMax}"
-                    } else "N/A"
-                    Text(
-                        text = "Unit: ${currentParam.unit ?: "—"}  •  Reference: $rangeText",
-                        fontSize = 10.sp,
-                        color = Color(0xFF115E59)
-                    )
-                }
-            }
-        }
 
-        // Action Buttons Bar (Single-line, perfectly aligned)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedButton(
-                onClick = onBack,
-                enabled = !entryState.isSaving && !entryState.isRecalculating,
-                shape = RoundedCornerShape(12.dp),
-                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 8.dp),
-                modifier = Modifier
-                    .weight(1f)
-                    .height(46.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Tests", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-            }
+                    OutlinedButton(
+                        onClick = onRecalculate,
+                        enabled = !entryState.isRecalculating && !entryState.isSaving,
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                        modifier = Modifier
+                            .weight(1.2f)
+                            .height(44.dp)
+                    ) {
+                        if (entryState.isRecalculating) {
+                            CircularProgressIndicator(modifier = Modifier.size(15.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Calculate,
+                                contentDescription = "Recalculate",
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Recalculate", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                        }
+                    }
 
-            OutlinedButton(
-                onClick = onRecalculate,
-                enabled = !entryState.isRecalculating && !entryState.isSaving,
-                shape = RoundedCornerShape(12.dp),
-                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 8.dp),
-                modifier = Modifier
-                    .weight(1.3f)
-                    .height(46.dp)
-            ) {
-                if (entryState.isRecalculating) {
-                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Calculate,
-                        contentDescription = "Recalculate",
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Recalculate", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                }
-            }
+                    Button(
+                        onClick = {
+                            // Pre-validate differential leukocyte count to prevent 400 Bad Request
+                            val cbcErrors = report.tests.mapNotNull { test ->
+                                val v = ClinicalCalculations.validateCbcDifferential(test, entryState.parameterValues)
+                                if (v != null && !v.isValid) v.errorMessage else null
+                            }
 
-            Button(
-                onClick = onNext,
-                enabled = !entryState.isSaving && !entryState.isRecalculating,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D9488)),
-                shape = RoundedCornerShape(12.dp),
-                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 8.dp),
-                modifier = Modifier
-                    .weight(1.4f)
-                    .height(46.dp)
-            ) {
-                if (entryState.isSaving) {
-                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
-                } else {
-                    Text("Preview →", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1)
+                            if (cbcErrors.isNotEmpty()) {
+                                validationErrorDialog = cbcErrors.first()
+                            } else {
+                                onNext()
+                            }
+                        },
+                        enabled = !entryState.isSaving && !entryState.isRecalculating,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D9488)),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                        modifier = Modifier
+                            .weight(1.3f)
+                            .height(44.dp)
+                    ) {
+                        if (entryState.isSaving) {
+                            CircularProgressIndicator(modifier = Modifier.size(15.dp), color = Color.White, strokeWidth = 2.dp)
+                        } else {
+                            Text("Preview →", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1)
+                        }
+                    }
                 }
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
@@ -1055,32 +1353,39 @@ fun Step4ParameterResults(
 fun WorkspaceParameterCard(
     parameter: ReportParameterResultResponse,
     currentValue: String,
+    calculatedFallback: String? = null,
+    testCode: String? = null,
     isActive: Boolean,
     onFocusChange: () -> Unit,
     onValueChange: (String) -> Unit
 ) {
-    val isCalculated = parameter.inputType.equals("CALCULATED", ignoreCase = true)
+    val isCalculated = ClinicalCalculations.isCalculatedParameter(parameter, testCode)
+    val displayValue = currentValue.takeIf { it.isNotBlank() }
+        ?: calculatedFallback?.takeIf { it.isNotBlank() }
+        ?: parameter.value?.takeIf { it.isNotBlank() }
+        ?: ""
     val refRangeText = if (parameter.referenceMin != null && parameter.referenceMax != null) {
         "${parameter.referenceMin} - ${parameter.referenceMax}"
-    } else "N/A"
+    } else "—"
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(10.dp))
             .clickable { onFocusChange() },
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        border = if (isActive) BorderStroke(1.5.dp, Color(0xFF0D9488)) else null,
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
+        border = if (isActive) BorderStroke(1.5.dp, Color(0xFF0D9488))
+                 else BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
             modifier = Modifier
-                .padding(14.dp)
+                .padding(horizontal = 10.dp, vertical = 8.dp)
                 .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             // Header Row: Parameter Name, Code Badge & Result Flag
             Row(
@@ -1091,25 +1396,34 @@ fun WorkspaceParameterCard(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .padding(end = 6.dp)
                 ) {
                     Text(
                         text = parameter.parameterName,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
                     )
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(4.dp)
+                        shape = RoundedCornerShape(4.dp),
+                        modifier = Modifier.defaultMinSize(minWidth = 32.dp)
                     ) {
                         Text(
                             text = parameter.parameterCode,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 9.sp,
+                            fontSize = 8.5.sp,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            maxLines = 1,
+                            softWrap = false,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.5.dp)
                         )
                     }
                 }
@@ -1120,45 +1434,79 @@ fun WorkspaceParameterCard(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 if (isCalculated) {
+                    val calcHint = ClinicalCalculations.getRequiredInputsHint(parameter)
+                    val numVal = displayValue.toDoubleOrNull()
+                    val isNegative = numVal != null && numVal < 0.0
+
                     Surface(
                         modifier = Modifier
-                            .weight(1.3f)
-                            .height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            .weight(1.1f)
+                            .defaultMinSize(minHeight = 48.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (isNegative) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                        border = BorderStroke(
+                            1.dp,
+                            if (isNegative) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                        )
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 12.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Lock,
+                                imageVector = if (isNegative) Icons.Default.Warning else Icons.Default.Lock,
                                 contentDescription = "Calculated",
-                                tint = MaterialTheme.colorScheme.outline,
-                                modifier = Modifier.size(14.dp)
+                                tint = if (isNegative) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
+                                modifier = Modifier.size(13.dp)
                             )
-                            Text(
-                                text = currentValue.ifBlank { "Auto" },
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.weight(1f)
-                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = when {
+                                        isNegative -> "$displayValue (Exceeds 100%)"
+                                        displayValue.isNotBlank() -> displayValue
+                                        else -> "Auto"
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = when {
+                                        isNegative -> MaterialTheme.colorScheme.error
+                                        displayValue.isNotBlank() -> MaterialTheme.colorScheme.primary
+                                        else -> MaterialTheme.colorScheme.outline
+                                    },
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                if (displayValue.isBlank()) {
+                                    Text(
+                                        text = calcHint,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontSize = 8.sp,
+                                        color = MaterialTheme.colorScheme.outline,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
                             Surface(
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                                shape = RoundedCornerShape(4.dp)
+                                color = if (isNegative) MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
+                                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                shape = RoundedCornerShape(4.dp),
+                                modifier = Modifier.wrapContentSize()
                             ) {
                                 Text(
                                     text = "CALC",
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontSize = 9.sp,
+                                    color = if (isNegative) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                    fontSize = 8.5.sp,
                                     fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.5.dp)
                                 )
                             }
                         }
@@ -1167,7 +1515,7 @@ fun WorkspaceParameterCard(
                     OutlinedTextField(
                         value = currentValue,
                         onValueChange = onValueChange,
-                        placeholder = { Text("Enter value...", fontSize = 13.sp) },
+                        placeholder = { Text("0.0", fontSize = 13.sp, color = MaterialTheme.colorScheme.outline) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Decimal,
@@ -1177,32 +1525,40 @@ fun WorkspaceParameterCard(
                             focusedTextColor = MaterialTheme.colorScheme.onSurface,
                             unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                             focusedBorderColor = Color(0xFF0D9488),
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)
                         ),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1.3f)
+                        shape = RoundedCornerShape(8.dp),
+                        textStyle = LocalTextStyle.current.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        modifier = Modifier
+                            .weight(1.1f)
+                            .defaultMinSize(minHeight = 48.dp)
                     )
                 }
 
                 // Reference Range & Unit Column
                 Column(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(0.9f),
                     horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                    verticalArrangement = Arrangement.spacedBy(1.dp)
                 ) {
                     if (!parameter.unit.isNullOrBlank()) {
                         Text(
                             text = parameter.unit,
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1
                         )
                     }
                     Text(
                         text = "Ref: $refRangeText",
                         style = MaterialTheme.typography.labelSmall,
-                        fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontSize = 9.5.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
                     )
                 }
             }
@@ -1246,30 +1602,30 @@ fun Step5PreFinalizationReview(
             }
         }
 
-        // Top Control Header Card (Matching Web Action Toolbar!)
+        // Top Control Header Card (Compact & Balanced)
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
             Row(
                 modifier = Modifier
-                    .padding(14.dp)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
                     .fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                     Text(
                         text = "Pre-Finalization Review",
                         fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Review A4 medical report preview before final sign-off.",
-                        style = MaterialTheme.typography.bodySmall,
+                        text = "Review clinical A4 report before final sign-off.",
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -1278,18 +1634,23 @@ fun Step5PreFinalizationReview(
                 Surface(
                     color = if (includeLetterheadHeader) Color(0xFFDCFCE7) else MaterialTheme.colorScheme.surfaceVariant,
                     shape = RoundedCornerShape(100.dp),
-                    border = BorderStroke(1.dp, if (includeLetterheadHeader) Color(0xFF166534) else MaterialTheme.colorScheme.outlineVariant)
+                    border = BorderStroke(1.dp, if (includeLetterheadHeader) Color(0xFF166534) else MaterialTheme.colorScheme.outlineVariant),
+                    modifier = Modifier.clickable { onToggleHeader(!includeLetterheadHeader) }
                 ) {
                     Row(
-                        modifier = Modifier
-                            .clickable { onToggleHeader(!includeLetterheadHeader) }
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
+                        Icon(
+                            imageVector = if (includeLetterheadHeader) Icons.Default.Check else Icons.Default.Close,
+                            contentDescription = null,
+                            tint = if (includeLetterheadHeader) Color(0xFF166534) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(12.dp)
+                        )
                         Text(
-                            text = if (includeLetterheadHeader) "Letterhead: ON ✓" else "Letterhead: OFF",
-                            fontSize = 11.sp,
+                            text = if (includeLetterheadHeader) "Letterhead ON" else "Letterhead OFF",
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (includeLetterheadHeader) Color(0xFF166534) else MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -1303,16 +1664,16 @@ fun Step5PreFinalizationReview(
             modifier = Modifier
                 .weight(1.0f)
                 .fillMaxWidth()
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp)),
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)),
             color = Color.White,
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(12.dp),
             shadowElevation = 2.dp
         ) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // A4 Header (or Reserved Blank Box when OFF)
                 item {
@@ -1357,7 +1718,7 @@ fun Step5PreFinalizationReview(
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(56.dp),
+                                .height(50.dp),
                             shape = RoundedCornerShape(8.dp),
                             color = Color(0xFFF8FAFC),
                             border = BorderStroke(1.dp, Color(0xFFCBD5E1))
@@ -1383,20 +1744,20 @@ fun Step5PreFinalizationReview(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
-                            modifier = Modifier.padding(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                            modifier = Modifier.padding(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Patient Name:", fontSize = 8.5.sp, color = Color.Gray)
-                                    Text(patientName, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color.Black, maxLines = 1)
+                                    Text("Patient Name:", fontSize = 8.sp, color = Color.Gray)
+                                    Text(patientName, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Black, maxLines = 1)
                                 }
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Report Reference:", fontSize = 8.5.sp, color = Color.Gray)
-                                    Text(reportRef, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color.Black, maxLines = 1)
+                                    Text("Report Reference:", fontSize = 8.sp, color = Color.Gray)
+                                    Text(reportRef, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Black, maxLines = 1)
                                 }
                             }
                             Row(
@@ -1404,12 +1765,12 @@ fun Step5PreFinalizationReview(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Patient ID / MRN:", fontSize = 8.5.sp, color = Color.Gray)
-                                    Text(patientCode, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color.Black, maxLines = 1)
+                                    Text("Patient ID / MRN:", fontSize = 8.sp, color = Color.Gray)
+                                    Text(patientCode, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Black, maxLines = 1)
                                 }
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Ordered / Created:", fontSize = 8.5.sp, color = Color.Gray)
-                                    Text(reportDate, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color.Black, maxLines = 1)
+                                    Text("Ordered / Created:", fontSize = 8.sp, color = Color.Gray)
+                                    Text(reportDate, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Black, maxLines = 1)
                                 }
                             }
                             Row(
@@ -1418,13 +1779,13 @@ fun Step5PreFinalizationReview(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Age / Gender:", fontSize = 8.5.sp, color = Color.Gray)
-                                    Text(ageGender, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color.Black, maxLines = 1)
+                                    Text("Age / Gender:", fontSize = 8.sp, color = Color.Gray)
+                                    Text(ageGender, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Black, maxLines = 1)
                                 }
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Status:", fontSize = 8.5.sp, color = Color.Gray)
+                                    Text("Status:", fontSize = 8.sp, color = Color.Gray)
                                     Surface(color = Color(0xFFFEF3C7), shape = RoundedCornerShape(4.dp)) {
-                                        Text("Draft", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                        Text("Draft", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309), modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.5.dp))
                                     }
                                 }
                             }
@@ -1441,38 +1802,39 @@ fun Step5PreFinalizationReview(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Icon(Icons.Default.Biotech, contentDescription = null, tint = Color(0xFF0F766E), modifier = Modifier.size(15.dp))
+                                    Icon(Icons.Default.Biotech, contentDescription = null, tint = Color(0xFF0F766E), modifier = Modifier.size(14.dp))
                                     Text(
                                         text = test.testName.uppercase(),
-                                        fontSize = 11.sp,
+                                        fontSize = 10.5.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF0F766E)
                                     )
                                 }
                                 Surface(color = Color(0xFFE6FFFA), shape = RoundedCornerShape(4.dp)) {
-                                    Text(test.testCode, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D9488), modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp))
+                                    Text(test.testCode, fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D9488), modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.5.dp))
                                 }
                             }
                         }
                     }
 
-                    // Parameter Table Header
+                    // Parameter Table Header (With Dedicated FLAG Column)
                     item {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 4.dp, vertical = 3.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("TEST PARAMETER", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.weight(2f))
-                            Text("OBSERVED", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                            Text("UNIT", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.weight(0.8f))
-                            Text("REFERENCE", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.weight(1.2f))
+                            Text("TEST PARAMETER", fontSize = 7.5.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.weight(2.0f))
+                            Text("OBSERVED", fontSize = 7.5.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.weight(0.85f), textAlign = TextAlign.Center)
+                            Text("UNIT", fontSize = 7.5.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.weight(0.65f))
+                            Text("REFERENCE", fontSize = 7.5.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.weight(1.0f))
+                            Text("FLAG", fontSize = 7.5.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.weight(1.25f), textAlign = TextAlign.End)
                         }
                         HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 0.5.dp)
                     }
@@ -1486,23 +1848,51 @@ fun Step5PreFinalizationReview(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 4.dp, vertical = 3.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.weight(2f)) {
-                                Text(param.parameterName, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = Color.Black, maxLines = 1)
+                            Column(modifier = Modifier.weight(2.0f).padding(end = 4.dp)) {
+                                Text(
+                                    text = param.parameterName,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.Black,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                                 if (param.inputType.equals("CALCULATED", ignoreCase = true)) {
-                                    Text("calc", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D9488))
+                                    Text("calc", fontSize = 7.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D9488))
                                 }
                             }
-                            Text(param.value?.ifBlank { "—" } ?: "—", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                            Text(param.unit ?: "—", fontSize = 10.sp, color = Color.DarkGray, modifier = Modifier.weight(0.8f))
-                            Row(
-                                modifier = Modifier.weight(1.2f),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                            Text(
+                                text = param.value?.ifBlank { "—" } ?: "—",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black,
+                                modifier = Modifier.weight(0.85f),
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                            Text(
+                                text = param.unit ?: "—",
+                                fontSize = 8.5.sp,
+                                color = Color.DarkGray,
+                                modifier = Modifier.weight(0.65f),
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                            Text(
+                                text = refText,
+                                fontSize = 8.sp,
+                                color = Color.DarkGray,
+                                modifier = Modifier.weight(1.0f),
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                            Box(
+                                modifier = Modifier.weight(1.25f),
+                                contentAlignment = Alignment.CenterEnd
                             ) {
-                                Text(refText, fontSize = 9.sp, color = Color.DarkGray)
                                 ResultFlagBadge(flag = param.flag)
                             }
                         }
@@ -1512,23 +1902,23 @@ fun Step5PreFinalizationReview(
 
                 // Footer & Authorized Signatory Block
                 item {
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 1.dp)
 
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Bottom
                     ) {
                         Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                            Text("Medical Examination Notes:", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                            Text("Medical Examination Notes:", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                             Text(
                                 text = report?.organizationReportDisclaimer?.ifBlank {
                                     "Test results relate only to the items tested. Please correlate clinically with patient symptoms."
                                 } ?: "Test results relate only to the items tested. Please correlate clinically with patient symptoms.",
-                                fontSize = 7.5.sp,
+                                fontSize = 7.sp,
                                 color = Color.Gray,
-                                lineHeight = 11.sp
+                                lineHeight = 10.sp
                             )
                         }
 
@@ -1539,23 +1929,23 @@ fun Step5PreFinalizationReview(
                                 border = BorderStroke(1.dp, Color(0xFF166534))
                             ) {
                                 Text(
-                                    text = "✓ Ready for Electronic Sign-off",
-                                    fontSize = 8.sp,
+                                    text = "✓ Ready for Sign-off",
+                                    fontSize = 7.5.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF166534),
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
                                 )
                             }
-                            Spacer(modifier = Modifier.height(6.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = report?.organizationSignatureOwnerName?.ifBlank { "Authorized Signatory" } ?: "Authorized Signatory",
-                                fontSize = 10.sp,
+                                fontSize = 9.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.Black
                             )
                             Text(
                                 text = "Consultant Pathologist, MD",
-                                fontSize = 8.sp,
+                                fontSize = 7.5.sp,
                                 color = Color.Gray
                             )
                         }
@@ -1564,38 +1954,50 @@ fun Step5PreFinalizationReview(
             }
         }
 
-        // Bottom Action Bar
+        // Bottom Action Bar (Unclipped, Single-Line, Balanced)
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedButton(
                 onClick = onBack,
                 enabled = !isFinalizing,
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(10.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                 modifier = Modifier
                     .weight(1f)
-                    .height(48.dp)
+                    .height(44.dp)
             ) {
-                Text("← Results", fontWeight = FontWeight.SemiBold)
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = null,
+                    modifier = Modifier.size(15.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Results", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
             }
 
             Button(
                 onClick = onFinalizeClick,
                 enabled = !isFinalizing,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF059669)),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(10.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                 modifier = Modifier
                     .weight(1.8f)
-                    .height(48.dp)
+                    .height(44.dp)
             ) {
                 if (isFinalizing) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
-                } else {
-                    Icon(imageVector = Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(18.dp))
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Finalize & Sign Report", fontWeight = FontWeight.Bold)
+                    Text("Finalizing...", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                } else {
+                    Icon(imageVector = Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Finalize & Sign", fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1)
                 }
             }
         }

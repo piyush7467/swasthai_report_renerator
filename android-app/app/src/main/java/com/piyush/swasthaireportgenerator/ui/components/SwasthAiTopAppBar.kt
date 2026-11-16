@@ -1,4 +1,4 @@
-﻿package com.piyush.swasthaireportgenerator.ui.components
+package com.piyush.swasthaireportgenerator.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -97,7 +97,7 @@ fun SwasthAiTopAppBar(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 TopAppBar(
-                    expandedHeight = 42.dp,
+                    expandedHeight = 48.dp,
                     title = titleContent,
                     navigationIcon = {
                         navigationIcon?.invoke()

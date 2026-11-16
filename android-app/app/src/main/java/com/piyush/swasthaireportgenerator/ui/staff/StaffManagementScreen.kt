@@ -1,4 +1,4 @@
-﻿package com.piyush.swasthaireportgenerator.ui.staff
+package com.piyush.swasthaireportgenerator.ui.staff
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -39,6 +39,7 @@ fun StaffManagementScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showAddStaffDialog by remember { mutableStateOf(false) }
     var staffPendingDelete by remember { mutableStateOf<LabStaffResponse?>(null) }
+    var showOverflowMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.refreshAll()
@@ -107,7 +108,7 @@ fun StaffManagementScreen(
                     Column(modifier = Modifier.padding(vertical = 4.dp)) {
                         Text(
                             text = "Lab Staff Management",
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
@@ -122,7 +123,45 @@ fun StaffManagementScreen(
                         Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
-                actions = {},
+                actions = {
+                    Box {
+                        IconButton(onClick = { showOverflowMenu = true }) {
+                            Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Staff Options")
+                        }
+                        DropdownMenu(
+                            expanded = showOverflowMenu,
+                            onDismissRequest = { showOverflowMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Refresh Staff List") },
+                                leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    viewModel.refreshAll()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("View Seat Quota") },
+                                leadingIcon = { Icon(Icons.Default.CardMembership, contentDescription = null) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    onNavigateToPlans()
+                                }
+                            )
+                            if (!isLimitReached) {
+                                DropdownMenuItem(
+                                    text = { Text("Add New Staff") },
+                                    leadingIcon = { Icon(Icons.Default.PersonAdd, contentDescription = null) },
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        viewModel.clearCreateError()
+                                        showAddStaffDialog = true
+                                    }
+                                )
+                            }
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )

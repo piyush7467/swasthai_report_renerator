@@ -83,8 +83,6 @@ fun MainAppShell(
 
     LaunchedEffect(Unit) {
         dashboardViewModel.refreshDashboard()
-        patientViewModel.loadPatients()
-        reportViewModel.loadReports()
     }
 
     if (showThemeDialog) {

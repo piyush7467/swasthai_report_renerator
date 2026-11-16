@@ -1,4 +1,4 @@
-﻿package com.piyush.swasthaireportgenerator.ui.reports
+package com.piyush.swasthaireportgenerator.ui.reports
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -353,7 +353,10 @@ fun ParameterEntryRow(
 }
 
 @Composable
-fun ResultFlagBadge(flag: String?) {
+fun ResultFlagBadge(
+    flag: String?,
+    modifier: Modifier = Modifier
+) {
     val clean = flag?.trim()?.uppercase().orEmpty()
     if (clean.isEmpty()) return
 
@@ -366,15 +369,18 @@ fun ResultFlagBadge(flag: String?) {
     }
 
     Surface(
+        modifier = modifier.wrapContentSize(),
         color = bg,
-        shape = RoundedCornerShape(5.dp)
+        shape = RoundedCornerShape(4.dp)
     ) {
         Text(
             text = label,
             color = fg,
-            fontSize = 9.sp,
+            fontSize = 8.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+            maxLines = 1,
+            softWrap = false,
+            modifier = Modifier.padding(horizontal = 4.5.dp, vertical = 1.5.dp)
         )
     }
 }

@@ -1,4 +1,4 @@
-﻿package com.piyush.swasthaireportgenerator.ui.organization
+package com.piyush.swasthaireportgenerator.ui.organization
 
 import android.app.Application
 import android.content.Context
@@ -221,6 +221,34 @@ class OrganizationProfileViewModel(application: Application) : AndroidViewModel(
                 )
             }
         )
+    }
+
+    fun uploadSignatureBytes(bytes: ByteArray, fileName: String = "digital-signature.png", mimeType: String = "image/png") {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isUploadingSignature = true,
+                errorMessage = null,
+                successMessage = null
+            )
+            val uploadResult = repository.uploadSignature(fileName, mimeType, bytes)
+            uploadResult.fold(
+                onSuccess = { updated ->
+                    val freshBytes = repository.getSignatureBytes() ?: bytes
+                    _uiState.value = _uiState.value.copy(
+                        isUploadingSignature = false,
+                        profile = updated,
+                        signatureBytes = freshBytes,
+                        successMessage = "Digital signature saved successfully."
+                    )
+                },
+                onFailure = { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isUploadingSignature = false,
+                        errorMessage = error.message ?: "Failed to save digital signature"
+                    )
+                }
+            )
+        }
     }
 
     fun deleteSignature() {

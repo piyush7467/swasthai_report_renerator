@@ -1,4 +1,4 @@
-﻿package com.piyush.swasthaireportgenerator.ui.reports
+package com.piyush.swasthaireportgenerator.ui.reports
 
 import android.content.ActivityNotFoundException
 import android.content.ClipData
@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,6 +29,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.piyush.swasthaireportgenerator.R
@@ -48,6 +50,7 @@ fun FinalizedReportViewScreen(
     // Header ON / OFF switch for pre-printed stationery (matching FinalizedReportView.tsx)
     var includeHeaderPreview by remember { mutableStateOf(true) }
     var showShareLinkDialog by remember { mutableStateOf(false) }
+    var showOverflowMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(reportRefId) {
         viewModel.clearShareState()
@@ -81,20 +84,23 @@ fun FinalizedReportViewScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                expandedHeight = 48.dp,
                 windowInsets = TopAppBarDefaults.windowInsets,
                 title = {
-                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                    Column(modifier = Modifier.padding(vertical = 2.dp)) {
                         Text(
-                            text = "Official Certified Report",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
+                            text = "Certified Report",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "Finalized & Digitally Signed",
+                            text = "Digitally Signed",
                             style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp,
                             color = Color(0xFF059669),
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
                         )
                     }
                 },
@@ -106,26 +112,66 @@ fun FinalizedReportViewScreen(
                 actions = {
                     // Header Switch Pill in Top Bar (Matches Web Header: ON/OFF toggle!)
                     Surface(
-                        color = if (includeHeaderPreview) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.padding(end = 8.dp)
+                        onClick = { includeHeaderPreview = !includeHeaderPreview },
+                        color = if (includeHeaderPreview) Color(0xFFDCFCE7) else MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, if (includeHeaderPreview) Color(0xFF16A34A) else MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier.padding(end = 2.dp)
                     ) {
                         Row(
-                            modifier = Modifier
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
                         ) {
-                            Text(
-                                text = "Header: ${if (includeHeaderPreview) "ON" else "OFF"}",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = if (includeHeaderPreview) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                            Icon(
+                                imageVector = if (includeHeaderPreview) Icons.Default.Check else Icons.Default.Close,
+                                contentDescription = null,
+                                tint = if (includeHeaderPreview) Color(0xFF166534) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(12.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Switch(
-                                checked = includeHeaderPreview,
-                                onCheckedChange = { includeHeaderPreview = it },
-                                modifier = Modifier.size(24.dp)
+                            Text(
+                                text = if (includeHeaderPreview) "Header ON" else "Header OFF",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (includeHeaderPreview) Color(0xFF166534) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                softWrap = false
+                            )
+                        }
+                    }
+
+                    Box {
+                        IconButton(onClick = { showOverflowMenu = true }) {
+                            Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More Options")
+                        }
+                        DropdownMenu(
+                            expanded = showOverflowMenu,
+                            onDismissRequest = { showOverflowMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Share Online Link") },
+                                leadingIcon = { Icon(Icons.Default.Link, contentDescription = null) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    showShareLinkDialog = true
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Refresh Report") },
+                                leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    viewModel.loadReport(reportRefId)
+                                    viewModel.loadFinalizedAssets(reportRefId)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Theme Settings") },
+                                leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    onOpenThemeDialog()
+                                }
                             )
                         }
                     }

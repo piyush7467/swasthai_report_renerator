@@ -1,4 +1,4 @@
-﻿package com.piyush.swasthaireportgenerator.ui.tests
+package com.piyush.swasthaireportgenerator.ui.tests
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -100,7 +100,7 @@ fun TestCatalogScreen(
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
+                            .defaultMinSize(minHeight = 48.dp)
                     )
                 }
 

@@ -1,4 +1,4 @@
-﻿package com.piyush.swasthaireportgenerator.ui.patients
+package com.piyush.swasthaireportgenerator.ui.patients
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -36,6 +36,7 @@ fun PatientProfileScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showOverflowMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(patientRefId) {
         viewModel.loadPatientProfile(patientRefId)
@@ -106,19 +107,49 @@ fun PatientProfileScreen(
                 canNavigateBack = true,
                 onNavigateBack = onNavigateBack,
                 actions = {
-                    if (isOrgAdmin && patient != null) {
+                    if (patient != null) {
                         IconButton(onClick = {
                             viewModel.clearCreateError()
                             showEditDialog = true
                         }) {
                             Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Patient")
                         }
-                        IconButton(onClick = { showDeleteConfirm = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete Patient",
-                                tint = MaterialTheme.colorScheme.error
-                            )
+                        Box {
+                            IconButton(onClick = { showOverflowMenu = true }) {
+                                Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Patient Options")
+                            }
+                            DropdownMenu(
+                                expanded = showOverflowMenu,
+                                onDismissRequest = { showOverflowMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("New Diagnostic Report") },
+                                    leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        onCreateReportForPatient(patient.refId)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Refresh Profile") },
+                                    leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        viewModel.loadPatientProfile(patientRefId)
+                                    }
+                                )
+                                if (isOrgAdmin) {
+                                    HorizontalDivider()
+                                    DropdownMenuItem(
+                                        text = { Text("Delete Patient", color = MaterialTheme.colorScheme.error) },
+                                        leadingIcon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                                        onClick = {
+                                            showOverflowMenu = false
+                                            showDeleteConfirm = true
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }

@@ -1,4 +1,4 @@
-﻿package com.piyush.swasthaireportgenerator.ui.reports
+package com.piyush.swasthaireportgenerator.ui.reports
 
 import android.app.Application
 import android.content.Context
@@ -191,7 +191,29 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
         }
-        return valuesMap
+        return ClinicalCalculations.computeAllCalculations(report, valuesMap)
+    }
+
+    private fun mergeParamMap(report: ReportResponse, currentMap: Map<String, String>): Map<String, String> {
+        val validRefIds = report.tests.flatMap { it.parameters }.map { it.parameterRefId }.toSet()
+        val merged = currentMap.filterKeys { it in validRefIds }.toMutableMap()
+        for (test in report.tests) {
+            for (param in test.parameters) {
+                if (merged[param.parameterRefId].isNullOrBlank()) {
+                    if (!param.value.isNullOrBlank()) {
+                        merged[param.parameterRefId] = param.value
+                    }
+                }
+            }
+        }
+        return ClinicalCalculations.computeAllCalculations(report, merged)
+    }
+
+    fun silentAutoSaveParameters() {
+        val currentReport = _entryState.value.report ?: return
+        viewModelScope.launch {
+            persistAllManualParameters(currentReport)
+        }
     }
 
     fun loadReport(reportRefId: String) {
@@ -206,7 +228,7 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
                 _entryState.value = _entryState.value.copy(
                     isLoading = false,
                     report = report,
-                    parameterValues = extractParamMap(report)
+                    parameterValues = mergeParamMap(report, _entryState.value.parameterValues)
                 )
             }.onFailure { error ->
                 _entryState.value = _entryState.value.copy(
@@ -220,8 +242,14 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
     fun onParameterChange(parameterRefId: String, value: String) {
         val updatedMap = _entryState.value.parameterValues.toMutableMap()
         updatedMap[parameterRefId] = value
+
+        // Automatically compute standard clinical calculated parameters (MCV, MCH, MCHC, etc.) in real time
+        val computedMap = _entryState.value.report?.let { report ->
+            ClinicalCalculations.computeAllCalculations(report, updatedMap)
+        } ?: updatedMap
+
         _entryState.value = _entryState.value.copy(
-            parameterValues = updatedMap,
+            parameterValues = computedMap,
             errorMessage = null
         )
     }
@@ -268,16 +296,22 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
             }
 
             _entryState.value = _entryState.value.copy(isLoading = true, errorMessage = null)
+
+            // Auto-persist already-entered parameters so the server draft also contains them
+            if (currentReport != null) {
+                persistAllManualParameters(currentReport)
+            }
+
             val result = reportRepository.addTestsBulk(
                 reportRefId = reportRefId,
                 testRefIds = newTestRefIds,
-                lockVersion = currentReport?.lockVersion
+                lockVersion = _entryState.value.report?.lockVersion ?: currentReport?.lockVersion
             )
             result.onSuccess { updatedReport ->
                 _entryState.value = _entryState.value.copy(
                     isLoading = false,
                     report = updatedReport,
-                    parameterValues = extractParamMap(updatedReport)
+                    parameterValues = mergeParamMap(updatedReport, _entryState.value.parameterValues)
                 )
                 onSuccess(updatedReport)
             }.onFailure { error ->
@@ -434,7 +468,7 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
                 _entryState.value = _entryState.value.copy(
                     isSaving = false,
                     report = updatedReport,
-                    parameterValues = extractParamMap(updatedReport),
+                    parameterValues = mergeParamMap(updatedReport, _entryState.value.parameterValues),
                     statusMessage = "Test panel removed from report."
                 )
             }.onFailure { error ->

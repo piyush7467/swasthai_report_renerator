@@ -1,6 +1,7 @@
-﻿package com.piyush.swasthaireportgenerator.data.api
+package com.piyush.swasthaireportgenerator.data.api
 
 import android.content.Context
+import com.piyush.swasthaireportgenerator.BuildConfig
 import com.piyush.swasthaireportgenerator.data.interceptor.AuthInterceptor
 import com.piyush.swasthaireportgenerator.data.interceptor.TokenAuthenticator
 import com.piyush.swasthaireportgenerator.data.local.TokenManager
@@ -108,7 +109,11 @@ object ApiClient {
 
     private fun createOkHttpClient(tokenManager: TokenManager): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BODY
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
         }
 
         return OkHttpClient.Builder()
