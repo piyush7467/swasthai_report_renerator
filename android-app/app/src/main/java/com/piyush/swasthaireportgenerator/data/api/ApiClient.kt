@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit
 object ApiClient {
 
     const val PRODUCTION_BASE_URL =
-        "https://swasthreport-api-hnbqcddabrghfjev.centralindia-01.azurewebsites.net/api/v1/"
+        "https://swasthaireportrenerator-production-2370.up.railway.app/api/v1/"
 
     const val LOCAL_EMULATOR_BASE_URL = "http://10.0.2.2:8087/api/v1/"
 

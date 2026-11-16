@@ -238,7 +238,9 @@ fun MainAppShell(
                             onNavigateToTestCatalog = onNavigateToTestCatalog,
                             onNavigateToOrgSettings = onNavigateToOrgSettings,
                             onOpenThemeDialog = { showThemeDialog = true },
-                            onCreateReportClick = { onNavigateToReportWorkspace(null, null) }
+                            onCreateReportClick = { onNavigateToReportWorkspace(null, null) },
+                            onLogoutClick = { showLogoutDialog = true },
+                            onNavigateToAddPatient = onNavigateToAddPatient
                         )
                     }
                     BottomBarTab.PATIENTS -> {

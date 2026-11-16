@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -52,12 +53,16 @@ fun DashboardScreen(
     onNavigateToTestCatalog: () -> Unit,
     onNavigateToOrgSettings: () -> Unit = {},
     onOpenThemeDialog: () -> Unit,
-    onCreateReportClick: () -> Unit
+    onCreateReportClick: () -> Unit,
+    onLogoutClick: () -> Unit = {},
+    onNavigateToAddPatient: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isOrgAdmin = uiState.userRole.equals("ORG_ADMIN", ignoreCase = true)
     var licenseBlockedMessage by remember { mutableStateOf<String?>(null) }
-    var showOverflowMenu by remember { mutableStateOf(false) }
+    var showAvatarMenu by remember { mutableStateOf(false) }
+    var selectedTimeFilter by remember { mutableStateOf("Last 7 Days") }
+    var showTimeFilterMenu by remember { mutableStateOf(false) }
 
     val logoBitmap = remember(uiState.logoBytes) {
         uiState.logoBytes?.let { bytes ->
@@ -107,7 +112,7 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                expandedHeight = 48.dp,
+                expandedHeight = 52.dp,
                 windowInsets = TopAppBarDefaults.windowInsets,
                 title = {
                     Row(
@@ -116,8 +121,8 @@ fun DashboardScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Surface(
-                            modifier = Modifier.size(34.dp),
-                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.size(36.dp),
+                            shape = RoundedCornerShape(10.dp),
                             color = MaterialTheme.colorScheme.primaryContainer
                         ) {
                             if (logoBitmap != null) {
@@ -142,15 +147,16 @@ fun DashboardScreen(
                         }
                         Column {
                             Text(
-                                text = "Dashboard",
+                                text = "SwasthReport",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = uiState.organizationName.ifBlank { "SwasthAI Laboratory" },
+                                text = uiState.organizationName.ifBlank { "Arnav Pathology Lab" },
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1
                             )
                         }
                     }
@@ -161,43 +167,103 @@ fun DashboardScreen(
                     }
                 },
                 actions = {
+                    val initials = remember(uiState.userName) {
+                        uiState.userName.trim().split(" ")
+                            .filter { it.isNotBlank() }
+                            .take(2)
+                            .map { it.first().uppercase() }
+                            .joinToString("")
+                            .ifBlank { "PS" }
+                    }
+
                     Box {
-                        IconButton(onClick = { showOverflowMenu = true }) {
-                            Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Dashboard Options")
-                        }
-                        DropdownMenu(
-                            expanded = showOverflowMenu,
-                            onDismissRequest = { showOverflowMenu = false }
+                        Surface(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .clickable { showAvatarMenu = true },
+                            color = Color.Transparent
                         ) {
-                            DropdownMenuItem(
-                                text = { Text("Refresh Data") },
-                                leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
-                                onClick = {
-                                    showOverflowMenu = false
-                                    viewModel.refreshDashboard()
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Surface(
+                                    modifier = Modifier.size(34.dp),
+                                    shape = CircleShape,
+                                    color = Color(0xFF0F766E)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = initials,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp
+                                        )
+                                    }
                                 }
-                            )
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                    contentDescription = "Profile Options",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+
+                        DropdownMenu(
+                            expanded = showAvatarMenu,
+                            onDismissRequest = { showAvatarMenu = false }
+                        ) {
+                            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
+                                Text(
+                                    text = uiState.userName.ifBlank { "Piyush Shakya" },
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                Text(
+                                    text = uiState.userEmail.ifBlank { "admin@swasthai.com" },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Surface(
+                                    color = Color(0xFF0F766E).copy(alpha = 0.15f),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        text = uiState.userRole,
+                                        color = Color(0xFF0F766E),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                            HorizontalDivider()
                             DropdownMenuItem(
-                                text = { Text("Letterhead & Branding") },
+                                text = { Text("Lab Profile & Letterhead") },
                                 leadingIcon = { Icon(Icons.Default.Tune, contentDescription = null) },
                                 onClick = {
-                                    showOverflowMenu = false
+                                    showAvatarMenu = false
                                     onNavigateToOrgSettings()
                                 }
                             )
-                            DropdownMenuItem(
-                                text = { Text("Test Catalog") },
-                                leadingIcon = { Icon(Icons.Default.Biotech, contentDescription = null) },
-                                onClick = {
-                                    showOverflowMenu = false
-                                    onNavigateToTestCatalog()
-                                }
-                            )
+                            if (isOrgAdmin) {
+                                DropdownMenuItem(
+                                    text = { Text("Staff Management") },
+                                    leadingIcon = { Icon(Icons.Default.Group, contentDescription = null) },
+                                    onClick = {
+                                        showAvatarMenu = false
+                                        onNavigateToStaff()
+                                    }
+                                )
+                            }
                             DropdownMenuItem(
                                 text = { Text("Subscription & Limits") },
                                 leadingIcon = { Icon(Icons.Default.CardMembership, contentDescription = null) },
                                 onClick = {
-                                    showOverflowMenu = false
+                                    showAvatarMenu = false
                                     onNavigateToLicense()
                                 }
                             )
@@ -205,8 +271,37 @@ fun DashboardScreen(
                                 text = { Text("Theme Settings") },
                                 leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) },
                                 onClick = {
-                                    showOverflowMenu = false
+                                    showAvatarMenu = false
                                     onOpenThemeDialog()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Refresh Data") },
+                                leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+                                onClick = {
+                                    showAvatarMenu = false
+                                    viewModel.refreshDashboard()
+                                }
+                            )
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = "Sign Out",
+                                        color = MaterialTheme.colorScheme.error,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Logout,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                },
+                                onClick = {
+                                    showAvatarMenu = false
+                                    onLogoutClick()
                                 }
                             )
                         }
@@ -325,7 +420,7 @@ fun DashboardScreen(
                     }
                 }
 
-                // 1. Hero Banner
+                // 1. Hero Banner (Clean Gradient Card)
                 item {
                     Surface(
                         modifier = Modifier
@@ -333,15 +428,15 @@ fun DashboardScreen(
                             .clip(RoundedCornerShape(22.dp)),
                         color = Color.Transparent,
                         shape = RoundedCornerShape(22.dp),
-                        shadowElevation = 3.dp
+                        shadowElevation = 2.dp
                     ) {
                         Box(
                             modifier = Modifier
                                 .background(
                                     Brush.horizontalGradient(
                                         colors = listOf(
-                                            Color(0xFF064E3B),
-                                            Color(0xFF0F172A)
+                                            Color(0xFF064E3B), // Deep emerald
+                                            Color(0xFF0F172A)  // Deep slate
                                         )
                                     )
                                 )
@@ -377,32 +472,26 @@ fun DashboardScreen(
                                         }
                                     }
 
-                                    Surface(
-                                        color = Color.White.copy(alpha = 0.15f),
-                                        shape = RoundedCornerShape(6.dp)
-                                    ) {
-                                        Text(
-                                            text = uiState.userRole,
-                                            color = Color.White,
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                                        )
-                                    }
+                                    Icon(
+                                        imageVector = Icons.Default.Science,
+                                        contentDescription = null,
+                                        tint = Color(0xFF6EE7B7).copy(alpha = 0.7f),
+                                        modifier = Modifier.size(28.dp)
+                                    )
                                 }
 
                                 Text(
-                                    text = "Welcome, ${uiState.userName.ifBlank { "Team" }}",
-                                    style = MaterialTheme.typography.headlineSmall,
+                                    text = "Welcome, ${uiState.userName.ifBlank { "Piyush Shakya" }} \uD83D\uDC4B",
+                                    style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White
                                 )
 
                                 Text(
-                                    text = "${uiState.reportsTodayCount} reports generated today • Clinical intake, parameter entry, and electronic certification.",
+                                    text = "Manage reports, patients, tests and lab operations.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color(0xFFCBD5E1),
-                                    lineHeight = 18.sp
+                                    fontSize = 12.sp
                                 )
 
                                 Spacer(modifier = Modifier.height(2.dp))
@@ -422,32 +511,47 @@ fun DashboardScreen(
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
                                         shape = RoundedCornerShape(12.dp),
                                         modifier = Modifier.weight(1f),
-                                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Add,
                                             contentDescription = "New Report",
-                                            modifier = Modifier.size(16.dp)
+                                            modifier = Modifier.size(16.dp),
+                                            tint = Color.White
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("New Report", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        Text(
+                                            text = "New Report",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
                                     }
 
                                     OutlinedButton(
-                                        onClick = onNavigateToPatients,
-                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                                        onClick = onNavigateToAddPatient,
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            containerColor = Color.White.copy(alpha = 0.08f),
+                                            contentColor = Color.White
+                                        ),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)),
                                         shape = RoundedCornerShape(12.dp),
                                         modifier = Modifier.weight(1f),
-                                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.PersonAdd,
-                                            contentDescription = "Patients",
+                                            contentDescription = "Add Patient",
                                             modifier = Modifier.size(16.dp),
                                             tint = Color(0xFF6EE7B7)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Patients", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                        Text(
+                                            text = "Add Patient",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = Color.White
+                                        )
                                     }
                                 }
                             }
@@ -455,77 +559,142 @@ fun DashboardScreen(
                     }
                 }
 
-                // 2. Comprehensive Statistics Cards (Row 1: 3 cards, Row 2: 2 cards)
+                // 2. Overview Metrics (Clean 2x2 + 1 Wide Card, no blank hole!)
                 val isStatsLoading = uiState.isLoading && uiState.pendingCount == 0L && uiState.finalizedCount == 0L
                 item {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // Row 1: 3 cards
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            DashboardGridStatCard(
-                                title = "TOTAL REPORTS",
+                            Text(
+                                text = "Overview",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+
+                            Box {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.clickable { showTimeFilterMenu = true }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = selectedTimeFilter,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Icon(
+                                            imageVector = Icons.Default.KeyboardArrowDown,
+                                            contentDescription = "Filter",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
+                                }
+                                DropdownMenu(
+                                    expanded = showTimeFilterMenu,
+                                    onDismissRequest = { showTimeFilterMenu = false }
+                                ) {
+                                    listOf("Today", "Last 7 Days", "Last 30 Days").forEach { option ->
+                                        DropdownMenuItem(
+                                            text = { Text(option) },
+                                            onClick = {
+                                                selectedTimeFilter = option
+                                                showTimeFilterMenu = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Row 1: Total Reports + Reports Today
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            DashboardStatCard(
+                                title = "Total Reports",
                                 value = (uiState.licenseOverview?.reportUsage?.totalReports ?: (uiState.pendingCount + uiState.finalizedCount)).toString(),
-                                subtitle = "All generated reports",
-                                icon = Icons.AutoMirrored.Filled.Assignment,
+                                icon = Icons.Default.Description,
+                                iconBgColor = Color(0xFF0F766E).copy(alpha = 0.2f),
+                                iconTint = Color(0xFF10B981),
                                 modifier = Modifier.weight(1f),
                                 isLoading = isStatsLoading,
                                 onClick = onNavigateToReports
                             )
-
-                            DashboardGridStatCard(
-                                title = "REPORTS TODAY",
+                            DashboardStatCard(
+                                title = "Reports Today",
                                 value = uiState.reportsTodayCount.toString(),
-                                subtitle = "24h cycle",
-                                icon = Icons.Default.Today,
-                                modifier = Modifier.weight(1f),
-                                isLoading = isStatsLoading,
-                                onClick = onNavigateToReports
-                            )
-
-                            DashboardGridStatCard(
-                                title = "FINALIZED",
-                                value = uiState.finalizedCount.toString(),
-                                subtitle = "Certified",
-                                icon = Icons.Default.Verified,
+                                icon = Icons.Default.CalendarToday,
+                                iconBgColor = Color(0xFF0284C7).copy(alpha = 0.2f),
+                                iconTint = Color(0xFF38BDF8),
                                 modifier = Modifier.weight(1f),
                                 isLoading = isStatsLoading,
                                 onClick = onNavigateToReports
                             )
                         }
 
-                        // Row 2: 2 cards + spacer
+                        // Row 2: Finalized + Patients
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            DashboardGridStatCard(
-                                title = "TOTAL PATIENTS",
+                            DashboardStatCard(
+                                title = "Finalized",
+                                value = uiState.finalizedCount.toString(),
+                                icon = Icons.Default.Verified,
+                                iconBgColor = Color(0xFF059669).copy(alpha = 0.2f),
+                                iconTint = Color(0xFF34D399),
+                                modifier = Modifier.weight(1f),
+                                isLoading = isStatsLoading,
+                                onClick = onNavigateToReports
+                            )
+                            DashboardStatCard(
+                                title = "Patients",
                                 value = uiState.patientCount.toString(),
-                                subtitle = "Registered profiles",
                                 icon = Icons.Default.People,
+                                iconBgColor = Color(0xFF6366F1).copy(alpha = 0.2f),
+                                iconTint = Color(0xFF818CF8),
                                 modifier = Modifier.weight(1f),
                                 isLoading = isStatsLoading,
                                 onClick = onNavigateToPatients
                             )
-
-                            DashboardGridStatCard(
-                                title = "ACTIVE TESTS",
-                                value = (uiState.licenseOverview?.reportUsage?.maxReportsPerMonth?.let { "$it Limit" } ?: "Active"),
-                                subtitle = "Test parameters",
-                                icon = Icons.Default.Biotech,
-                                modifier = Modifier.weight(1f),
-                                isLoading = isStatsLoading,
-                                onClick = onNavigateToTestCatalog
-                            )
-
-                            Spacer(modifier = Modifier.weight(1f))
                         }
+
+                        // Row 3: Active Tests (Wide full-width card)
+                        DashboardWideStatCard(
+                            title = "Active Tests",
+                            value = (uiState.licenseOverview?.reportUsage?.maxReportsPerMonth?.let { "$it Available" } ?: "100"),
+                            icon = Icons.Default.Biotech,
+                            iconBgColor = Color(0xFF0D9488).copy(alpha = 0.2f),
+                            iconTint = Color(0xFF2DD4BF),
+                            isLoading = isStatsLoading,
+                            onClick = onNavigateToTestCatalog
+                        )
                     }
                 }
 
-                // 3. Lab Letterhead & Branding Status Card
+                // 3. Quick Actions (4-tile clean row)
+                item {
+                    DashboardQuickActionsGrid(
+                        onNavigateToWorklist = onNavigateToReports,
+                        onNavigateToReports = onNavigateToReports,
+                        onNavigateToTests = onNavigateToTestCatalog,
+                        onNavigateToSettings = onNavigateToOrgSettings
+                    )
+                }
+
+                // 4. Lab Setup & Branding Status Card
                 item {
                     DashboardBrandingStatusCard(
                         profile = uiState.organizationProfile,
@@ -533,24 +702,12 @@ fun DashboardScreen(
                     )
                 }
 
-                // 4. Staff Capacity & Plan Card
+                // 5. Staff Capacity & Plan Card
                 item {
                     DashboardStaffCapacityCard(
                         staffSummary = uiState.staffSummary,
                         licenseInfo = uiState.licenseInfo,
                         onClick = onNavigateToLicense
-                    )
-                }
-
-                // 5. Quick Navigation Cards (Patient Directory, Assigned Tests, Staff)
-                item {
-                    DashboardQuickNavSection(
-                        patientCount = uiState.patientCount,
-                        activeStaffCount = uiState.staffSummary?.activeStaff ?: 1,
-                        activeTestsCount = uiState.licenseOverview?.reportUsage?.maxReportsPerMonth?.toString() ?: "Catalog",
-                        onNavigateToPatients = onNavigateToPatients,
-                        onNavigateToTestCatalog = onNavigateToTestCatalog,
-                        onNavigateToStaff = onNavigateToStaff
                     )
                 }
 
@@ -664,77 +821,227 @@ fun DashboardScreen(
 }
 
 @Composable
-fun DashboardGridStatCard(
+fun DashboardStatCard(
     title: String,
     value: String,
-    subtitle: String,
     icon: ImageVector,
+    iconBgColor: Color,
+    iconTint: Color = Color.White,
     modifier: Modifier = Modifier,
     isLoading: Boolean = false,
     onClick: () -> Unit
 ) {
     Card(
         modifier = modifier
-            .height(125.dp)
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = iconBgColor,
+                modifier = Modifier.size(38.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = title,
+                        tint = iconTint,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                if (isLoading) {
+                    SkeletonBox(modifier = Modifier.size(width = 44.dp, height = 24.dp))
+                } else {
+                    Text(
+                        text = value,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.sp,
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun DashboardWideStatCard(
+    title: String,
+    value: String,
+    icon: ImageVector,
+    iconBgColor: Color,
+    iconTint: Color = Color.White,
+    modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = iconBgColor,
+                modifier = Modifier.size(42.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = title,
+                        tint = iconTint,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                if (isLoading) {
+                    SkeletonBox(modifier = Modifier.size(width = 44.dp, height = 24.dp))
+                } else {
+                    Text(
+                        text = value,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun DashboardQuickActionsGrid(
+    onNavigateToWorklist: () -> Unit,
+    onNavigateToReports: () -> Unit,
+    onNavigateToTests: () -> Unit,
+    onNavigateToSettings: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            text = "Quick Actions",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            QuickActionTile(
+                title = "Worklist",
+                icon = Icons.AutoMirrored.Filled.Assignment,
+                modifier = Modifier.weight(1f),
+                onClick = onNavigateToWorklist
+            )
+            QuickActionTile(
+                title = "Reports",
+                icon = Icons.Default.Folder,
+                modifier = Modifier.weight(1f),
+                onClick = onNavigateToReports
+            )
+            QuickActionTile(
+                title = "Tests",
+                icon = Icons.Default.Biotech,
+                modifier = Modifier.weight(1f),
+                onClick = onNavigateToTests
+            )
+            QuickActionTile(
+                title = "Settings",
+                icon = Icons.Default.Settings,
+                modifier = Modifier.weight(1f),
+                onClick = onNavigateToSettings
+            )
+        }
+    }
+}
+
+@Composable
+fun QuickActionTile(
+    title: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(10.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+                .padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Surface(
+                modifier = Modifier.size(36.dp),
                 shape = RoundedCornerShape(10.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(34.dp)
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = icon,
                         contentDescription = title,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
-
-            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontSize = 9.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1
-                )
-                if (isLoading) {
-                    SkeletonBox(
-                        modifier = Modifier
-                            .padding(vertical = 2.dp)
-                            .size(width = 44.dp, height = 20.dp)
-                    )
-                } else {
-                    Text(
-                        text = value,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1
-                    )
-                }
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontSize = 9.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
-                )
-            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 11.sp,
+                maxLines = 1
+            )
         }
     }
 }
@@ -750,158 +1057,78 @@ fun DashboardBrandingStatusCard(
     val detailsReady = true
 
     val configuredCount = listOf(detailsReady, addressReady, logoReady, sigReady).count { it }
-    val allReady = configuredCount == 4
+    val progress = (configuredCount / 4f).coerceIn(0f, 1f)
+    val percent = (progress * 100).toInt()
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(18.dp))
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(42.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.Description,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    }
-                    Column {
-                        Text(
-                            text = "Lab Letterhead & Branding",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "Mandatory credentials for doctor-signed reports.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
             Surface(
-                color = if (allReady) Color(0xFFDCFCE7) else Color(0xFFFEF3C7),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.fillMaxWidth()
+                shape = RoundedCornerShape(14.dp),
+                color = Color(0xFF0F766E).copy(alpha = 0.15f),
+                modifier = Modifier.size(46.dp)
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            imageVector = if (allReady) Icons.Default.CheckCircle else Icons.Default.WarningAmber,
-                            contentDescription = null,
-                            tint = if (allReady) Color(0xFF166534) else Color(0xFFB45309),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = "$configuredCount / 4 Branding Steps Completed",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (allReady) Color(0xFF166534) else Color(0xFFB45309),
-                            maxLines = 1
-                        )
-                    }
-                    Surface(
-                        color = if (allReady) Color(0xFF166534) else Color(0xFFB45309),
-                        shape = RoundedCornerShape(6.dp)
-                    ) {
-                        Text(
-                            text = if (allReady) "Ready" else "Action Required",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            maxLines = 1
-                        )
-                    }
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = Color(0xFF10B981),
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                BrandingStatusRow(label = "Lab Details & NABL Info", isReady = true)
-                BrandingStatusRow(label = "Physical Lab Address", isReady = addressReady)
-                BrandingStatusRow(label = "Laboratory Logo", isReady = logoReady)
-                BrandingStatusRow(label = "Doctor Signature Stamp", isReady = sigReady)
-            }
-
-            Button(
-                onClick = onClick,
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                modifier = Modifier.fillMaxWidth()
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Configure Letterhead & Signature", fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Lab Setup & Branding",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Complete your lab details, logo and doctor signature.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.sp
+                )
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    color = Color(0xFF10B981),
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                )
+                Text(
+                    text = "$configuredCount of 4 completed ($percent%)",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.sp
+                )
             }
-        }
-    }
-}
 
-@Composable
-fun BrandingStatusRow(label: String, isReady: Boolean) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(
-                imageVector = if (isReady) Icons.Default.CheckCircle else Icons.Default.Schedule,
-                contentDescription = null,
-                tint = if (isReady) Color(0xFF166534) else Color(0xFFD97706),
-                modifier = Modifier.size(14.dp)
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-        Surface(
-            color = if (isReady) Color(0xFFDCFCE7) else Color(0xFFFEF3C7),
-            shape = RoundedCornerShape(6.dp)
-        ) {
-            Text(
-                text = if (isReady) "Configured" else "Pending",
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isReady) Color(0xFF166534) else Color(0xFFB45309),
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = "Navigate to Setup",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                modifier = Modifier.size(20.dp)
             )
         }
     }
@@ -913,203 +1140,103 @@ fun DashboardStaffCapacityCard(
     licenseInfo: LicenseResponse?,
     onClick: () -> Unit
 ) {
+    val activeStaff = staffSummary?.activeStaff ?: 1
+    val maxStaff = staffSummary?.maxLabStaff ?: 3
+    val planName = licenseInfo?.planName?.ifBlank { "Starter" } ?: "Starter"
+    val isLimitReached = staffSummary?.limitReached == true
+    val ratio = (activeStaff.toFloat() / maxStaff.toFloat().coerceAtLeast(1f)).coerceIn(0f, 1f)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(18.dp))
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "Staff Capacity & Plan",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = licenseInfo?.planName ?: "Starter Plan",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = RoundedCornerShape(100.dp)
-                ) {
-                    Text(
-                        text = licenseInfo?.status ?: "ACTIVE",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                    )
-                }
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Lab Staff Seats", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-                val activeCount = staffSummary?.activeStaff ?: 1
-                val maxCount = staffSummary?.maxLabStaff ?: 3
-                Text("$activeCount / $maxCount Active", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-            }
-
-            val maxC = staffSummary?.maxLabStaff ?: 3
-            val activeC = staffSummary?.activeStaff ?: 1
-            Text(
-                text = "${maxC - activeC} staff seats remaining under current plan tier.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            OutlinedButton(
-                onClick = onClick,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.WorkspacePremium, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("View Licence & Upgrade", fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-}
-
-@Composable
-fun DashboardQuickNavSection(
-    patientCount: Long,
-    activeStaffCount: Long,
-    activeTestsCount: String,
-    onNavigateToPatients: () -> Unit,
-    onNavigateToTestCatalog: () -> Unit,
-    onNavigateToStaff: () -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        QuickNavCard(
-            title = "Patient Directory",
-            badgeCount = "$patientCount",
-            subtitle = "Admit new patients, inspect medical histories, and retrieve past lab results.",
-            icon = Icons.Default.PersonAdd,
-            iconBgColor = Color(0xFFDCFCE7),
-            iconTint = Color(0xFF166534),
-            onClick = onNavigateToPatients
-        )
-
-        QuickNavCard(
-            title = "Assigned Tests & Ranges",
-            badgeCount = activeTestsCount,
-            subtitle = "Inspect biological reference intervals, test units, and assign laboratory tests.",
-            icon = Icons.Default.Biotech,
-            iconBgColor = Color(0xFFEDE9FE),
-            iconTint = Color(0xFF6D28D9),
-            onClick = onNavigateToTestCatalog
-        )
-
-        QuickNavCard(
-            title = "Lab Staff Members",
-            badgeCount = "$activeStaffCount",
-            subtitle = "Manage pathologists, technicians, and configure permission roles.",
-            icon = Icons.Default.Group,
-            iconBgColor = Color(0xFFF3E8FF),
-            iconTint = Color(0xFF7E22CE),
-            onClick = onNavigateToStaff
-        )
-    }
-}
-
-@Composable
-fun QuickNavCard(
-    title: String,
-    badgeCount: String,
-    subtitle: String,
-    icon: ImageVector,
-    iconBgColor: Color,
-    iconTint: Color,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
             modifier = Modifier
-                .padding(14.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = iconBgColor,
-                modifier = Modifier.size(40.dp)
+                shape = RoundedCornerShape(14.dp),
+                color = Color(0xFF0F766E).copy(alpha = 0.15f),
+                modifier = Modifier.size(46.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = icon,
-                        contentDescription = title,
-                        tint = iconTint,
-                        modifier = Modifier.size(20.dp)
+                        imageVector = Icons.Default.People,
+                        contentDescription = null,
+                        tint = Color(0xFF10B981),
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleSmall,
+                        text = "Plan & Staff",
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        color = if (isLimitReached) MaterialTheme.colorScheme.errorContainer else Color(0xFF0F766E).copy(alpha = 0.2f),
                         shape = RoundedCornerShape(100.dp)
                     ) {
                         Text(
-                            text = badgeCount,
-                            fontSize = 10.sp,
+                            text = if (isLimitReached) "LIMIT REACHED" else (licenseInfo?.status?.uppercase() ?: "ACTIVE"),
+                            color = if (isLimitReached) MaterialTheme.colorScheme.error else Color(0xFF34D399),
+                            fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                         )
                     }
                 }
 
                 Text(
-                    text = subtitle,
+                    text = "Plan: $planName",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 16.sp
+                    fontSize = 11.sp
+                )
+
+                Text(
+                    text = "Staff Seats: $activeStaff / $maxStaff",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.sp
+                )
+
+                LinearProgressIndicator(
+                    progress = { ratio },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    color = if (isLimitReached) MaterialTheme.colorScheme.error else Color(0xFF10B981),
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                 )
             }
+
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = "View License",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }
