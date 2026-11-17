@@ -1,5 +1,6 @@
 package com.piyush.swasthaireportgenerator.ui.staff
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -300,7 +301,10 @@ fun StaffManagementScreen(
                     }
                 }
             } else {
-                items(uiState.staffList) { staff ->
+                items(
+                    items = uiState.staffList,
+                    key = { it.refId }
+                ) { staff ->
                     StaffMemberCard(
                         staff = staff,
                         onViewDetails = { viewModel.loadStaffDetails(staff.refId) },
@@ -326,6 +330,7 @@ fun StaffSummaryQuotaCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -349,12 +354,18 @@ fun StaffSummaryQuotaCard(
                 }
 
                 Surface(
-                    color = if (summary.limitReached) MaterialTheme.colorScheme.errorContainer else Color(0xFFD1FAE5),
-                    shape = RoundedCornerShape(100.dp)
+                    color = if (summary.limitReached) MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
+                            else Color(0xFF10B981).copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(100.dp),
+                    border = BorderStroke(
+                        1.dp,
+                        if (summary.limitReached) MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+                        else Color(0xFF10B981).copy(alpha = 0.3f)
+                    )
                 ) {
                     Text(
                         text = if (summary.limitReached) "Quota Full" else "${summary.remainingSlots} slots left",
-                        color = if (summary.limitReached) MaterialTheme.colorScheme.onErrorContainer else Color(0xFF065F46),
+                        color = if (summary.limitReached) MaterialTheme.colorScheme.error else Color(0xFF10B981),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
@@ -405,6 +416,7 @@ fun StaffMemberCard(
             .clickable(onClick = onViewDetails),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -421,7 +433,7 @@ fun StaffMemberCard(
                     Box(contentAlignment = Alignment.Center) {
                         val initials = staff.name.split(" ").mapNotNull { it.firstOrNull()?.toString() }.take(2).joinToString("")
                         Text(
-                            text = initials.ifBlank { "S" },
+                            text = initials.ifBlank { "S" }.uppercase(),
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
@@ -442,12 +454,16 @@ fun StaffMemberCard(
                 }
 
                 Surface(
-                    color = if (isActive) Color(0xFFD1FAE5) else Color(0xFFFEE2E2),
-                    shape = RoundedCornerShape(8.dp)
+                    color = if (isActive) Color(0xFF10B981).copy(alpha = 0.15f) else Color(0xFFEF4444).copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(
+                        1.dp,
+                        if (isActive) Color(0xFF10B981).copy(alpha = 0.3f) else Color(0xFFEF4444).copy(alpha = 0.3f)
+                    )
                 ) {
                     Text(
                         text = if (isActive) "ACTIVE" else "INACTIVE",
-                        color = if (isActive) Color(0xFF065F46) else Color(0xFF991B1B),
+                        color = if (isActive) Color(0xFF10B981) else Color(0xFFEF4444),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)

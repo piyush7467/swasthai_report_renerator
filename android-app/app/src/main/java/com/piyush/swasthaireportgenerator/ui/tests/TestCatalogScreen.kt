@@ -1,6 +1,7 @@
 package com.piyush.swasthaireportgenerator.ui.tests
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -74,37 +75,40 @@ fun TestCatalogScreen(
                     .fillMaxSize()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
-                contentPadding = PaddingValues(bottom = 80.dp)
+                contentPadding = PaddingValues(bottom = 90.dp)
             ) {
-                // 1. Compact Search Bar atemal top
+                // 1. Search Bar with Clear Button
                 item {
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search by test name, code...", fontSize = 13.sp) },
+                        placeholder = { Text("Search by test name, code (e.g. CBC, LFT)...") },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
                             )
                         },
+                        trailingIcon = {
+                            if (searchQuery.isNotBlank()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear")
+                                }
+                            }
+                        },
                         singleLine = true,
-                        shape = RoundedCornerShape(6.dp),
+                        shape = RoundedCornerShape(14.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            focusedBorderColor = Color(0xFF0D9488),
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                         ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .defaultMinSize(minHeight = 48.dp)
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
 
-                // 2. Header Row: Assigned Diagnostic Tests + Badge aligned with New Patient Report button
+                // 2. Header & Action Row
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(
@@ -114,7 +118,7 @@ fun TestCatalogScreen(
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Text(
@@ -126,28 +130,27 @@ fun TestCatalogScreen(
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Surface(
-                                    color = Color(0xFFDCFCE7),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                                     shape = RoundedCornerShape(100.dp)
                                 ) {
                                     Text(
                                         text = "$totalAssigned Assigned",
-                                        fontSize = 10.sp,
+                                        style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF166534),
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                     )
                                 }
                             }
 
                             Button(
                                 onClick = onCreateNewReport,
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D9488)),
-                                shape = RoundedCornerShape(6.dp),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("New Report", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                Text("New Report", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             }
                         }
 
@@ -170,16 +173,16 @@ fun TestCatalogScreen(
                                 title = "Total Assigned",
                                 value = "$totalAssigned",
                                 icon = Icons.Default.Biotech,
-                                iconBg = Color(0xFFDCFCE7),
-                                iconTint = Color(0xFF166534),
+                                iconBg = Color(0xFF0D9488).copy(alpha = 0.15f),
+                                iconTint = Color(0xFF14B8A6),
                                 modifier = Modifier.weight(1f)
                             )
                             CatalogStatCard(
                                 title = "Active for Reports",
                                 value = "$activeCount",
                                 icon = Icons.Default.CheckCircle,
-                                iconBg = Color(0xFFDCFCE7),
-                                iconTint = Color(0xFF166534),
+                                iconBg = Color(0xFF10B981).copy(alpha = 0.15f),
+                                iconTint = Color(0xFF10B981),
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -191,29 +194,27 @@ fun TestCatalogScreen(
                                 title = "Panels & Profiles",
                                 value = "$panelsCount",
                                 icon = Icons.Default.Layers,
-                                iconBg = Color(0xFFEDE9FE),
-                                iconTint = Color(0xFF6D28D9),
+                                iconBg = Color(0xFF8B5CF6).copy(alpha = 0.15f),
+                                iconTint = Color(0xFFA78BFA),
                                 modifier = Modifier.weight(1f)
                             )
                             CatalogStatCard(
                                 title = "Inactive / On Hold",
                                 value = "$inactiveCount",
                                 icon = Icons.Default.Shield,
-                                iconBg = Color(0xFFF1F5F9),
-                                iconTint = Color(0xFF475569),
+                                iconBg = MaterialTheme.colorScheme.surfaceVariant,
+                                iconTint = MaterialTheme.colorScheme.outline,
                                 modifier = Modifier.weight(1f)
                             )
                         }
                     }
-                    // Added extra gap below stat cards grid
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
 
                 if (!uiState.errorMessage.isNullOrBlank()) {
                     item {
                         Surface(
                             color = MaterialTheme.colorScheme.errorContainer,
-                            shape = RoundedCornerShape(6.dp),
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
@@ -236,14 +237,17 @@ fun TestCatalogScreen(
                     item {
                         Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                             Text(
-                                text = "No active diagnostic tests found for your lab.",
+                                text = if (searchQuery.isNotBlank()) "No tests matching \"$searchQuery\"" else "No active diagnostic tests found for your lab.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 } else {
-                    items(filtered) { test ->
+                    items(
+                        items = filtered,
+                        key = { it.testRefId }
+                    ) { test ->
                         CatalogTestCard(
                             test = test,
                             parameters = uiState.parametersByTestRefId[test.testRefId],
@@ -267,12 +271,11 @@ fun CatalogStatCard(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier
-            .height(90.dp)
-            .clip(RoundedCornerShape(6.dp)), // Reduced border radius: 6.dp
-        shape = RoundedCornerShape(6.dp),
+        modifier = modifier.height(86.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
     ) {
         Column(
             modifier = Modifier
@@ -281,7 +284,7 @@ fun CatalogStatCard(
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Surface(
-                shape = RoundedCornerShape(4.dp),
+                shape = RoundedCornerShape(8.dp),
                 color = iconBg,
                 modifier = Modifier.size(28.dp)
             ) {
@@ -290,7 +293,7 @@ fun CatalogStatCard(
                         imageVector = icon,
                         contentDescription = title,
                         tint = iconTint,
-                        modifier = Modifier.size(15.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
@@ -303,7 +306,7 @@ fun CatalogStatCard(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.labelSmall,
-                    fontSize = 10.sp,
+                    fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1
                 )
@@ -330,14 +333,15 @@ fun CatalogTestCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp)) // Reduced border radius: 6.dp
+            .clip(RoundedCornerShape(16.dp))
             .clickable {
                 expanded = !expanded
                 if (expanded) onExpand()
             },
-        shape = RoundedCornerShape(6.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
@@ -349,20 +353,20 @@ fun CatalogTestCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(6.dp), // Reduced border radius: 6.dp
-                        color = Color(0xFFDCFCE7),
-                        modifier = Modifier.size(38.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                        modifier = Modifier.size(40.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Default.Biotech,
                                 contentDescription = null,
-                                tint = Color(0xFF166534),
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -388,15 +392,15 @@ fun CatalogTestCard(
                                 modifier = Modifier.weight(1f, fill = false)
                             )
                             Surface(
-                                color = Color(0xFFE6FFFA),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                                 shape = RoundedCornerShape(4.dp)
                             ) {
                                 Text(
                                     text = test.testCode,
-                                    fontSize = 8.5.sp,
+                                    fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF0D9488),
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.5.dp)
                                 )
                             }
                         }
@@ -411,8 +415,9 @@ fun CatalogTestCard(
                 }
 
                 Surface(
-                    color = Color(0xFFDCFCE7),
-                    shape = RoundedCornerShape(100.dp)
+                    color = Color(0xFF10B981).copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(100.dp),
+                    border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.3f))
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
@@ -423,13 +428,13 @@ fun CatalogTestCard(
                             modifier = Modifier
                                 .size(5.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF166534))
+                                .background(Color(0xFF10B981))
                         )
                         Text(
                             text = "Active",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF166534)
+                            color = Color(0xFF10B981)
                         )
                     }
                 }
@@ -441,11 +446,11 @@ fun CatalogTestCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(4.dp)
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                    shape = RoundedCornerShape(6.dp)
                 ) {
                     Text(
-                        text = test.testType ?: "Panel",
+                        text = test.testType ?: "Standard Diagnostic Panel",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -479,7 +484,7 @@ fun CatalogTestCard(
                     modifier = Modifier.padding(top = 4.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
 
                     when {
                         isLoadingParams && parameters == null -> {
@@ -515,8 +520,9 @@ fun CatalogTestCard(
                             parameters.forEach { param ->
                                 val isCalc = param.inputType.equals("CALCULATED", ignoreCase = true)
                                 Surface(
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                    shape = RoundedCornerShape(4.dp), // Reduced border radius: 4.dp
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Row(
@@ -555,7 +561,7 @@ fun CatalogTestCard(
                                                             color = MaterialTheme.colorScheme.primary,
                                                             fontSize = 8.sp,
                                                             fontWeight = FontWeight.Bold,
-                                                            modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp)
+                                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                                                         )
                                                     }
                                                 }

@@ -1,5 +1,8 @@
 package com.piyush.swasthaireportgenerator.ui.patients
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,7 +19,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.piyush.swasthaireportgenerator.data.model.PatientResponse
@@ -37,6 +42,7 @@ fun PatientProfileScreen(
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showOverflowMenu by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     LaunchedEffect(patientRefId) {
         viewModel.loadPatientProfile(patientRefId)
@@ -77,7 +83,7 @@ fun PatientProfileScreen(
             onDismissRequest = { showDeleteConfirm = false },
             shape = RoundedCornerShape(20.dp),
             title = { Text("Delete Patient Record?", fontWeight = FontWeight.Bold) },
-            text = { Text("Remove ${patient.name} (${patient.patientCode}) from active patient directory?") },
+            text = { Text("Are you sure you want to delete ${patient.name} (${patient.patientCode}) from the directory?") },
             confirmButton = {
                 Button(
                     onClick = {
@@ -88,7 +94,7 @@ fun PatientProfileScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Delete")
+                    Text("Delete Record")
                 }
             },
             dismissButton = {
@@ -102,7 +108,7 @@ fun PatientProfileScreen(
     Scaffold(
         topBar = {
             SwasthAiTopAppBar(
-                title = "Patient Profile",
+                title = "Patient Clinical Profile",
                 subtitle = if (patient != null) "UHID: ${patient.patientCode}" else null,
                 canNavigateBack = true,
                 onNavigateBack = onNavigateBack,
@@ -112,7 +118,11 @@ fun PatientProfileScreen(
                             viewModel.clearCreateError()
                             showEditDialog = true
                         }) {
-                            Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Patient")
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Profile",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         }
                         Box {
                             IconButton(onClick = { showOverflowMenu = true }) {
@@ -123,7 +133,7 @@ fun PatientProfileScreen(
                                 onDismissRequest = { showOverflowMenu = false }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("New Diagnostic Report") },
+                                    text = { Text("Create Diagnostic Report") },
                                     leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
                                     onClick = {
                                         showOverflowMenu = false
@@ -142,7 +152,13 @@ fun PatientProfileScreen(
                                     HorizontalDivider()
                                     DropdownMenuItem(
                                         text = { Text("Delete Patient", color = MaterialTheme.colorScheme.error) },
-                                        leadingIcon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.DeleteOutline,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.error
+                                            )
+                                        },
                                         onClick = {
                                             showOverflowMenu = false
                                             showDeleteConfirm = true
@@ -163,7 +179,8 @@ fun PatientProfileScreen(
                     text = { Text("New Report", fontWeight = FontWeight.Bold) },
                     shape = RoundedCornerShape(16.dp),
                     containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
             }
         }
@@ -193,24 +210,33 @@ fun PatientProfileScreen(
                 }
             }
             else -> {
+                // Gender palette token from ui-ux-pro-max
+                val genderLower = patient.gender?.trim()?.lowercase() ?: ""
+                val (avatarBg, avatarText) = when {
+                    genderLower.startsWith("m") -> Color(0xFF0D9488).copy(alpha = 0.15f) to Color(0xFF14B8A6)
+                    genderLower.startsWith("f") -> Color(0xFFE11D48).copy(alpha = 0.15f) to Color(0xFFFB7185)
+                    else -> Color(0xFF6366F1).copy(alpha = 0.15f) to Color(0xFF818CF8)
+                }
+
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(bottom = 120.dp)
+                    contentPadding = PaddingValues(bottom = 100.dp)
                 ) {
-                    // 1. Demographics Summary Card
+                    // 1. Demographics Summary Hero Card
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(20.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
                             Column(
-                                modifier = Modifier.padding(16.dp),
+                                modifier = Modifier.padding(18.dp),
                                 verticalArrangement = Arrangement.spacedBy(14.dp)
                             ) {
                                 Row(
@@ -218,10 +244,12 @@ fun PatientProfileScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                                 ) {
+                                    // 2-tone Initial Avatar
                                     Surface(
                                         modifier = Modifier.size(56.dp),
                                         shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.primaryContainer
+                                        color = avatarBg,
+                                        border = BorderStroke(1.dp, avatarText.copy(alpha = 0.4f))
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
                                             val initials = patient.name.split(" ")
@@ -229,17 +257,17 @@ fun PatientProfileScreen(
                                                 .take(2)
                                                 .joinToString("")
                                             Text(
-                                                text = initials.ifBlank { "P" },
+                                                text = initials.ifBlank { "P" }.uppercase(),
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 20.sp,
-                                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                                color = avatarText
                                             )
                                         }
                                     }
 
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = listOfNotNull(patient.salutation, patient.name).joinToString(" ").trim(),
+                                            text = listOfNotNull(patient.salutation?.let { "$it." }, patient.name).joinToString(" ").trim(),
                                             style = MaterialTheme.typography.titleLarge,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onSurface
@@ -253,105 +281,228 @@ fun PatientProfileScreen(
                                         )
                                     }
 
+                                    // UHID Pill
                                     Surface(
-                                        color = Color(0xFFDCFCE7),
-                                        shape = RoundedCornerShape(8.dp)
+                                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                                        shape = RoundedCornerShape(8.dp),
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
                                     ) {
                                         Text(
                                             text = patient.patientCode,
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF166534),
+                                            color = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                         )
                                     }
                                 }
 
-                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
 
+                                // Contact & Metadata Rows
                                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                     if (!patient.phone.isNullOrBlank()) {
-                                        ProfileDetailRow(Icons.Default.Phone, "Phone", patient.phone)
+                                        ProfileInteractiveRow(
+                                            icon = Icons.Default.Phone,
+                                            label = "Contact Phone",
+                                            value = patient.phone,
+                                            isActionable = true,
+                                            onClick = {
+                                                try {
+                                                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${patient.phone}"))
+                                                    context.startActivity(intent)
+                                                } catch (_: Exception) {}
+                                            }
+                                        )
                                     }
                                     if (!patient.email.isNullOrBlank()) {
-                                        ProfileDetailRow(Icons.Default.Email, "Email", patient.email)
+                                        ProfileInteractiveRow(
+                                            icon = Icons.Default.Email,
+                                            label = "Email Address",
+                                            value = patient.email,
+                                            isActionable = true,
+                                            onClick = {
+                                                try {
+                                                    val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${patient.email}"))
+                                                    context.startActivity(intent)
+                                                } catch (_: Exception) {}
+                                            }
+                                        )
                                     }
                                     if (!patient.address.isNullOrBlank()) {
-                                        ProfileDetailRow(Icons.Default.LocationOn, "Address", patient.address)
+                                        ProfileInteractiveRow(
+                                            icon = Icons.Default.LocationOn,
+                                            label = "Registered Address",
+                                            value = patient.address
+                                        )
                                     }
-                                    ProfileDetailRow(
-                                        Icons.AutoMirrored.Filled.Assignment,
-                                        "Total Reports",
-                                        "${patient.totalReports ?: uiState.selectedPatientReports.size} Enrolled"
+                                    ProfileInteractiveRow(
+                                        icon = Icons.AutoMirrored.Filled.Assignment,
+                                        label = "Diagnostic Records",
+                                        value = "${patient.totalReports ?: uiState.selectedPatientReports.size} Enrolled Reports"
                                     )
                                     if (!patient.createdAt.isNullOrBlank()) {
-                                        ProfileDetailRow(
-                                            Icons.Default.CalendarToday,
-                                            "Admitted Date",
-                                            patient.createdAt.take(10)
+                                        ProfileInteractiveRow(
+                                            icon = Icons.Default.CalendarToday,
+                                            label = "Registration Date",
+                                            value = patient.createdAt.take(10)
                                         )
+                                    }
+                                }
+
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+
+                                // Quick Action Buttons Dock
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Button(
+                                        onClick = { onCreateReportForPatient(patient.refId) },
+                                        shape = RoundedCornerShape(12.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("New Test", fontWeight = FontWeight.Bold)
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            viewModel.clearCreateError()
+                                            showEditDialog = true
+                                        },
+                                        shape = RoundedCornerShape(12.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Edit,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Edit Details")
                                     }
                                 }
                             }
                         }
                     }
 
-                    // 2. Patient Report History Header
+                    // 2. Patient Report History Section Header
                     item {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "Diagnostic Report History",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.Biotech,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "Diagnostic Report History",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
                             Surface(
-                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                                 shape = RoundedCornerShape(100.dp)
                             ) {
                                 Text(
-                                    text = "${uiState.selectedPatientReports.size} Reports",
-                                    fontSize = 10.sp,
+                                    text = "${uiState.selectedPatientReports.size} ${if (uiState.selectedPatientReports.size == 1) "Report" else "Reports"}",
+                                    fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
                                 )
                             }
                         }
                     }
 
+                    // Empty State or List
                     if (uiState.selectedPatientReports.isEmpty()) {
                         item {
-                            Surface(
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                                shape = RoundedCornerShape(14.dp),
-                                modifier = Modifier.fillMaxWidth()
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(18.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(24.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(24.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.Assignment,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.outline,
-                                        modifier = Modifier.size(36.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Surface(
+                                        modifier = Modifier.size(54.dp),
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Default.Science,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(28.dp)
+                                            )
+                                        }
+                                    }
+
                                     Text(
-                                        text = "No diagnostic reports generated yet.",
+                                        text = "No Diagnostic Reports Yet",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+
+                                    Text(
+                                        text = "Assign test panels (CBC, Lipid, LFT) to generate certified laboratory reports.",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
+
+                                    Button(
+                                        onClick = { onCreateReportForPatient(patient.refId) },
+                                        shape = RoundedCornerShape(10.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Create First Report", fontWeight = FontWeight.Bold)
+                                    }
                                 }
                             }
                         }
                     } else {
-                        items(uiState.selectedPatientReports) { report ->
+                        items(
+                            items = uiState.selectedPatientReports,
+                            key = { it.refId }
+                        ) { report ->
                             PatientReportHistoryCard(
                                 report = report,
                                 onClick = {
@@ -371,19 +522,31 @@ fun PatientProfileScreen(
 }
 
 @Composable
-private fun ProfileDetailRow(
+private fun ProfileInteractiveRow(
     icon: ImageVector,
     label: String,
-    value: String
+    value: String,
+    isActionable: Boolean = false,
+    onClick: (() -> Unit)? = null
 ) {
     Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (isActionable && onClick != null) {
+                    Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable(onClick = onClick)
+                        .padding(vertical = 2.dp)
+                } else Modifier
+            ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Surface(
-            shape = RoundedCornerShape(6.dp),
-            color = MaterialTheme.colorScheme.primaryContainer,
-            modifier = Modifier.size(26.dp)
+            shape = RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+            modifier = Modifier.size(28.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
@@ -394,17 +557,32 @@ private fun ProfileDetailRow(
                 )
             }
         }
+
         Text(
-            text = "$label:",
+            text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.width(130.dp)
         )
+
         Text(
             text = value,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = if (isActionable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
         )
+
+        if (isActionable) {
+            Icon(
+                imageVector = Icons.Default.ArrowOutward,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(14.dp)
+            )
+        }
     }
 }
 
@@ -418,11 +596,12 @@ private fun PatientReportHistoryCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
     ) {
         Row(
             modifier = Modifier
@@ -431,22 +610,45 @@ private fun PatientReportHistoryCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column(
+            Row(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                val testNames = report.tests.joinToString(", ") { it.testName }.ifBlank { "Diagnostic Panel" }
-                Text(
-                    text = testNames,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Ref: #${report.refId.take(8).uppercase()} • ${report.createdAt?.take(10) ?: ""}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = if (isFinalized) Color(0xFF10B981).copy(alpha = 0.15f) else Color(0xFFF59E0B).copy(alpha = 0.15f),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = if (isFinalized) Icons.Default.CheckCircle else Icons.Default.EditNote,
+                            contentDescription = null,
+                            tint = if (isFinalized) Color(0xFF10B981) else Color(0xFFF59E0B),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    val testNames = report.tests.joinToString(", ") { it.testName }.ifBlank { "Diagnostic Panel" }
+                    Text(
+                        text = testNames,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "Ref: #${report.refId.take(8).uppercase()} • ${report.createdAt?.take(10) ?: ""}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             Row(
@@ -454,15 +656,16 @@ private fun PatientReportHistoryCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Surface(
-                    color = if (isFinalized) Color(0xFFDCFCE7) else Color(0xFFFEF3C7),
-                    shape = RoundedCornerShape(8.dp)
+                    color = if (isFinalized) Color(0xFF10B981).copy(alpha = 0.15f) else Color(0xFFF59E0B).copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, if (isFinalized) Color(0xFF10B981).copy(alpha = 0.3f) else Color(0xFFF59E0B).copy(alpha = 0.3f))
                 ) {
                     Text(
                         text = if (isFinalized) "FINALIZED" else "DRAFT",
-                        color = if (isFinalized) Color(0xFF166534) else Color(0xFFB45309),
+                        color = if (isFinalized) Color(0xFF10B981) else Color(0xFFF59E0B),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }
                 Icon(

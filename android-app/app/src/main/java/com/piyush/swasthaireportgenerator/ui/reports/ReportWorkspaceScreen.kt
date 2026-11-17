@@ -511,9 +511,9 @@ fun Step1PatientSelection(
         // Selected Patient Confirmation Card
         if (selectedPatient != null) {
             Surface(
-                color = Color(0xFFD1FAE5),
-                shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.5f)),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.5.dp, Color(0xFF0D9488)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -522,9 +522,9 @@ fun Step1PatientSelection(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Surface(
-                        modifier = Modifier.size(42.dp),
+                        modifier = Modifier.size(44.dp),
                         shape = CircleShape,
-                        color = Color(0xFF059669)
+                        color = Color(0xFF0D9488)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             val initials = selectedPatient.name.trim().split(" ")
@@ -545,16 +545,16 @@ fun Step1PatientSelection(
                     Column(modifier = Modifier.weight(1f)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
                                 text = "${selectedPatient.salutation ?: ""} ${selectedPatient.name}".trim(),
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF065F46),
+                                color = MaterialTheme.colorScheme.onSurface,
                                 style = MaterialTheme.typography.titleSmall
                             )
                             Surface(
-                                color = Color(0xFF059669),
+                                color = Color(0xFF0D9488),
                                 shape = RoundedCornerShape(100.dp)
                             ) {
                                 Text(
@@ -562,32 +562,34 @@ fun Step1PatientSelection(
                                     color = Color.White,
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
                                 )
                             }
                         }
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = "UHID: ${selectedPatient.patientCode} • ${selectedPatient.ageValue ?: 0} ${selectedPatient.ageUnit ?: "Yrs"} • ${selectedPatient.gender ?: ""}",
-                            color = Color(0xFF047857),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodySmall,
                             fontSize = 11.sp
                         )
                         if (!selectedPatient.phone.isNullOrBlank()) {
                             Text(
-                                text = "Phone: ${selectedPatient.phone}",
-                                color = Color(0xFF047857).copy(alpha = 0.85f),
+                                text = "📞 ${selectedPatient.phone}",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
                                 style = MaterialTheme.typography.labelSmall
                             )
                         }
                     }
 
                     if (!readOnly) {
-                        TextButton(
+                        OutlinedButton(
                             onClick = { onSelectPatient(null) },
-                            colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFF065F46))
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, Color(0xFF0D9488)),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                         ) {
-                            Text("Change", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text("Change", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0D9488))
                         }
                     }
                 }
@@ -703,19 +705,23 @@ fun Step1PatientSelection(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(filtered) { patient ->
+                    items(items = filtered, key = { it.refId }) { patient ->
                         val isSelected = selectedPatient?.refId == patient.refId
 
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp))
+                                .clip(RoundedCornerShape(16.dp))
                                 .clickable { onSelectPatient(patient) },
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = if (isSelected) Color(0xFFECFDF5) else MaterialTheme.colorScheme.surface
+                                containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface
                             ),
-                            border = if (isSelected) BorderStroke(1.5.dp, Color(0xFF0D9488)) else BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            border = if (isSelected) {
+                                BorderStroke(1.5.dp, Color(0xFF0D9488))
+                            } else {
+                                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                            }
                         ) {
                             Row(
                                 modifier = Modifier
@@ -732,7 +738,7 @@ fun Step1PatientSelection(
                                     Surface(
                                         modifier = Modifier.size(40.dp),
                                         shape = CircleShape,
-                                        color = if (isSelected) Color(0xFF0D9488) else MaterialTheme.colorScheme.primaryContainer
+                                        color = if (isSelected) Color(0xFF0D9488) else MaterialTheme.colorScheme.surfaceVariant
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
                                             val initials = patient.name.trim().split(" ")
@@ -744,30 +750,30 @@ fun Step1PatientSelection(
                                             Text(
                                                 text = initials,
                                                 fontWeight = FontWeight.Bold,
-                                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onPrimaryContainer,
+                                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
                                                 fontSize = 13.sp
                                             )
                                         }
                                     }
 
-                                    Column {
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                         Text(
-                                            "${patient.salutation ?: ""} ${patient.name}".trim(),
+                                            text = "${patient.salutation ?: ""} ${patient.name}".trim(),
                                             fontWeight = FontWeight.Bold,
                                             style = MaterialTheme.typography.titleSmall,
-                                            color = MaterialTheme.colorScheme.onSurface
+                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
-                                            "UHID: ${patient.patientCode} • ${patient.ageValue ?: 0} ${patient.ageUnit ?: "Yrs"} • ${patient.gender ?: ""}",
+                                            text = "UHID: ${patient.patientCode} • ${patient.ageValue ?: 0} ${patient.ageUnit ?: "Yrs"} • ${patient.gender ?: ""}",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             fontSize = 11.sp
                                         )
                                         if (!patient.phone.isNullOrBlank()) {
                                             Text(
-                                                "📞 ${patient.phone}",
+                                                text = "📞 ${patient.phone}",
                                                 style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
                                                 fontSize = 10.sp
                                             )
                                         }
@@ -777,7 +783,10 @@ fun Step1PatientSelection(
                                 RadioButton(
                                     selected = isSelected,
                                     onClick = { onSelectPatient(patient) },
-                                    colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF0D9488))
+                                    colors = RadioButtonDefaults.colors(
+                                        selectedColor = Color(0xFF0D9488),
+                                        unselectedColor = MaterialTheme.colorScheme.outline
+                                    )
                                 )
                             }
                         }
@@ -816,48 +825,95 @@ fun Step2DoctorSelection(
     onBack: () -> Unit,
     onNext: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         if (organizationProfile != null) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f))
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
             ) {
-                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = organizationProfile.organizationName ?: "Laboratory Facility",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    if (organizationProfile.displayAddress.isNotBlank()) {
-                        Text(
-                            text = organizationProfile.displayAddress,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Surface(
+                        modifier = Modifier.size(46.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Verified,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
-                    if (!organizationProfile.signatureOwnerName.isNullOrBlank()) {
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
                         Text(
-                            text = "Authorized Signatory: ${organizationProfile.signatureOwnerName}",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
+                            text = organizationProfile.organizationName ?: "Diagnostic Facility",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
+                        if (organizationProfile.displayAddress.isNotBlank()) {
+                            Text(
+                                text = organizationProfile.displayAddress,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        if (!organizationProfile.signatureOwnerName.isNullOrBlank()) {
+                            Text(
+                                text = "Signatory on file: ${organizationProfile.signatureOwnerName}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
                     }
                 }
             }
         }
 
-        Text(
-            text = "Assign Reporting Staff / Signatory",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Assign Reporting Clinician",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+            ) {
+                Text(
+                    text = "Signatory",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                )
+            }
+        }
 
         if (signatoryOptions.isEmpty()) {
-            Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(modifier = Modifier.size(28.dp))
             }
         } else {
             LazyColumn(
@@ -869,27 +925,57 @@ fun Step2DoctorSelection(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(14.dp))
                             .clickable { onDoctorChange(doc) },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(14.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surface
                         ),
-                        border = if (isSelected) BorderStroke(1.5.dp, Color(0xFF0D9488)) else null
+                        border = if (isSelected) BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                                 else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 2.dp else 1.dp)
                     ) {
                         Row(
                             modifier = Modifier
                                 .padding(14.dp)
                                 .fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Text(
-                                text = doc,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                modifier = Modifier.weight(1f)
+                            Surface(
+                                modifier = Modifier.size(42.dp),
+                                shape = CircleShape,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                        else MaterialTheme.colorScheme.surfaceVariant
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.MedicalServices,
+                                        contentDescription = null,
+                                        tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = doc,
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Authorized Reporting Clinician",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = { onDoctorChange(doc) }
                             )
-                            RadioButton(selected = isSelected, onClick = { onDoctorChange(doc) })
                         }
                     }
                 }
@@ -900,19 +986,31 @@ fun Step2DoctorSelection(
             value = clinicalNotes,
             onValueChange = onNotesChange,
             label = { Text("Clinical Remarks / Sample Notes (Optional)") },
-            placeholder = { Text("e.g. Fasting specimen, EDTA vial") },
+            placeholder = { Text("e.g. Fasting sample, 12h post-prandial, EDTA vial") },
             maxLines = 3,
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(14.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            ),
             modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.weight(1f))
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedButton(onClick = onBack, shape = RoundedCornerShape(12.dp), modifier = Modifier.weight(1f)) {
+            OutlinedButton(
+                onClick = onBack,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.weight(1f).defaultMinSize(minHeight = 48.dp)
+            ) {
                 Text("← Back")
             }
-            Button(onClick = onNext, shape = RoundedCornerShape(12.dp), modifier = Modifier.weight(1.5f)) {
+            Button(
+                onClick = onNext,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.weight(1.5f).defaultMinSize(minHeight = 48.dp)
+            ) {
                 Text("Proceed to Tests →", fontWeight = FontWeight.Bold)
             }
         }
@@ -946,16 +1044,36 @@ fun Step3TestSelection(
     val totalEffectiveSelected = selectedTestRefIds.size + alreadyAddedTestRefIds.size
 
     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            text = "Select Diagnostic Panels from Lab Catalog",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Select Test Panels",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = if (totalEffectiveSelected > 0) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                        else MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                Text(
+                    text = "$totalEffectiveSelected Selected",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (totalEffectiveSelected > 0) MaterialTheme.colorScheme.primary
+                           else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                )
+            }
+        }
 
         if (!errorMessage.isNullOrBlank()) {
             Surface(
                 color = MaterialTheme.colorScheme.errorContainer,
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
@@ -970,10 +1088,27 @@ fun Step3TestSelection(
         OutlinedTextField(
             value = searchTerm,
             onValueChange = { searchTerm = it },
-            placeholder = { Text("Filter assigned tests (e.g. CBC, LFT, KFT)...") },
-            leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null) },
+            placeholder = { Text("Search tests (e.g. CBC, Lipid, LFT, KFT)...") },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            trailingIcon = {
+                if (searchTerm.isNotBlank()) {
+                    IconButton(onClick = { searchTerm = "" }) {
+                        Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear")
+                    }
+                }
+            },
             singleLine = true,
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(14.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            ),
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -1004,7 +1139,7 @@ fun Step3TestSelection(
                 filteredTests.isEmpty() -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            text = "No active lab tests assigned to your organization.",
+                            text = if (searchTerm.isNotBlank()) "No tests matching \"$searchTerm\"" else "No active lab tests assigned to your organization.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.outline
                         )
@@ -1012,20 +1147,22 @@ fun Step3TestSelection(
                 }
                 else -> {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        items(filteredTests) { test ->
+                        items(items = filteredTests, key = { it.testRefId }) { test ->
                             val isAlreadyAdded = alreadyAddedTestRefIds.contains(test.testRefId)
                             val isChecked = isAlreadyAdded || selectedTestRefIds.contains(test.testRefId)
 
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(14.dp))
+                                    .clip(RoundedCornerShape(16.dp))
                                     .clickable(enabled = !isAlreadyAdded) { onToggleTest(test.testRefId) },
-                                shape = RoundedCornerShape(14.dp),
+                                shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.surface
                                 ),
-                                border = if (isChecked) BorderStroke(1.5.dp, Color(0xFF0D9488)) else null
+                                border = if (isChecked) BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                                         else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                                elevation = CardDefaults.cardElevation(defaultElevation = if (isChecked) 2.dp else 1.dp)
                             ) {
                                 Row(
                                     modifier = Modifier
@@ -1034,17 +1171,63 @@ fun Step3TestSelection(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            "${test.testName} (${test.testCode})",
-                                            fontWeight = FontWeight.Bold,
-                                            style = MaterialTheme.typography.titleMedium
-                                        )
-                                        Text(
-                                            if (isAlreadyAdded) "Already added to this report" else (test.testType ?: "Diagnostic Panel"),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.outline
-                                        )
+                                    Row(
+                                        modifier = Modifier.weight(1f),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Surface(
+                                            modifier = Modifier.size(42.dp),
+                                            shape = RoundedCornerShape(10.dp),
+                                            color = if (isChecked) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                                    else MaterialTheme.colorScheme.surfaceVariant
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Biotech,
+                                                    contentDescription = null,
+                                                    tint = if (isChecked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                        }
+
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Text(
+                                                    text = test.testName,
+                                                    fontWeight = FontWeight.Bold,
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.weight(1f, fill = false)
+                                                )
+                                                Surface(
+                                                    shape = RoundedCornerShape(4.dp),
+                                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                                                ) {
+                                                    Text(
+                                                        text = test.testCode,
+                                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                                    )
+                                                }
+                                            }
+                                            Text(
+                                                text = if (isAlreadyAdded) "Already added to report" else (test.testType ?: "Standard Diagnostic Panel"),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = if (isAlreadyAdded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
 
                                     Checkbox(
@@ -1061,14 +1244,18 @@ fun Step3TestSelection(
         }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedButton(onClick = onBack, shape = RoundedCornerShape(12.dp), modifier = Modifier.weight(1f)) {
+            OutlinedButton(
+                onClick = onBack,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.weight(1f).defaultMinSize(minHeight = 48.dp)
+            ) {
                 Text("← Back")
             }
             Button(
                 onClick = onProceedToResults,
                 enabled = totalEffectiveSelected > 0 && !isCreating,
                 shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.weight(1.8f)
+                modifier = Modifier.weight(1.8f).defaultMinSize(minHeight = 48.dp)
             ) {
                 if (isCreating) {
                     CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)

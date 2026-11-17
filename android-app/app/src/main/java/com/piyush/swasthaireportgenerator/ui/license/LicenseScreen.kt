@@ -1,4 +1,4 @@
-﻿package com.piyush.swasthaireportgenerator.ui.license
+package com.piyush.swasthaireportgenerator.ui.license
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -228,7 +228,7 @@ fun LicenseScreen(
                             }
                         }
 
-                        items(uiState.availablePlans) { plan ->
+                        items(items = uiState.availablePlans, key = { it.refId }) { plan ->
                             AvailablePlanCard(
                                 plan = plan,
                                 onRequestUpgrade = {
@@ -261,7 +261,8 @@ fun LicenseScreen(
                             item {
                                 Surface(
                                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Column(
@@ -291,7 +292,7 @@ fun LicenseScreen(
                                 }
                             }
                         } else {
-                            items(uiState.upgradeRequests) { req ->
+                            items(items = uiState.upgradeRequests, key = { it.refId }) { req ->
                                 UpgradeRequestItemCard(
                                     request = req,
                                     onCancel = { viewModel.cancelRequest(req.refId) }
@@ -327,11 +328,14 @@ fun ActiveLicenseCard(
     onRequestUpgrade: () -> Unit
 ) {
     val isUsable = license.currentlyUsable
+    val activeMint = Color(0xFF10B981)
+    val inactiveRed = Color(0xFFEF4444)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -341,29 +345,30 @@ fun ActiveLicenseCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFDCFCE7),
-                        modifier = Modifier.size(40.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        color = activeMint.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, activeMint.copy(alpha = 0.3f)),
+                        modifier = Modifier.size(44.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Default.WorkspacePremium,
                                 contentDescription = null,
-                                tint = Color(0xFF166534),
-                                modifier = Modifier.size(20.dp)
+                                tint = activeMint,
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                     }
 
-                    Column {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
                                 text = license.planName ?: "Starter",
@@ -372,12 +377,13 @@ fun ActiveLicenseCard(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Surface(
-                                color = if (isUsable) Color(0xFFDCFCE7) else Color(0xFFFEE2E2),
+                                color = if (isUsable) activeMint.copy(alpha = 0.15f) else inactiveRed.copy(alpha = 0.15f),
+                                border = BorderStroke(1.dp, if (isUsable) activeMint.copy(alpha = 0.3f) else inactiveRed.copy(alpha = 0.3f)),
                                 shape = RoundedCornerShape(100.dp)
                             ) {
                                 Text(
-                                    text = license.status ?: if (isUsable) "Active" else "Inactive",
-                                    color = if (isUsable) Color(0xFF166534) else Color(0xFF991B1B),
+                                    text = license.status ?: if (isUsable) "ACTIVE" else "INACTIVE",
+                                    color = if (isUsable) activeMint else inactiveRed,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
@@ -385,7 +391,7 @@ fun ActiveLicenseCard(
                             }
                         }
                         Text(
-                            text = "License Ref: ${license.refId.take(16).uppercase()}",
+                            text = "License: ${license.refId.take(16).uppercase()}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -395,16 +401,16 @@ fun ActiveLicenseCard(
                 Button(
                     onClick = onRequestUpgrade,
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D9488)),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                 ) {
                     Icon(Icons.Default.Upgrade, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Upgrade ↗", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("Upgrade", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
 
             // 3 Metadata Boxes (Start Date, Expiry Date, Remaining Validity)
             Row(
@@ -413,13 +419,14 @@ fun ActiveLicenseCard(
             ) {
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)),
                     modifier = Modifier.weight(1f)
                 ) {
                     Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("START DATE", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline)
+                        Text("START DATE", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline)
                         Text(
-                            text = license.startedAt?.take(10) ?: "11 Nov 2026",
+                            text = license.startedAt?.take(10) ?: "—",
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -429,13 +436,14 @@ fun ActiveLicenseCard(
 
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)),
                     modifier = Modifier.weight(1f)
                 ) {
                     Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("EXPIRY DATE", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline)
+                        Text("EXPIRY DATE", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline)
                         Text(
-                            text = license.expiresAt?.take(10) ?: "11 Nov 2027",
+                            text = license.expiresAt?.take(10) ?: "—",
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -445,13 +453,14 @@ fun ActiveLicenseCard(
 
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)),
                     modifier = Modifier.weight(1f)
                 ) {
                     Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("REMAINING", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline)
+                        Text("REMAINING", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline)
                         Text(
-                            text = "${daysRemaining ?: 360} days",
+                            text = "${daysRemaining ?: 0} days",
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -467,8 +476,9 @@ fun ActiveLicenseCard(
 fun UsageUtilizationCard(overview: OrganizationLicenseOverviewResponse) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -488,28 +498,30 @@ fun UsageUtilizationCard(overview: OrganizationLicenseOverviewResponse) {
 
             overview.staffUsage?.let { staff ->
                 val max = staff.maxLabStaff.coerceAtLeast(1)
+                val healthColor = if (staff.limitReached) Color(0xFFEF4444) else Color(0xFF10B981)
                 UsageMetricCard(
                     title = "Lab Staff License Seats",
                     subtitle = "Active technicians and pathologists",
                     valueText = "${staff.activeStaff} / ${staff.maxLabStaff} seats allocated",
-                    badgeText = "Healthy Usage",
-                    badgeBg = Color(0xFFDCFCE7),
-                    badgeFg = Color(0xFF166534),
+                    badgeText = if (staff.limitReached) "Limit Reached" else "Healthy Usage",
+                    badgeBg = healthColor.copy(alpha = 0.15f),
+                    badgeFg = healthColor,
                     progress = (staff.activeStaff.toFloat() / max.toFloat()).coerceIn(0f, 1f),
-                    footerText = "${staff.maxLabStaff - staff.activeStaff} seats available",
+                    footerText = "${(staff.maxLabStaff - staff.activeStaff).coerceAtLeast(0)} seats available",
                     isAlert = staff.limitReached
                 )
             }
 
             overview.reportUsage?.let { rep ->
                 val monthMax = rep.maxReportsPerMonth.coerceAtLeast(1)
+                val healthColor = if (rep.monthlyLimitReached) Color(0xFFEF4444) else Color(0xFF10B981)
                 UsageMetricCard(
                     title = "Monthly Report Generation",
                     subtitle = "Reports drafted and finalized this month",
                     valueText = "${rep.monthlyReportsCreated} / ${rep.maxReportsPerMonth} monthly reports used",
-                    badgeText = "Healthy Usage",
-                    badgeBg = Color(0xFFDCFCE7),
-                    badgeFg = Color(0xFF166534),
+                    badgeText = if (rep.monthlyLimitReached) "Limit Reached" else "Healthy Usage",
+                    badgeBg = healthColor.copy(alpha = 0.15f),
+                    badgeFg = healthColor,
                     progress = (rep.monthlyReportsCreated.toFloat() / monthMax.toFloat()).coerceIn(0f, 1f),
                     footerText = "Today: ${rep.dailyReportsCreated} / ${rep.maxReportsPerDay} reports • Resets on 1st of month",
                     isAlert = rep.monthlyLimitReached
@@ -523,13 +535,14 @@ fun UsageUtilizationCard(overview: OrganizationLicenseOverviewResponse) {
             ) {
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)),
                     modifier = Modifier.weight(1f)
                 ) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("REGISTERED PATIENTS", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline)
+                        Text("REGISTERED PATIENTS", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline)
                         Text(
-                            text = "${overview.patientUsage?.totalPatients ?: 1}",
+                            text = "${overview.patientUsage?.totalPatients ?: 0}",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -540,18 +553,19 @@ fun UsageUtilizationCard(overview: OrganizationLicenseOverviewResponse) {
 
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)),
                     modifier = Modifier.weight(1f)
                 ) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("LIFETIME REPORTS", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline)
+                        Text("LIFETIME REPORTS", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline)
                         Text(
-                            text = "${overview.reportUsage?.totalReports ?: 3}",
+                            text = "${overview.reportUsage?.totalReports ?: 0}",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Text("0 finalized", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("diagnostic records", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -573,7 +587,7 @@ fun UsageMetricCard(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -588,7 +602,11 @@ fun UsageMetricCard(
                     Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
 
-                Surface(color = badgeBg, shape = RoundedCornerShape(100.dp)) {
+                Surface(
+                    color = badgeBg,
+                    border = BorderStroke(1.dp, badgeFg.copy(alpha = 0.3f)),
+                    shape = RoundedCornerShape(100.dp)
+                ) {
                     Text(
                         text = badgeText,
                         color = badgeFg,
@@ -629,11 +647,12 @@ fun AvailablePlanCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -650,10 +669,14 @@ fun AvailablePlanCard(
                 }
 
                 if (plan.currentPlan) {
-                    Surface(color = Color(0xFFDCFCE7), shape = RoundedCornerShape(6.dp)) {
+                    Surface(
+                        color = Color(0xFF10B981).copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.3f)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
                         Text(
                             text = "CURRENT",
-                            color = Color(0xFF166534),
+                            color = Color(0xFF10B981),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
@@ -675,11 +698,18 @@ fun AvailablePlanCard(
                 Text(plan.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
-            Text(
-                text = "Up to ${plan.maxLabStaff} active users • ${plan.maxReportsPerMonth ?: "∞"} monthly reports • ${plan.maxReportsPerDay ?: "∞"} daily",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline
-            )
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Up to ${plan.maxLabStaff} active users • ${plan.maxReportsPerMonth ?: "∞"} monthly reports • ${plan.maxReportsPerDay ?: "∞"} daily",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                )
+            }
         }
     }
 }
@@ -691,14 +721,20 @@ fun UpgradeRequestItemCard(
 ) {
     val status = request.status.uppercase()
     val isPending = status == "PENDING"
+    val statusColor = when (status) {
+        "APPROVED" -> Color(0xFF10B981)
+        "REJECTED", "CANCELLED" -> Color(0xFFEF4444)
+        else -> Color(0xFFF59E0B)
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "${request.currentPlanName ?: "Current"} → ${request.requestedPlanName ?: "Target Plan"}",
@@ -708,20 +744,13 @@ fun UpgradeRequestItemCard(
                 )
 
                 Surface(
-                    color = when (status) {
-                        "APPROVED" -> Color(0xFFDCFCE7)
-                        "REJECTED", "CANCELLED" -> Color(0xFFFEE2E2)
-                        else -> Color(0xFFFEF3C7)
-                    },
+                    color = statusColor.copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, statusColor.copy(alpha = 0.3f)),
                     shape = RoundedCornerShape(6.dp)
                 ) {
                     Text(
                         text = status,
-                        color = when (status) {
-                            "APPROVED" -> Color(0xFF166534)
-                            "REJECTED", "CANCELLED" -> Color(0xFF991B1B)
-                            else -> Color(0xFF92400E)
-                        },
+                        color = statusColor,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
