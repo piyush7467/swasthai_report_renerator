@@ -317,9 +317,11 @@ class OrganizationProfileViewModel(application: Application) : AndroidViewModel(
                 _uiState.value = _uiState.value.copy(errorMessage = "Please select a valid image (PNG, JPEG, WebP).")
                 return@launch
             }
-            if (bytes!!.size > 2 * 1024 * 1024) {
+            if (bytes == null || bytes.size > 2 * 1024 * 1024) {
                 setBusy(false)
-                _uiState.value = _uiState.value.copy(errorMessage = "Image size must be less than 2 MB.")
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = if (bytes == null) "Could not read selected image." else "Image size must be less than 2 MB."
+                )
                 return@launch
             }
 

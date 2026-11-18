@@ -1,6 +1,7 @@
 package com.piyush.swasthaireportgenerator.ui.reports
 
 import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -70,7 +71,11 @@ fun ReportDetailsScreen(
                                         "Finalized At: ${report.finalizedAt ?: "Certified"}"
                                     )
                                 }
-                                context.startActivity(Intent.createChooser(sendIntent, "Share Lab Report via"))
+                                try {
+                                    context.startActivity(Intent.createChooser(sendIntent, "Share Lab Report via"))
+                                } catch (_: Throwable) {
+                                    Toast.makeText(context, "No app available to share report.", Toast.LENGTH_SHORT).show()
+                                }
                             },
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth()

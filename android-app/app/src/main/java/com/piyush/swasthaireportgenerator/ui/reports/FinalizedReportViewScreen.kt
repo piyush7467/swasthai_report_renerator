@@ -205,7 +205,7 @@ fun FinalizedReportViewScreen(
                                     }
                                     try {
                                         context.startActivity(viewIntent)
-                                    } catch (_: ActivityNotFoundException) {
+                                    } catch (_: Throwable) {
                                         Toast.makeText(
                                             context,
                                             "No PDF viewer installed on device. Use Share PDF instead.",
@@ -236,7 +236,11 @@ fun FinalizedReportViewScreen(
                                         )
                                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                     }
-                                    context.startActivity(Intent.createChooser(sendIntent, "Share Official PDF Report"))
+                                    try {
+                                        context.startActivity(Intent.createChooser(sendIntent, "Share Official PDF Report"))
+                                    } catch (_: Throwable) {
+                                        Toast.makeText(context, "No app available to share PDF report.", Toast.LENGTH_SHORT).show()
+                                    }
                                 }
                             },
                             enabled = !entryState.isPdfDownloading,
@@ -430,7 +434,7 @@ fun FinalizedReportViewScreen(
                                             entryState.logoBytes?.let { bytes ->
                                                 try {
                                                     BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
-                                                } catch (_: Exception) {
+                                                } catch (_: Throwable) {
                                                     null
                                                 }
                                             }
@@ -721,7 +725,7 @@ fun FinalizedReportViewScreen(
                         entryState.qrBytes?.let { bytes ->
                             try {
                                 BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
-                            } catch (_: Exception) {
+                            } catch (_: Throwable) {
                                 null
                             }
                         }
@@ -730,7 +734,7 @@ fun FinalizedReportViewScreen(
                         entryState.signatureBytes?.let { bytes ->
                             try {
                                 BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
-                            } catch (_: Exception) {
+                            } catch (_: Throwable) {
                                 null
                             }
                         }
@@ -931,7 +935,11 @@ private fun ShareReportLinkDialog(
                                             type = "text/plain"
                                             putExtra(Intent.EXTRA_TEXT, shareResponse.shareUrl)
                                         }
-                                        context.startActivity(Intent.createChooser(sendIntent, "Send Report Link"))
+                                        try {
+                                            context.startActivity(Intent.createChooser(sendIntent, "Send Report Link"))
+                                        } catch (_: Throwable) {
+                                            Toast.makeText(context, "No app available to share link.", Toast.LENGTH_SHORT).show()
+                                        }
                                     },
                                     shape = RoundedCornerShape(8.dp),
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)

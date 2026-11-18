@@ -313,7 +313,7 @@ fun SettingsScreen(
                         )
                         SettingsNavRow(
                             icon = Icons.Outlined.Info,
-                            title = "About SwasthAI Lab",
+                            title = "About SwasthAI Report Generator",
                             subtitle = "App version, technical specs & platform details",
                             iconContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                             iconTint = MaterialTheme.colorScheme.onSurfaceVariant,

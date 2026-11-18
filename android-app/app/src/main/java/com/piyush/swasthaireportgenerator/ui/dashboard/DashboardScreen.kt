@@ -68,7 +68,7 @@ fun DashboardScreen(
         uiState.logoBytes?.let { bytes ->
             try {
                 BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
-            } catch (_: Exception) {
+            } catch (_: Throwable) {
                 null
             }
         }
@@ -363,10 +363,10 @@ fun DashboardScreen(
                         reportUsage?.dailyLimitReached == true ||
                         reportUsage?.monthlyLimitReached == true ||
                         expiryStatus in setOf("EXPIRING_SOON", "EXPIRED", "SUSPENDED") ||
-                        (uiState.licenseDaysRemaining != null && uiState.licenseDaysRemaining!! <= 7)
+                        (uiState.licenseDaysRemaining?.let { it <= 7 } == true)
                     )
                 if (showSubAlert) {
-                    val isCritical = !license!!.currentlyUsable || expiryStatus in setOf("EXPIRED", "SUSPENDED")
+                    val isCritical = license?.currentlyUsable == false || expiryStatus in setOf("EXPIRED", "SUSPENDED")
                     val bannerTitle = when {
                         !license.currentlyUsable -> "Subscription ${license.status ?: "Inactive"}"
                         reportUsage?.monthlyLimitReached == true -> "Monthly Report Quota Reached"

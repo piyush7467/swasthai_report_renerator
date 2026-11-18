@@ -1,4 +1,4 @@
-﻿package com.piyush.swasthaireportgenerator.ui.components
+package com.piyush.swasthaireportgenerator.ui.components
 
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
@@ -87,7 +87,7 @@ fun AppDrawerContent(
                                 logoBytes?.let { bytes ->
                                     try {
                                         BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
-                                    } catch (_: Exception) {
+                                    } catch (_: Throwable) {
                                         null
                                     }
                                 }

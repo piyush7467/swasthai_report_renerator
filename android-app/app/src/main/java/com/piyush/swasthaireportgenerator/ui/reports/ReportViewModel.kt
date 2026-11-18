@@ -513,20 +513,27 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
             val result = reportRepository.downloadPdfBytes(reportRefId, includeHeader)
             result.fold(
                 onSuccess = { bytes ->
-                    val uri = withContext(Dispatchers.IO) {
-                        val reportsDir = File(context.cacheDir, "reports")
-                        if (!reportsDir.exists()) reportsDir.mkdirs()
-                        val code = reportRefId.replace(Regex("[^A-Za-z0-9._-]"), "_")
-                        val pdfFile = File(reportsDir, "SwasthReport_$code.pdf")
-                        pdfFile.writeBytes(bytes)
-                        FileProvider.getUriForFile(
-                            context,
-                            "${context.packageName}.fileprovider",
-                            pdfFile
+                    try {
+                        val uri = withContext(Dispatchers.IO) {
+                            val reportsDir = File(context.cacheDir, "reports")
+                            if (!reportsDir.exists()) reportsDir.mkdirs()
+                            val code = reportRefId.replace(Regex("[^A-Za-z0-9._-]"), "_")
+                            val pdfFile = File(reportsDir, "SwasthReport_$code.pdf")
+                            pdfFile.writeBytes(bytes)
+                            FileProvider.getUriForFile(
+                                context,
+                                "${context.packageName}.fileprovider",
+                                pdfFile
+                            )
+                        }
+                        _entryState.value = _entryState.value.copy(isPdfDownloading = false)
+                        onUriReady(uri)
+                    } catch (e: Exception) {
+                        _entryState.value = _entryState.value.copy(
+                            isPdfDownloading = false,
+                            pdfError = e.localizedMessage ?: "Failed to save or prepare PDF file"
                         )
                     }
-                    _entryState.value = _entryState.value.copy(isPdfDownloading = false)
-                    onUriReady(uri)
                 },
                 onFailure = { error ->
                     _entryState.value = _entryState.value.copy(

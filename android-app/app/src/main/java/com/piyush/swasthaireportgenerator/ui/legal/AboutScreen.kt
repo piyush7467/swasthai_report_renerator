@@ -94,7 +94,7 @@ fun AboutScreen(
                         }
 
                         Text(
-                            text = "SwasthAI Lab",
+                            text = "SwasthAI Report Generator",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface

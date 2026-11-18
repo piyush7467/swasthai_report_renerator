@@ -511,9 +511,9 @@ fun Step1PatientSelection(
         // Selected Patient Confirmation Card
         if (selectedPatient != null) {
             Surface(
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                color = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.5.dp, Color(0xFF0D9488)),
+                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -715,10 +715,10 @@ fun Step1PatientSelection(
                                 .clickable { onSelectPatient(patient) },
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface
+                                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f) else MaterialTheme.colorScheme.surface
                             ),
                             border = if (isSelected) {
-                                BorderStroke(1.5.dp, Color(0xFF0D9488))
+                                BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
                             } else {
                                 BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
                             }
@@ -738,7 +738,7 @@ fun Step1PatientSelection(
                                     Surface(
                                         modifier = Modifier.size(40.dp),
                                         shape = CircleShape,
-                                        color = if (isSelected) Color(0xFF0D9488) else MaterialTheme.colorScheme.surfaceVariant
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
                                             val initials = patient.name.trim().split(" ")
@@ -750,7 +750,7 @@ fun Step1PatientSelection(
                                             Text(
                                                 text = initials,
                                                 fontWeight = FontWeight.Bold,
-                                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                                                 fontSize = 13.sp
                                             )
                                         }
@@ -761,7 +761,7 @@ fun Step1PatientSelection(
                                             text = "${patient.salutation ?: ""} ${patient.name}".trim(),
                                             fontWeight = FontWeight.Bold,
                                             style = MaterialTheme.typography.titleSmall,
-                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
                                             text = "UHID: ${patient.patientCode} • ${patient.ageValue ?: 0} ${patient.ageUnit ?: "Yrs"} • ${patient.gender ?: ""}",
@@ -1620,7 +1620,7 @@ fun Step4ParameterResults(
                     }
                 }
 
-                items(test.parameters, key = { it.parameterRefId }) { param ->
+                items(test.parameters, key = { "${test.refId}_${it.parameterRefId}" }) { param ->
                     val isCurrentActive = activeParameterId == param.parameterRefId
                     val isCalculated = ClinicalCalculations.isCalculatedParameter(param, test.testCode)
                     val calculatedVal = if (isCalculated) {

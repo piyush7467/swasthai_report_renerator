@@ -1,0 +1,10 @@
+# Android build outputs & local config
+*.jks
+*.keystore
+keystore.properties
+local.properties
+.gradle/
+build/
+app/build/
+app/release/
+

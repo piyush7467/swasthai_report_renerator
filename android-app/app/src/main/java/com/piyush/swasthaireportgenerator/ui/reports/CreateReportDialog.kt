@@ -1,4 +1,4 @@
-﻿package com.piyush.swasthaireportgenerator.ui.reports
+package com.piyush.swasthaireportgenerator.ui.reports
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -188,7 +188,8 @@ fun CreateReportDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    if (selectedPatient == null) {
+                    val patient = selectedPatient
+                    if (patient == null) {
                         errorMessage = "Please select a patient"
                         return@Button
                     }
@@ -197,7 +198,7 @@ fun CreateReportDialog(
                         return@Button
                     }
                     errorMessage = null
-                    onCreateReport(selectedPatient!!.refId, selectedTests.toList())
+                    onCreateReport(patient.refId, selectedTests.toList())
                 },
                 enabled = !isCreating,
                 shape = RoundedCornerShape(12.dp)

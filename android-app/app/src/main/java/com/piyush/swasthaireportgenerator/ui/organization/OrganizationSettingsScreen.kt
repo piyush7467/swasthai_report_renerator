@@ -384,7 +384,7 @@ private fun OrganizationIdentitySummaryCard(
         logoBytes?.let {
             try {
                 BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap()
-            } catch (_: Exception) {
+            } catch (_: Throwable) {
                 null
             }
         }
@@ -720,7 +720,7 @@ private fun BrandingAndSignatureSection(
         logoBytes?.let {
             try {
                 BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap()
-            } catch (_: Exception) {
+            } catch (_: Throwable) {
                 null
             }
         }
@@ -729,7 +729,7 @@ private fun BrandingAndSignatureSection(
         signatureBytes?.let {
             try {
                 BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap()
-            } catch (_: Exception) {
+            } catch (_: Throwable) {
                 null
             }
         }
@@ -1206,7 +1206,7 @@ private fun LetterheadLivePreviewSection(
         logoBytes?.let {
             try {
                 BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap()
-            } catch (_: Exception) {
+            } catch (_: Throwable) {
                 null
             }
         }
@@ -1215,7 +1215,7 @@ private fun LetterheadLivePreviewSection(
         signatureBytes?.let {
             try {
                 BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap()
-            } catch (_: Exception) {
+            } catch (_: Throwable) {
                 null
             }
         }
