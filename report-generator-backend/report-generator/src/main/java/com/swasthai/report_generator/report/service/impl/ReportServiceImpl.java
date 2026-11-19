@@ -3117,7 +3117,7 @@ public class ReportServiceImpl implements ReportService {
             throw new IllegalStateException("Verification QR code is only available for finalized reports");
         }
 
-        String verificationUrl = "https://verify.swasthai.com/reports/" + report.getRefId().trim();
+        String verificationUrl = reportPdfDataBuilder.getVerificationBaseUrl() + report.getRefId().trim();
         return verificationQrCodeGenerator.generatePngBytes(verificationUrl);
     }
 
@@ -3228,7 +3228,7 @@ public class ReportServiceImpl implements ReportService {
         share.setLastAccessedAt(Instant.now());
         reportShareRepository.save(share);
 
-        String verificationUrl = "https://verify.swasthai.com/reports/" + report.getRefId().trim();
+        String verificationUrl = reportPdfDataBuilder.getVerificationBaseUrl() + report.getRefId().trim();
 
         return com.swasthai.report_generator.report.dto.response.SharedReportResponse.builder()
                 .shareToken(share.getShareToken())

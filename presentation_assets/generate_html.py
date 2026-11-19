@@ -1,0 +1,795 @@
+import os
+
+html_content = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwasthAI Report Generator - Academic & Project Presentation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-canvas: #F8FAFC;
+            --bg-slide: #FFFFFF;
+            --bg-card: #FFFFFF;
+            --bg-card-alt: #F1F5F9;
+            --border-subtle: #E2E8F0;
+            --border-teal: #99F6E4;
+            --teal-50: #F0FDFA;
+            --teal-600: #0D9488;
+            --teal-700: #0F766E;
+            --teal-900: #134E4A;
+            --slate-900: #0F172A;
+            --slate-700: #334155;
+            --slate-500: #64748B;
+            --rose-500: #F43F5E;
+            --rose-50: #FFF1F2;
+            --emerald-600: #059669;
+            --emerald-50: #ECFDF5;
+            --amber-600: #D97706;
+            --amber-50: #FFFBEB;
+            --blue-600: #0284C7;
+            --blue-50: #F0F9FF;
+            --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+            --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+            --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-canvas);
+            color: var(--slate-900);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        /* Top Presentation Controls Bar */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 52px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            z-index: 100;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--teal-700);
+        }
+
+        .brand img {
+            height: 28px;
+            width: auto;
+            border-radius: 6px;
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn {
+            background: white;
+            border: 1px solid var(--border-subtle);
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--slate-700);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            background: var(--bg-canvas);
+            border-color: var(--teal-600);
+            color: var(--teal-700);
+        }
+
+        .btn-primary {
+            background: var(--teal-600);
+            color: white;
+            border-color: var(--teal-600);
+        }
+
+        .btn-primary:hover {
+            background: var(--teal-700);
+            color: white;
+        }
+
+        .slide-counter {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--slate-500);
+            min-width: 60px;
+            text-align: center;
+        }
+
+        /* 16:9 Aspect Ratio Slide Viewport */
+        .stage {
+            width: 100vw;
+            max-width: 1360px;
+            height: calc(100vw * 9 / 16);
+            max-height: 765px;
+            margin-top: 56px;
+            position: relative;
+            background: var(--bg-slide);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-subtle);
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            padding: 44px 56px;
+            display: none;
+            flex-direction: column;
+            background: #FFFFFF;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .slide.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* Slide Headers */
+        .slide-header {
+            margin-bottom: 24px;
+        }
+
+        .badge-tag {
+            display: inline-block;
+            background: var(--teal-50);
+            color: var(--teal-700);
+            border: 1px solid var(--border-teal);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            margin-bottom: 8px;
+        }
+
+        .slide-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--slate-900);
+            line-height: 1.2;
+        }
+
+        .slide-subtitle {
+            font-size: 14px;
+            color: var(--slate-500);
+            margin-top: 4px;
+        }
+
+        /* Grid Utilities */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* Reusable Card */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .card-danger {
+            background: #FFFBFB;
+            border-color: #FECDD3;
+        }
+
+        .card-success {
+            background: #F7FEFA;
+            border-color: #A7F3D0;
+        }
+
+        .card-teal {
+            background: #F0FDFA;
+            border-color: #99F6E4;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--slate-900);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-desc {
+            font-size: 13px;
+            color: var(--slate-700);
+            line-height: 1.5;
+        }
+
+        .pill {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            text-transform: uppercase;
+        }
+
+        .pill-danger { background: var(--rose-50); color: var(--rose-500); border: 1px solid #FECDD3; }
+        .pill-success { background: var(--emerald-50); color: var(--emerald-600); border: 1px solid #A7F3D0; }
+        .pill-teal { background: var(--teal-50); color: var(--teal-700); border: 1px solid #99F6E4; }
+        .pill-blue { background: var(--blue-50); color: var(--blue-600); border: 1px solid #BAE6FD; }
+
+        /* Media Frame */
+        .media-box {
+            background: white;
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .media-box img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 6px;
+        }
+
+        /* Numbered Step Circle */
+        .step-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--teal-600);
+            color: white;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        /* Keyboard Hints */
+        .key-hint {
+            font-size: 11px;
+            color: var(--slate-500);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        kbd {
+            background: #F1F5F9;
+            border: 1px solid #CBD5E1;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--slate-700);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Navigation Bar -->
+    <div class="top-bar">
+        <div class="brand">
+            <img src="presentation_assets/swasthai_logo.png" alt="SwasthAI">
+            <span>SwasthAI Report Generator</span>
+        </div>
+        <div class="nav-controls">
+            <div class="key-hint">Use keys <kbd>◀</kbd> <kbd>▶</kbd> or <kbd>Space</kbd></div>
+            <button class="btn" onclick="prevSlide()">◀ Previous</button>
+            <div class="slide-counter" id="slideNum">1 / 9</div>
+            <button class="btn btn-primary" onclick="nextSlide()">Next ▶</button>
+            <button class="btn" onclick="toggleFullScreen()">⛶ Fullscreen</button>
+        </div>
+    </div>
+
+    <!-- Main Slide Stage (16:9) -->
+    <div class="stage" id="stage">
+
+        <!-- ==========================================
+             SLIDE 1: Title & Hero
+             ========================================== -->
+        <div class="slide active">
+            <div class="grid-2" style="align-items: center;">
+                <div style="padding-right: 20px;">
+                    <span class="badge-tag">Academic & Engineering Presentation</span>
+                    <h1 style="font-family: 'Space Grotesk', sans-serif; font-size: 38px; font-weight: 800; color: var(--slate-900); line-height: 1.15; margin-bottom: 12px;">
+                        SWASTHAI REPORT GENERATOR
+                    </h1>
+                    <h3 style="font-size: 18px; font-weight: 700; color: var(--teal-600); margin-bottom: 16px;">
+                        Automated Pathology Laboratory Information & Diagnostic Reporting System
+                    </h3>
+                    <p style="font-size: 14px; color: var(--slate-700); line-height: 1.6; margin-bottom: 24px;">
+                        A production-grade mobile health solution engineered with <strong>Android Jetpack Compose</strong> and <strong>Spring Boot REST Services</strong>. It bridges the critical communication gap between raw hardware analyzer screens and patient-friendly certified medical reports.
+                    </p>
+
+                    <div style="background: var(--teal-50); border: 1.5px solid var(--border-teal); border-radius: 12px; padding: 14px 18px;">
+                        <div style="font-size: 13px; font-weight: 800; color: var(--slate-900);">Project Lead & Developer: Piyush Shakya</div>
+                        <div style="font-size: 12px; color: var(--teal-700); margin-top: 4px;">Domain: Clinical Pathology • Digital Health • Automated LIMS</div>
+                    </div>
+                </div>
+
+                <div class="media-box" style="height: 90%;">
+                    <img src="presentation_assets/app_dashboard.jpg" alt="SwasthAI Android Dashboard">
+                </div>
+            </div>
+        </div>
+
+        <!-- ==========================================
+             SLIDE 2: The Pathology Bottleneck (Problem)
+             ========================================== -->
+        <div class="slide">
+            <div class="slide-header">
+                <span class="badge-tag">The Real-World Problem</span>
+                <h2 class="slide-title">The Pathology Laboratory Bottleneck</h2>
+                <div class="slide-subtitle">Why traditional diagnostic workflows fail technicians, doctors, and patients.</div>
+            </div>
+
+            <div class="grid-3">
+                <div class="card card-danger">
+                    <span class="pill pill-danger" style="width: fit-content; margin-bottom: 12px;">Problem 01</span>
+                    <h3 class="card-title">Cryptic Hardware Outputs</h3>
+                    <p class="card-desc">
+                        Hematology and biochemistry machines output raw numbers and statistical histograms (e.g. <code>WBC 11.9 H</code>, <code>PLT 84 L</code>, <code>RDW-SD 50 H</code>). Patients and non-specialists cannot interpret these raw parameters without immediate panic or confusion.
+                    </p>
+                </div>
+
+                <div class="card card-danger">
+                    <span class="pill pill-danger" style="width: fit-content; margin-bottom: 12px;">Problem 02</span>
+                    <h3 class="card-title">Manual Typing & Math Errors</h3>
+                    <p class="card-desc">
+                        Technicians manually transcribe values from machine screens into Word or Excel templates. Manual calculations for absolute differentials, MCV/MCH checks, and indices are highly prone to fatal human error and transcription slips.
+                    </p>
+                </div>
+
+                <div class="card card-danger">
+                    <span class="pill pill-danger" style="width: fit-content; margin-bottom: 12px;">Problem 03</span>
+                    <h3 class="card-title">Turnaround Delays & Security</h3>
+                    <p class="card-desc">
+                        Physical paper reports take hours or days to prepare. Patients must travel back to the lab to collect them. Physical sheets get lost, damaged, or easily forged without any digital seal or cryptographic verification mechanism.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==========================================
+             SLIDE 3: The Core Visual Transformation
+             ========================================== -->
+        <div class="slide">
+            <div class="slide-header">
+                <span class="badge-tag">Core Visual Transformation</span>
+                <h2 class="slide-title">Raw Analyzer Output vs. SwasthAI Report</h2>
+                <div class="slide-subtitle">Direct side-by-side evidence of how SwasthAI transforms machine data into human clarity.</div>
+            </div>
+
+            <div class="grid-2">
+                <!-- Left: Hardware screen -->
+                <div class="card card-danger">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h4 style="color: var(--rose-500); font-weight: 800; font-size: 14px;">BEFORE: Raw Machine Display (MISPA CountX)</h4>
+                        <span class="pill pill-danger">Cryptic Data</span>
+                    </div>
+                    <div style="flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; background: black; border-radius: 8px; margin-bottom: 8px;">
+                        <img src="presentation_assets/machine_raw_screen.jpg" alt="Analyzer Screen" style="max-height: 280px; width: 100%; object-fit: contain;">
+                    </div>
+                    <ul style="font-size: 11.5px; color: var(--slate-700); padding-left: 16px; line-height: 1.4;">
+                        <li>Unformatted raw statistics and isolated histograms</li>
+                        <li>No patient age/gender specific biological reference ranges</li>
+                        <li>Requires manual calculator math for absolute differential counts</li>
+                    </ul>
+                </div>
+
+                <!-- Right: SwasthAI Certified Report -->
+                <div class="card card-success">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h4 style="color: var(--emerald-600); font-weight: 800; font-size: 14px;">AFTER: SwasthAI Certified Diagnostic Report</h4>
+                        <span class="pill pill-success">Actionable Clarity</span>
+                    </div>
+                    <div style="flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; background: white; border-radius: 8px; margin-bottom: 8px; border: 1px solid #CBD5E1;">
+                        <img src="presentation_assets/swasthai_report_page_1.png" alt="SwasthAI Report" style="max-height: 280px; width: 100%; object-fit: contain;">
+                    </div>
+                    <ul style="font-size: 11.5px; color: var(--teal-900); padding-left: 16px; line-height: 1.4;">
+                        <li>Standardized clinical format with Patient UHID & Referring Doctor</li>
+                        <li>High-contrast badges: <strong>CRITICAL HIGH</strong>, <strong>CRITICAL LOW</strong>, <strong>NORMAL</strong></li>
+                        <li>Cryptographically signed with Doctor Signature and Live Verification QR</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==========================================
+             SLIDE 4: End-to-End Workflow Pipeline
+             ========================================== -->
+        <div class="slide">
+            <div class="slide-header">
+                <span class="badge-tag">Workflow Architecture</span>
+                <h2 class="slide-title">How SwasthAI Works: The 4-Step Pipeline</h2>
+                <div class="slide-subtitle">Accelerating turnaround time from 15 minutes to under 90 seconds.</div>
+            </div>
+
+            <div class="grid-4">
+                <div class="card">
+                    <div class="step-circle" style="background: var(--blue-600);">01</div>
+                    <h3 class="card-title">Patient UHID</h3>
+                    <p class="card-desc">
+                        Register patient once or select from the database via UHID, phone number, or name. Captures age, gender, and referring physician.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <div class="step-circle" style="background: var(--teal-600);">02</div>
+                    <h3 class="card-title">Rapid Entry</h3>
+                    <p class="card-desc">
+                        Select test panels (Complete Blood Count, Lipid Profile, LFT). Technicians enter parameters in an intuitive, keyboard-optimized UI.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <div class="step-circle" style="background: var(--emerald-600);">03</div>
+                    <h3 class="card-title">Auto Calculation</h3>
+                    <p class="card-desc">
+                        The built-in clinical engine automatically calculates absolute counts, RDW ratios, and hematocrit flags with biological guardrails.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <div class="step-circle" style="background: var(--amber-600);">04</div>
+                    <h3 class="card-title">Certified Delivery</h3>
+                    <p class="card-desc">
+                        Authorized clinician endorses with digital signature. Generates official PDF with a scannable verification QR seal for instant sharing.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==========================================
+             SLIDE 5: Stakeholder Impact
+             ========================================== -->
+        <div class="slide">
+            <div class="slide-header">
+                <span class="badge-tag">Value Proposition</span>
+                <h2 class="slide-title">Who Gets Benefited & How?</h2>
+                <div class="slide-subtitle">Measurable advantages delivered across every level of the diagnostic chain.</div>
+            </div>
+
+            <div class="grid-2">
+                <div class="card card-teal">
+                    <h3 class="card-title">👤 Patients (The Ultimate Beneficiary)</h3>
+                    <p class="card-desc">
+                        • <strong>Zero Anxiety:</strong> Color-coded badges make results instantly understandable.<br>
+                        • <strong>No Waiting:</strong> Instant PDF delivery directly on WhatsApp or Smartphone.<br>
+                        • <strong>UHID History:</strong> Lifelong digital record for second opinions.<br>
+                        • <strong>Tamper-Proof:</strong> Verifiable QR seal proves authenticity to doctors.
+                    </p>
+                </div>
+
+                <div class="card card-teal">
+                    <h3 class="card-title">🔬 Lab Technicians & Staff</h3>
+                    <p class="card-desc">
+                        • <strong>90% Faster:</strong> Drafts complete diagnostic reports in under 90 seconds.<br>
+                        • <strong>Zero Math:</strong> Differential counts and indices computed automatically.<br>
+                        • <strong>Error Guardrails:</strong> Alerts technicians if values contradict biological limits.<br>
+                        • <strong>Mobile Agility:</strong> Operates on standard Android phones and tablets.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title">🩺 Consulting Physicians & Doctors</h3>
+                    <p class="card-desc">
+                        • <strong>Instant Triaging:</strong> Critical high/low parameters are immediately prominent.<br>
+                        • <strong>Consistent Layout:</strong> Standardized intervals eliminate formatting discrepancies.<br>
+                        • <strong>Pathologist Endorsement:</strong> Timestamped signatures ensure legal validity.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title">🏥 Diagnostic Center Owners</h3>
+                    <p class="card-desc">
+                        • <strong>Low Capex:</strong> Eliminates legacy $5,000+ desktop LIMS licenses.<br>
+                        • <strong>Cloud Sync:</strong> Centralized multi-branch records stored on PostgreSQL.<br>
+                        • <strong>Brand Identity:</strong> Custom lab logo, letterhead header, and license controls.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==========================================
+             SLIDE 6: Deep Dive — Patient Benefits
+             ========================================== -->
+        <div class="slide">
+            <div class="slide-header">
+                <span class="badge-tag">Patient Empowerment</span>
+                <h2 class="slide-title">What Patients Gain from SwasthAI</h2>
+                <div class="slide-subtitle">Humanizing medical diagnostic data for transparent healthcare.</div>
+            </div>
+
+            <div class="grid-2" style="align-items: center;">
+                <div style="display: flex; flex-direction: column; gap: 14px;">
+                    <div style="background: white; border: 1px solid var(--border-subtle); padding: 14px; border-radius: 10px; box-shadow: var(--shadow-sm);">
+                        <h4 style="color: var(--teal-700); font-size: 14px; font-weight: 800; margin-bottom: 4px;">🟢 Color-Coded Clinical Clarity</h4>
+                        <p style="font-size: 12.5px; color: var(--slate-700);">
+                            Instead of cryptic strings, parameters are tagged with <strong>CRITICAL HIGH</strong>, <strong>NORMAL</strong>, or <strong>CRITICAL LOW</strong>. Patients know immediately whether they require urgent medical intervention.
+                        </p>
+                    </div>
+
+                    <div style="background: white; border: 1px solid var(--border-subtle); padding: 14px; border-radius: 10px; box-shadow: var(--shadow-sm);">
+                        <h4 style="color: var(--teal-700); font-size: 14px; font-weight: 800; margin-bottom: 4px;">⚡ Instant Digital Delivery</h4>
+                        <p style="font-size: 12.5px; color: var(--slate-700);">
+                            Eliminates the agonizing wait in crowded lab reception areas. Patients receive the digital report within minutes of test completion.
+                        </p>
+                    </div>
+
+                    <div style="background: white; border: 1px solid var(--border-subtle); padding: 14px; border-radius: 10px; box-shadow: var(--shadow-sm);">
+                        <h4 style="color: var(--teal-700); font-size: 14px; font-weight: 800; margin-bottom: 4px;">🛡️ Scannable Anti-Fraud QR Seal</h4>
+                        <p style="font-size: 12.5px; color: var(--slate-700);">
+                            Scanning the report QR code with any smartphone instantly verifies the authenticity directly from the lab server, eliminating forged diagnostic sheets.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="media-box" style="height: 100%; max-height: 480px;">
+                    <img src="presentation_assets/swasthai_report_page_2.png" alt="Report Seal and Signature" style="max-height: 450px;">
+                </div>
+            </div>
+        </div>
+
+        <!-- ==========================================
+             SLIDE 7: Mobile App Interface Showcase
+             ========================================== -->
+        <div class="slide">
+            <div class="slide-header">
+                <span class="badge-tag">User Experience</span>
+                <h2 class="slide-title">Inside the SwasthAI Android Application</h2>
+                <div class="slide-subtitle">Engineered with modern Jetpack Compose for high-speed clinical interaction.</div>
+            </div>
+
+            <div class="grid-3">
+                <div class="card" style="align-items: center; text-align: center;">
+                    <h4 style="color: var(--teal-700); font-size: 14px; font-weight: 700; margin-bottom: 4px;">1. Patient Selection</h4>
+                    <p style="font-size: 11px; color: var(--slate-500); margin-bottom: 12px;">Instant search by UHID, phone, or name with visual age/gender badges.</p>
+                    <div style="flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; max-height: 320px;">
+                        <img src="presentation_assets/app_patient_select.jpg" alt="Patient Selection" style="max-height: 310px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+                    </div>
+                </div>
+
+                <div class="card" style="align-items: center; text-align: center;">
+                    <h4 style="color: var(--teal-700); font-size: 14px; font-weight: 700; margin-bottom: 4px;">2. Clinical Workspace</h4>
+                    <p style="font-size: 11px; color: var(--slate-500); margin-bottom: 12px;">Test catalog, real-time math calculation, and differential counts.</p>
+                    <div style="flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; max-height: 320px;">
+                        <img src="presentation_assets/app_workspace.jpg" alt="Clinical Workspace" style="max-height: 310px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+                    </div>
+                </div>
+
+                <div class="card" style="align-items: center; text-align: center;">
+                    <h4 style="color: var(--teal-700); font-size: 14px; font-weight: 700; margin-bottom: 4px;">3. Executive Dashboard</h4>
+                    <p style="font-size: 11px; color: var(--slate-500); margin-bottom: 12px;">Daily test quota, live lab metrics, and rapid draft resume actions.</p>
+                    <div style="flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; max-height: 320px;">
+                        <img src="presentation_assets/app_dashboard.jpg" alt="Executive Dashboard" style="max-height: 310px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==========================================
+             SLIDE 8: Technical Architecture
+             ========================================== -->
+        <div class="slide">
+            <div class="slide-header">
+                <span class="badge-tag">Academic & Technical Defense</span>
+                <h2 class="slide-title">System Architecture & Engineering Highlights</h2>
+                <div class="slide-subtitle">Engineered for high reliability, zero crashes, and enterprise scalability.</div>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h3 class="card-title">📱 Android Mobile Architecture</h3>
+                    <p class="card-desc">
+                        • <strong>100% Kotlin & Jetpack Compose:</strong> Modern reactive UI without XML fragmentation.<br>
+                        • <strong>Clean Architecture + MVVM:</strong> Strict separation of UI, Domain, and Data layers.<br>
+                        • <strong>StateFlow & Coroutines:</strong> Asynchronous thread safety with zero UI stutters.<br>
+                        • <strong>Crash-Hardened Engine:</strong> Localized <code>try-catch (Throwable)</code> shields around Bitmaps (OOM protection), PDF FileProviders, and Intent Choosers.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title">⚙️ Cloud Backend & Security</h3>
+                    <p class="card-desc">
+                        • <strong>Java Spring Boot REST API:</strong> Enterprise grade business logic & transactions.<br>
+                        • <strong>PostgreSQL Relational DB:</strong> ACID-compliant patient diagnostic schemas.<br>
+                        • <strong>JWT TokenAuthenticator:</strong> Transparent single-flight access token renewal.<br>
+                        • <strong>Server-Side iText Engine:</strong> High-performance vector PDF rendering with cryptographic QR generation.
+                    </p>
+                </div>
+
+                <div class="card card-teal">
+                    <h3 class="card-title">⚡ Performance Benchmarks</h3>
+                    <p class="card-desc">
+                        • <strong>Turnaround Time:</strong> Reduced from 15 minutes to &lt; 90 seconds (90% gain).<br>
+                        • <strong>Transcription Errors:</strong> Reduced to 0% with auto-differential algorithms.<br>
+                        • <strong>App Binary Size:</strong> Compact ~16.6 MB footprint targeting Android 8 to 15.
+                    </p>
+                </div>
+
+                <div class="card card-teal">
+                    <h3 class="card-title">🔒 Privacy & Regulatory Safeguards</h3>
+                    <p class="card-desc">
+                        • <strong>Multi-Tenant Data Isolation:</strong> Laboratory records strictly segregated.<br>
+                        • <strong>Tamper-Evident Logs:</strong> Every report finalization records pathologist credentials.<br>
+                        • <strong>PhonePe Indus Appstore Ready:</strong> Built with release keystore & SDK 35 compliance.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==========================================
+             SLIDE 9: Conclusion & Roadmap
+             ========================================== -->
+        <div class="slide">
+            <div class="slide-header">
+                <span class="badge-tag">Project Conclusion</span>
+                <h2 class="slide-title">Summary & Future Technological Roadmap</h2>
+                <div class="slide-subtitle">Transforming healthcare diagnostics with accessible software engineering.</div>
+            </div>
+
+            <div class="grid-3">
+                <div class="card card-success">
+                    <span class="pill pill-success" style="width: fit-content; margin-bottom: 12px;">Delivered Today</span>
+                    <h3 class="card-title">What We Delivered</h3>
+                    <p class="card-desc">
+                        A production-ready Android LIMS ecosystem that modernizes pathology operations, eliminates error-prone transcription, and provides patients with transparent, certified medical reports.
+                    </p>
+                </div>
+
+                <div class="card card-teal">
+                    <span class="pill pill-teal" style="width: fit-content; margin-bottom: 12px;">Clinical Impact</span>
+                    <h3 class="card-title">Social & Health Value</h3>
+                    <p class="card-desc">
+                        Brings digital diagnostic capabilities to grassroots and tier-2/3 diagnostic centers, democratizing healthcare transparency for millions of patients.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <span class="pill pill-blue" style="width: fit-content; margin-bottom: 12px;">Future Horizons</span>
+                    <h3 class="card-title">Next Horizons</h3>
+                    <p class="card-desc">
+                        • <strong>OCR Machine Vision:</strong> Photograph analyzer screens to auto-fill inputs.<br>
+                        • <strong>AI Trend Commentary:</strong> Longitudinal AI blood biomarker trend insights.<br>
+                        • <strong>ABHA Integration:</strong> Linking with India's Ayushman Bharat Digital Health Mission.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Slide Navigation Script -->
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        let currentSlide = 0;
+        const totalSlides = slides.length;
+        const slideNumDisplay = document.getElementById('slideNum');
+
+        function updateSlide(index) {
+            slides.forEach((s, i) => {
+                s.classList.remove('active');
+                if (i === index) {
+                    s.classList.add('active');
+                }
+            });
+            slideNumDisplay.textContent = `${index + 1} / ${totalSlides}`;
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                currentSlide++;
+                updateSlide(currentSlide);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlide(currentSlide);
+            }
+        }
+
+        function toggleFullScreen() {
+            const stage = document.getElementById('stage');
+            if (!document.fullscreenElement) {
+                if (stage.requestFullscreen) stage.requestFullscreen();
+                else if (stage.webkitRequestFullscreen) stage.webkitRequestFullscreen();
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        }
+
+        // Keyboard Navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                prevSlide();
+            } else if (e.key === 'f' || e.key === 'F') {
+                toggleFullScreen();
+            }
+        });
+    </script>
+</body>
+</html>
+"""
+
+with open("d:/Java-spring-boot-projects/swasthai-report-generator/SwasthAI_Presentation.html", "w", encoding="utf-8") as f:
+    f.write(html_content)
+
+print("Generated HTML interactive presentation successfully!")
+

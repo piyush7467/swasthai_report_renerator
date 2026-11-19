@@ -6,6 +6,7 @@ import com.swasthai.report_generator.report.entity.ReportTestResult;
 import com.swasthai.report_generator.test.entity.ParameterInputType;
 import com.swasthai.report_generator.test.entity.TestParameterResult;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
@@ -35,8 +36,18 @@ public class ReportPdfDataBuilder {
      * ReportTestResult and TestParameterResult.
      */
 
-    private static final String VERIFICATION_BASE_URL =
-            "https://verify.swasthai.com/reports/";
+    public static final String DEFAULT_VERIFICATION_BASE_URL =
+            "https://swasthreport.piyushshakya.me/verify/reports/";
+
+    @Value("${report.verification.base-url:" + DEFAULT_VERIFICATION_BASE_URL + "}")
+    private String verificationBaseUrl;
+
+    public String getVerificationBaseUrl() {
+        if (verificationBaseUrl == null || verificationBaseUrl.isBlank()) {
+            return DEFAULT_VERIFICATION_BASE_URL;
+        }
+        return verificationBaseUrl.endsWith("/") ? verificationBaseUrl : verificationBaseUrl + "/";
+    }
 
     public ReportPdfData build(Report report) {
 
@@ -189,7 +200,7 @@ public class ReportPdfDataBuilder {
                         .map(this::buildTestPdfItem)
                         .toList();
 
-        String verificationUrl = VERIFICATION_BASE_URL + report.getRefId().trim();
+        String verificationUrl = getVerificationBaseUrl() + report.getRefId().trim();
         if (isBlank(verificationUrl)) {
             throw new IllegalStateException(
                     "Finalized report verification URL cannot be blank"

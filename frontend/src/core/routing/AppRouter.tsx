@@ -56,6 +56,7 @@ import PrivacyPolicyPage from "@/modules/public/pages/PrivacyPolicyPage";
 import TermsConditionsPage from "@/modules/public/pages/TermsConditionsPage";
 import HelpSupportPage from "@/modules/public/pages/HelpSupportPage";
 import DataDeletionPage from "@/modules/public/pages/DataDeletionPage";
+import ReportVerificationPage from "@/modules/public/pages/ReportVerificationPage";
 
 function NotFoundPage() {
   return (
@@ -99,6 +100,20 @@ export function AppRouter() {
         <Route
           path="/shared/reports/:shareToken"
           element={<SharedReportViewerPage />}
+        />
+
+        {/* Public Report Verification (QR Code destination) */}
+        <Route
+          path="/verify/reports/:reportRefId"
+          element={<ReportVerificationPage />}
+        />
+        <Route
+          path="/verify/:reportRefId"
+          element={<ReportVerificationPage />}
+        />
+        <Route
+          path="/reports/verify/:reportRefId"
+          element={<ReportVerificationPage />}
         />
 
         {/* Public Legal, Policy & Support Pages */}
