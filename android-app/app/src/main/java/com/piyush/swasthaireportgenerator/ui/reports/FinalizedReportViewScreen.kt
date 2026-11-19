@@ -625,7 +625,7 @@ fun FinalizedReportViewScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 DemographicField(
-                                    label = "AGE / GENDER",
+                                    label = "AGE • GENDER",
                                     value = report.displayAgeGender,
                                     modifier = Modifier.weight(1.1f)
                                 )

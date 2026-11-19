@@ -106,7 +106,7 @@ fun HelpSupportScreen(
                             ) {
                                 Icon(imageVector = Icons.Outlined.Email, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Email Desk")
+                                Text("Email")
                             }
 
                             OutlinedButton(
@@ -171,7 +171,7 @@ fun HelpSupportScreen(
             item {
                 FaqCard(
                     question = "How can a laboratory or patient request data deletion?",
-                    answer = "In accordance with Google Play Data Safety policies, registered administrators can request full account and diagnostic record purging. Email privacy@swasthai.com with your registered laboratory email and station ID. We will verify and process the permanent deletion within statutory compliance timelines."
+                    answer = "In accordance with applicable Data Safety policies, registered administrators can request full account and diagnostic record purging. Email privacy@swasthai.com with your registered laboratory email and station ID. We will verify and process the permanent deletion within statutory compliance timelines."
                 )
             }
         }

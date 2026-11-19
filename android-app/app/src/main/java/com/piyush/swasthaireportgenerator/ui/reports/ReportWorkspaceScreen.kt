@@ -985,7 +985,7 @@ fun Step2DoctorSelection(
         OutlinedTextField(
             value = clinicalNotes,
             onValueChange = onNotesChange,
-            label = { Text("Clinical Remarks / Sample Notes (Optional)") },
+            label = { Text("Clinical Remarks (Optional)") },
             placeholder = { Text("e.g. Fasting sample, 12h post-prandial, EDTA vial") },
             maxLines = 3,
             shape = RoundedCornerShape(14.dp),
@@ -1982,7 +1982,7 @@ fun Step5PreFinalizationReview(
     val orgName = report?.organizationName?.ifBlank { "ARNAV PATHOLOGY LAB" } ?: "ARNAV PATHOLOGY LAB"
     val patientName = report?.displayPatientName ?: "MR Ram"
     val patientCode = report?.patientCode ?: "PAT-000001"
-    val ageGender = report?.displayAgeGender ?: "35 years / MALE"
+    val ageGender = report?.displayAgeGender ?: "35 years • MALE"
     val reportRef = report?.refId?.let { "RPT-${it.take(8).uppercase()}" } ?: "RPT-0gB0otGfnqZA"
     val reportDate = report?.createdAt?.take(16)?.replace("T", ", ") ?: "15 Nov 2026, 8:06 am"
 
@@ -2165,11 +2165,11 @@ fun Step5PreFinalizationReview(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Patient ID / MRN:", fontSize = 8.sp, color = Color.Gray)
+                                    Text("Patient UHID:", fontSize = 8.sp, color = Color.Gray)
                                     Text(patientCode, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Black, maxLines = 1)
                                 }
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Ordered / Created:", fontSize = 8.sp, color = Color.Gray)
+                                    Text("Created Date:", fontSize = 8.sp, color = Color.Gray)
                                     Text(reportDate, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Black, maxLines = 1)
                                 }
                             }
@@ -2179,7 +2179,7 @@ fun Step5PreFinalizationReview(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Age / Gender:", fontSize = 8.sp, color = Color.Gray)
+                                    Text("Age • Gender:", fontSize = 8.sp, color = Color.Gray)
                                     Text(ageGender, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Black, maxLines = 1)
                                 }
                                 Column(modifier = Modifier.weight(1f)) {

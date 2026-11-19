@@ -107,14 +107,6 @@ fun PatientListScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showAddPatientDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Default.PersonAdd,
-                            contentDescription = "Add Patient",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
                     Box {
                         IconButton(onClick = { showOverflowMenu = true }) {
                             Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Patient Options")
@@ -164,17 +156,6 @@ fun PatientListScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
-            )
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { showAddPatientDialog = true },
-                icon = { Icon(Icons.Default.PersonAdd, contentDescription = null) },
-                text = { Text("New Patient", fontWeight = FontWeight.Bold) },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.padding(bottom = 76.dp)
             )
         }
     ) { paddingValues ->
@@ -304,7 +285,7 @@ fun PatientListScreen(
 
                                 Text(
                                     text = if (searchQuery.isNotBlank()) {
-                                        "No records found for \"$searchQuery\". Try checking the spelling or search by UHID / phone number."
+                                        "No records found for \"$searchQuery\". Try checking the spelling or search by UHID or phone number."
                                     } else {
                                         "Register walk-in patients to assign diagnostic tests, manage clinical history, and generate authenticated reports."
                                     },

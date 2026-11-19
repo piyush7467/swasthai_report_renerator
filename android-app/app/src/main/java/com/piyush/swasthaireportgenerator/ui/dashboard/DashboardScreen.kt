@@ -1214,7 +1214,7 @@ fun DashboardStaffCapacityCard(
                 )
 
                 Text(
-                    text = "Staff Seats: $activeStaff / $maxStaff",
+                    text = "Staff Seats: $activeStaff of $maxStaff",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 11.sp

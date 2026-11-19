@@ -199,7 +199,7 @@ fun TestCatalogScreen(
                                 modifier = Modifier.weight(1f)
                             )
                             CatalogStatCard(
-                                title = "Inactive / On Hold",
+                                title = "Inactive",
                                 value = "$inactiveCount",
                                 icon = Icons.Default.Shield,
                                 iconBg = MaterialTheme.colorScheme.surfaceVariant,

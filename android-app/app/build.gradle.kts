@@ -32,7 +32,7 @@ android {
             if (keystorePropertiesFile.exists()) {
                 val storeFilePath = keystoreProperties.getProperty("storeFile")
                 if (!storeFilePath.isNullOrBlank()) {
-                    storeFile = file(storeFilePath)
+                    storeFile = file(storeFilePath.replace("\\", "/"))
                 }
                 storePassword = keystoreProperties.getProperty("storePassword")
                 keyAlias = keystoreProperties.getProperty("keyAlias")

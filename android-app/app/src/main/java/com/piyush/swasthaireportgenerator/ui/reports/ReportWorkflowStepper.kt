@@ -1,4 +1,4 @@
-﻿package com.piyush.swasthaireportgenerator.ui.reports
+package com.piyush.swasthaireportgenerator.ui.reports
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -25,7 +25,7 @@ data class StepInfo(
 )
 
 val WORKFLOW_STEPS = listOf(
-    StepInfo(1, "Patient", "Select / Register"),
+    StepInfo(1, "Patient", "Select Patient"),
     StepInfo(2, "Doctor", "Assign Pathologist"),
     StepInfo(3, "Select Tests", "Lab Catalog"),
     StepInfo(4, "Enter Results", "Parameters & Flags"),

@@ -82,7 +82,7 @@ fun ReportDetailsScreen(
                         ) {
                             Icon(imageVector = Icons.Default.Share, contentDescription = "Share")
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Share Report (WhatsApp / Drive)", fontWeight = FontWeight.Bold)
+                            Text("Share Report", fontWeight = FontWeight.Bold)
                         }
                     }
                 }

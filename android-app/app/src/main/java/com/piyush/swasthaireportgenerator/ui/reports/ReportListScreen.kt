@@ -95,7 +95,7 @@ fun ReportListScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "Worklist & Reports",
+                            text = "Worklist",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -121,14 +121,6 @@ fun ReportListScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onCreateReportClick) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "New Report",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
                     Box {
                         IconButton(onClick = { showOverflowMenu = true }) {
                             Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Report Options")
@@ -167,17 +159,6 @@ fun ReportListScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
-            )
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onCreateReportClick,
-                icon = { Icon(imageVector = Icons.Default.Add, contentDescription = null) },
-                text = { Text("New Report", fontWeight = FontWeight.Bold) },
-                shape = RoundedCornerShape(16.dp),
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.padding(bottom = 76.dp)
             )
         }
     ) { paddingValues ->
@@ -501,7 +482,7 @@ fun ReportCard(
                     modifier = Modifier.size(15.dp)
                 )
                 Text(
-                    text = if (tests.isNotBlank()) tests else "Biochemistry / Hematology Panel",
+                    text = if (tests.isNotBlank()) tests else "Diagnostic Test Panel",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

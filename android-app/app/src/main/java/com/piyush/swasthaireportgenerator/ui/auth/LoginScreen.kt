@@ -199,7 +199,7 @@ fun LoginScreen(
                         OutlinedTextField(
                             value = email,
                             onValueChange = { email = it },
-                            placeholder = { Text("Enter laboratory email") },
+                            placeholder = { Text("Enter your email") },
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Default.Email,
@@ -241,7 +241,7 @@ fun LoginScreen(
                         OutlinedTextField(
                             value = password,
                             onValueChange = { password = it },
-                            placeholder = { Text("Enter station password") },
+                            placeholder = { Text("Enter your password") },
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Default.Lock,
@@ -267,7 +267,7 @@ fun LoginScreen(
                             keyboardActions = KeyboardActions(
                                 onDone = {
                                     focusManager.clearFocus()
-                                    viewModel.login(email, password)
+                                    viewModel.login(email.trim(), password)
                                 }
                             ),
                             colors = OutlinedTextFieldDefaults.colors(
@@ -310,7 +310,7 @@ fun LoginScreen(
                     Button(
                         onClick = {
                             focusManager.clearFocus()
-                            viewModel.login(email, password)
+                            viewModel.login(email.trim(), password)
                         },
                         enabled = !isLoading,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
@@ -327,7 +327,7 @@ fun LoginScreen(
                             )
                         } else {
                             Text(
-                                text = "Sign In to Laboratory",
+                                text = "Sign In",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimary
@@ -358,7 +358,7 @@ fun LoginScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(100.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

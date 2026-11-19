@@ -561,7 +561,7 @@ private fun GeneralAndAddressSection(
                 OutlinedTextField(
                     value = alternatePhone,
                     onValueChange = { alternatePhone = it },
-                    label = { Text("Alternate / Emergency Contact") },
+                    label = { Text("Emergency Contact") },
                     placeholder = { Text("+91 11 2345 6789") },
                     colors = OutlinedTextFieldDefaults.colors(unfocusedPlaceholderColor = placeholderColor, focusedPlaceholderColor = placeholderColor),
                     enabled = isOrgAdmin,
@@ -1358,8 +1358,8 @@ private fun LetterheadLivePreviewSection(
                                     Text("John Doe (Sample)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Black, maxLines = 1)
                                 }
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("AGE / GENDER", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
-                                    Text("34 Yrs / Male", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Black, maxLines = 1)
+                                    Text("AGE • GENDER", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                                    Text("34 Yrs • Male", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Black, maxLines = 1)
                                 }
                             }
                             Row(

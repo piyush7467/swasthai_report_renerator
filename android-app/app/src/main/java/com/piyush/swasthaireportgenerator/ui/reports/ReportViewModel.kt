@@ -105,9 +105,7 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
             if (options.isEmpty()) {
-                options.add("Self / Walk-in")
-            } else {
-                options.add("Self / Walk-in")
+                options.add("Chief Pathologist")
             }
 
             _entryState.value = _entryState.value.copy(

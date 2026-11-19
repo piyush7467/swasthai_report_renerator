@@ -347,7 +347,7 @@ fun StaffSummaryQuotaCard(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "${summary.activeStaff} / ${summary.maxLabStaff} active staff slots used",
+                        text = "${summary.activeStaff} of ${summary.maxLabStaff} active staff slots used",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

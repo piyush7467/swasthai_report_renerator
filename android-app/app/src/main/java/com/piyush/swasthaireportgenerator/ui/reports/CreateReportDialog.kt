@@ -210,7 +210,7 @@ fun CreateReportDialog(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Create Draft Worklist")
+                    Text("Create Worklist Draft")
                 }
             }
         },

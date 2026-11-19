@@ -502,7 +502,7 @@ fun UsageUtilizationCard(overview: OrganizationLicenseOverviewResponse) {
                 UsageMetricCard(
                     title = "Lab Staff License Seats",
                     subtitle = "Active technicians and pathologists",
-                    valueText = "${staff.activeStaff} / ${staff.maxLabStaff} seats allocated",
+                    valueText = "${staff.activeStaff} of ${staff.maxLabStaff} seats allocated",
                     badgeText = if (staff.limitReached) "Limit Reached" else "Healthy Usage",
                     badgeBg = healthColor.copy(alpha = 0.15f),
                     badgeFg = healthColor,
@@ -518,7 +518,7 @@ fun UsageUtilizationCard(overview: OrganizationLicenseOverviewResponse) {
                 UsageMetricCard(
                     title = "Monthly Report Generation",
                     subtitle = "Reports drafted and finalized this month",
-                    valueText = "${rep.monthlyReportsCreated} / ${rep.maxReportsPerMonth} monthly reports used",
+                    valueText = "${rep.monthlyReportsCreated} of ${rep.maxReportsPerMonth} monthly reports used",
                     badgeText = if (rep.monthlyLimitReached) "Limit Reached" else "Healthy Usage",
                     badgeBg = healthColor.copy(alpha = 0.15f),
                     badgeFg = healthColor,
